@@ -1,0 +1,336 @@
+name: faroai
+
+services:
+  api:
+    build:
+      context: ./gateway
+    environment:
+      PORT: "3000"
+      DATABASE_URL: ${DATABASE_URL:-postgres://faroai:${FAROAI_DB_PASSWORD}@postgres:5432/faroai}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      PYTHON_SERVICE_URL: ${PYTHON_SERVICE_URL:-http://ai-service:8000}
+      FAROAI_INTERNAL_SECRET: ${FAROAI_INTERNAL_SECRET:?set FAROAI_INTERNAL_SECRET}
+      API_KEY_PEPPER: ${API_KEY_PEPPER:?set API_KEY_PEPPER}
+      MAX_BODY_BYTES: ${MAX_BODY_BYTES:-32768}
+      FAROAI_TENANT_MODE: ${FAROAI_TENANT_MODE:-multi}
+      FAROAI_SINGLE_TENANT_ID: ${FAROAI_SINGLE_TENANT_ID:-}
+      FAROAI_DEPLOYMENT_MODE: ${FAROAI_DEPLOYMENT_MODE:-hosted}
+      FAROAI_SHARED_TRAINING_ENABLED: ${FAROAI_SHARED_TRAINING_ENABLED:-false}
+      FAROAI_ALLOW_EXTERNAL_PROVIDERS: ${FAROAI_ALLOW_EXTERNAL_PROVIDERS:-false}
+      FAROAI_LOCAL_LLM_ENABLED: ${FAROAI_LOCAL_LLM_ENABLED:-false}
+      FAROAI_ALLOWED_LOCAL_MODEL_HOSTS: ${FAROAI_ALLOWED_LOCAL_MODEL_HOSTS:-}
+      MCP_ALLOWED_HOSTS: ${MCP_ALLOWED_HOSTS:-}
+      MCP_ALLOW_DOCKER_HOST_HTTP: ${MCP_ALLOW_DOCKER_HOST_HTTP:-false}
+      BACKOFFICE_ENABLED: ${BACKOFFICE_ENABLED:-false}
+      BACKOFFICE_OIDC_ENABLED: ${BACKOFFICE_OIDC_ENABLED:-false}
+      BACKOFFICE_LOCAL_AUTH_ENABLED: ${BACKOFFICE_LOCAL_AUTH_ENABLED:-false}
+      BACKOFFICE_ADMIN_EMAILS: ${BACKOFFICE_ADMIN_EMAILS:-}
+      BACKOFFICE_OIDC_ISSUER_URL: ${BACKOFFICE_OIDC_ISSUER_URL:-}
+      BACKOFFICE_OIDC_CLIENT_ID: ${BACKOFFICE_OIDC_CLIENT_ID:-}
+      BACKOFFICE_OIDC_CLIENT_SECRET: ${BACKOFFICE_OIDC_CLIENT_SECRET:-}
+      BACKOFFICE_OIDC_REDIRECT_URI: ${BACKOFFICE_OIDC_REDIRECT_URI:-}
+      BACKOFFICE_LOCAL_ADMIN_EMAIL: ${BACKOFFICE_LOCAL_ADMIN_EMAIL:-}
+      BACKOFFICE_LOCAL_ADMIN_PASSWORD_HASH_B64: ${BACKOFFICE_LOCAL_ADMIN_PASSWORD_HASH_B64:-}
+      BACKOFFICE_URL: ${BACKOFFICE_URL:-http://127.0.0.1:3001}
+      BACKOFFICE_COOKIE_SECURE: ${BACKOFFICE_COOKIE_SECURE:-false}
+      FAROAI_CONFIG_ENCRYPTION_KEY: ${FAROAI_CONFIG_ENCRYPTION_KEY:-}
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    networks:
+      - app
+      - data
+      - host_api
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cpus: "0.40"
+    mem_limit: 512m
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  ai-service:
+    build:
+      context: ./ai-service
+      args:
+        EMBEDDING_MODEL: ${EMBEDDING_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://faroai:${FAROAI_DB_PASSWORD}@postgres:5432/faroai}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+      QDRANT_API_KEY: ${QDRANT_API_KEY:?set QDRANT_API_KEY}
+      FAROAI_INTERNAL_SECRET: ${FAROAI_INTERNAL_SECRET:?set FAROAI_INTERNAL_SECRET}
+      FAROAI_DEPLOYMENT_MODE: ${FAROAI_DEPLOYMENT_MODE:-hosted}
+      FAROAI_TENANT_MODE: ${FAROAI_TENANT_MODE:-multi}
+      FAROAI_SINGLE_TENANT_ID: ${FAROAI_SINGLE_TENANT_ID:-}
+      FAROAI_SHARED_TRAINING_ENABLED: ${FAROAI_SHARED_TRAINING_ENABLED:-false}
+      FAROAI_LOCAL_LLM_ENABLED: ${FAROAI_LOCAL_LLM_ENABLED:-false}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
+      EMBEDDING_DIMENSION: ${EMBEDDING_DIMENSION:-384}
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-approved_knowledge_v1}
+      QDRANT_PRODUCT_COLLECTION: ${QDRANT_PRODUCT_COLLECTION:-faroai_products_v1}
+      MODEL_PROVIDER: ${MODEL_PROVIDER:-none}
+      MODEL_BASE_URL: ${MODEL_BASE_URL:-}
+      MODEL_API_KEY: ${MODEL_API_KEY:-}
+      MODEL_NAME: ${MODEL_NAME:-}
+      OPENROUTER_DATA_COLLECTION: ${OPENROUTER_DATA_COLLECTION:-deny}
+      MCP_CONNECTIONS_JSON: ${MCP_CONNECTIONS_JSON:-}
+      MCP_ALLOWED_HOSTS: ${MCP_ALLOWED_HOSTS:-}
+      MCP_ALLOW_DOCKER_HOST_HTTP: ${MCP_ALLOW_DOCKER_HOST_HTTP:-false}
+      PRODUCT_BASE_URL: ${PRODUCT_BASE_URL:-}
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    networks:
+      - app
+      - data
+      - host_api
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cpus: "0.60"
+    mem_limit: 1280m
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./ai-service
+      args:
+        EMBEDDING_MODEL: ${EMBEDDING_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
+    command: ["python", "-m", "faroai.worker"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://faroai:${FAROAI_DB_PASSWORD}@postgres:5432/faroai}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+      QDRANT_API_KEY: ${QDRANT_API_KEY:?set QDRANT_API_KEY}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
+      EMBEDDING_DIMENSION: ${EMBEDDING_DIMENSION:-384}
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-approved_knowledge_v1}
+      QDRANT_PRODUCT_COLLECTION: ${QDRANT_PRODUCT_COLLECTION:-faroai_products_v1}
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    networks:
+      - data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cpus: "0.40"
+    mem_limit: 1024m
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: faroai
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      FAROAI_DB_PASSWORD: ${FAROAI_DB_PASSWORD:?set FAROAI_DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d faroai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - data
+    cpus: "0.40"
+    mem_limit: 768m
+    pids_limit: 256
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+  migrations:
+    image: postgres:16-alpine
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: faroai
+      PGUSER: postgres
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    command: ["sh", "/scripts/run-migrations.sh"]
+    volumes:
+      - ./infra/postgres/migrations:/migrations:ro
+      - ./infra/postgres/run-migrations.sh:/scripts/run-migrations.sh:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - data
+    restart: "no"
+
+  backoffice:
+    build:
+      context: ./backoffice
+      args:
+        FAROAI_API_INTERNAL_URL: ${FAROAI_API_INTERNAL_URL:-http://api:3000}
+    environment:
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      FAROAI_API_INTERNAL_URL: ${FAROAI_API_INTERNAL_URL:-http://api:3000}
+      FAROAI_TENANT_MODE: ${FAROAI_TENANT_MODE:-multi}
+      FAROAI_SINGLE_TENANT_ID: ${FAROAI_SINGLE_TENANT_ID:-}
+      FAROAI_DEPLOYMENT_MODE: ${FAROAI_DEPLOYMENT_MODE:-hosted}
+      FAROAI_DEMO_ENABLED: ${FAROAI_DEMO_ENABLED:-false}
+      FAROAI_SHARED_TRAINING_ENABLED: ${FAROAI_SHARED_TRAINING_ENABLED:-false}
+      FAROAI_DEMO_TENANT_ID: ${FAROAI_DEMO_TENANT_ID:-}
+      FAROAI_DEMO_API_KEY: ${FAROAI_DEMO_API_KEY:-}
+      FAROAI_GIS_API_KEY: ${FAROAI_GIS_API_KEY:-}
+    ports:
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - app
+      - host_api
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cpus: "0.25"
+    mem_limit: 384m
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - data
+    cpus: "0.20"
+    mem_limit: 384m
+    pids_limit: 64
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:v1.19.2-unprivileged
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?set QDRANT_API_KEY}
+      QDRANT__SERVICE__READ_ONLY_API_KEY: ${QDRANT_READ_ONLY_API_KEY:?set QDRANT_READ_ONLY_API_KEY}
+      QDRANT__TELEMETRY_DISABLED: "true"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+      - qdrant_snapshots:/qdrant/snapshots
+    networks:
+      - data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cpus: "0.70"
+    mem_limit: 1536m
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  qdrant_storage:
+  qdrant_snapshots:
+
+networks:
+  app:
+    internal: true
+  data:
+    internal: true
+  host_api:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+

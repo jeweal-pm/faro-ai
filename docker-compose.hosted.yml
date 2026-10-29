@@ -1,0 +1,10 @@
+services:
+  ai-service:
+    networks:
+      - app
+      - data
+      - provider_egress
+
+networks:
+  provider_egress:
+    driver: bridge

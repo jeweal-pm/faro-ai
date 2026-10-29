@@ -1,0 +1,11 @@
+# 15-10-26 — Live GIS product search recovery
+
+- Fixed the generic discovery failure caused by a stale API container sending an estimated-cost field that the AI service rejected with HTTP 422. Rebuilt the API from current source and removed the replaced API image.
+- The saved GIS MCP URL was the prior ngrok URL, which returned HTTP 404. Pointed the enabled GIS connection to `http://host.docker.internal:3009/mcp` for the user's separately running local GIS service. Its encrypted API credential and approved `search_products` tool were retained.
+- Enabled the opt-in local Docker host-gateway HTTP exception in the local Compose override. The production/default configuration continues to reject HTTP endpoints unless explicitly enabled.
+- Jev Decisions, GIS `search_products`, and OpenRouter answer generation were each observed returning HTTP 200 for `I need ring not round cut`; the API returned five GIS product cards with `decision_used: true` and GIS MCP attribution.
+- Found that the GIS MCP advertises no `filters.stone_shape_exclude` argument and returns no verified `stone_shape` for these products. FAROAI removes the negated phrase from its lexical query and filters explicitly named excluded shapes, but cannot guarantee the remaining candidates satisfy the shape constraint until GIS implements the structured contract.
+- Changed the answer path so missing shape metadata is disclosed and the generation model cannot assert that unverified candidates meet “not round cut.” The tested response says five rings were found and their shape could not be verified; the five product cards remain available for review.
+- Validation: the focused live search called the same `/v1/chat` API used by the Backoffice server action and returned HTTP 200, five products, a Jev decision, and GIS source attribution. The frontend root and API readiness endpoint returned HTTP 200. All six `test_mcp_products.py` tests passed inside the running AI container. No browser package was installed.
+
+Related decisions and contracts: [ADR-0021](../../adr/0021-structured-product-search-constraints.md), [structured-search spec](../../spec/structured-product-search-constraints.md), and [live MCP search spec](../../spec/live-mcp-product-search.md).

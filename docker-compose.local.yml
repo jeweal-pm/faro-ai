@@ -1,0 +1,52 @@
+services:
+  api:
+    cpus: "0.20"
+    mem_limit: 320m
+    volumes:
+      - ./gateway/dist:/app/dist:ro
+    environment:
+      MCP_ALLOWED_HOSTS: "${MCP_ALLOWED_HOSTS:-},host.docker.internal"
+      MCP_ALLOW_DOCKER_HOST_HTTP: "true"
+  ai-service:
+    cpus: "0.40"
+    mem_limit: 832m
+    environment:
+      MCP_ALLOWED_HOSTS: "${MCP_ALLOWED_HOSTS:-},host.docker.internal"
+      MCP_ALLOW_DOCKER_HOST_HTTP: "true"
+    command: ["uvicorn", "faroai.app:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/app/faroai"]
+    volumes:
+      - ./ai-service/faroai:/app/faroai:ro
+    networks:
+      - app
+      - data
+      - provider_egress
+  worker:
+    cpus: "0.30"
+    mem_limit: 704m
+    volumes:
+      - ./ai-service/faroai:/app/faroai:ro
+  postgres:
+    cpus: "0.20"
+    mem_limit: 320m
+  redis:
+    cpus: "0.10"
+    mem_limit: 256m
+  qdrant:
+    cpus: "0.55"
+    mem_limit: 512m
+    ports:
+      - "127.0.0.1:6333:6333"
+    networks:
+      data: {}
+      qdrant_dashboard: {}
+  backoffice:
+    cpus: "0.25"
+    mem_limit: 384m
+
+networks:
+  provider_egress:
+    driver: bridge
+  qdrant_dashboard:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: "false"

@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="แผนเตรียม Cloud GPU สำหรับ Local Fine-tuning ให้ติดตั้งครั้งเดียวและเปิดใช้ซ้ำได้">
+  <title>แผนติดตั้ง Cloud GPU สำหรับ Local Fine-tuning</title>
+  <style>
+    :root{color-scheme:light;--ink:#18243b;--muted:#65718a;--line:#dfe6ef;--paper:#f4f7fb;--white:#fff;--blue:#637cf5;--teal:#43c7bd;--green:#187b69;--amber:#9a6208;--shadow:0 18px 48px #24395712}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.72 "Segoe UI",Tahoma,sans-serif}a{color:#3859c9;text-decoration:none}a:hover{text-decoration:underline}.layout{max-width:1440px;margin:auto;padding:30px 26px 70px;display:grid;grid-template-columns:250px minmax(0,1fr);gap:28px}.toc{position:sticky;top:20px;align-self:start;background:var(--white);border:1px solid var(--line);border-radius:18px;padding:19px 17px;box-shadow:var(--shadow);max-height:calc(100vh - 40px);overflow:auto}.toc strong{display:block;margin:0 0 10px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#73809a}.toc a{display:block;padding:6px 8px;border-radius:8px;color:#53617b;font-size:13px}.toc a:hover{background:#f2f5ff;color:#344db0;text-decoration:none}.content{min-width:0}.hero{position:relative;overflow:hidden;background:linear-gradient(115deg,#edf0ff 0%,#e8fbf8 100%);border:1px solid #dce6f1;border-radius:24px;padding:34px 38px;box-shadow:var(--shadow)}.hero:after{content:"";position:absolute;width:240px;height:240px;border-radius:50%;right:-60px;top:-120px;background:#ffffff66}.eyebrow{font-size:11px;font-weight:700;letter-spacing:.17em;color:#647391;text-transform:uppercase}.hero h1{position:relative;z-index:1;margin:8px 0 12px;font:500 clamp(29px,4vw,43px)/1.18 Georgia,"Times New Roman",serif}.hero p{position:relative;z-index:1;margin:0;max-width:880px;color:#5f6d85}.badges{display:flex;flex-wrap:wrap;gap:9px;margin-top:19px;position:relative;z-index:1}.badge{display:inline-flex;align-items:center;border:1px solid #d5e1eb;background:#ffffffc9;border-radius:999px;padding:4px 11px;font-size:12px;color:#52617a}.badge.status{color:#177866;background:#e4f8f2;border-color:#c6ece2}.summary{margin:20px 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.summary article{background:white;border:1px solid var(--line);border-radius:15px;padding:16px 18px;box-shadow:0 5px 20px #24395708}.summary b{display:block;font-size:14px}.summary span{display:block;color:var(--muted);font-size:13px;margin-top:3px}.callout{border-radius:15px;padding:17px 20px;margin:17px 0;background:#fff;border:1px solid var(--line)}.callout.primary{background:linear-gradient(110deg,#e8edff,#e3faf6);border-color:#d8e5f2}.callout.warning{background:#fff8e9;border-color:#f2dfb2}.callout strong{color:#293c67}.section{background:white;border:1px solid var(--line);border-radius:19px;padding:25px 28px;margin:17px 0;box-shadow:0 7px 28px #24395708;scroll-margin-top:20px}.section h2{font:500 24px/1.3 Georgia,"Times New Roman",serif;margin:0 0 12px}.section h3{font-size:16px;margin:23px 0 8px}.section p{margin:8px 0;color:#4e5d76}.section ul,.section ol{padding-left:23px;margin:9px 0;color:#4e5d76}.section li{padding-left:3px;margin:5px 0}.steps{counter-reset:step;list-style:none;padding:0!important}.steps li{counter-increment:step;position:relative;padding:4px 0 4px 43px;margin:7px 0}.steps li:before{content:counter(step);position:absolute;left:0;top:2px;width:28px;height:28px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--teal));color:white;font-weight:700;font-size:13px}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px;margin:13px 0}table{width:100%;min-width:680px;border-collapse:collapse;font-size:13px}th,td{text-align:left;vertical-align:top;padding:12px 14px;border-bottom:1px solid #e8edf3}th{background:#f7f9fd;color:#495977;font-size:12px;letter-spacing:.03em}tbody tr:last-child td{border:0}tbody tr:hover{background:#fbfcff}.price{white-space:nowrap;font-weight:700;color:#1f376b}.good{color:var(--green);font-weight:600}.caution{color:var(--amber);font-weight:600}.tree,pre{overflow:auto;background:#17243b;color:#e4edff;border-radius:12px;padding:16px 19px;font:13px/1.6 Consolas,"Courier New",monospace}code{font-family:Consolas,"Courier New",monospace;background:#f1f4fa;border-radius:5px;padding:1px 5px;color:#344b8d}.tree code,pre code{background:none;color:inherit;padding:0}.checklist{list-style:none;padding:0!important}.checklist li{padding:7px 8px 7px 34px;position:relative;border-bottom:1px solid #edf0f5}.checklist li:before{content:"";position:absolute;left:8px;top:14px;width:14px;height:14px;border:1.5px solid #9aa8bf;border-radius:4px}.links{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}.links a{display:inline-block;padding:7px 11px;border:1px solid var(--line);border-radius:9px;background:#fafbfe;font-size:13px}.foot{color:var(--muted);font-size:12px;text-align:center;padding:20px 8px}.toplink{display:inline-block;margin-top:10px;font-size:12px;color:#5264a9}
+    @media(max-width:950px){.layout{grid-template-columns:1fr;padding:17px}.toc{position:relative;top:auto;max-height:none;display:flex;flex-wrap:wrap;gap:3px 8px;align-items:center}.toc strong{width:100%;margin-bottom:4px}.summary{grid-template-columns:1fr}.hero{padding:27px 23px}.section{padding:21px 20px}}
+    @media print{body{background:white}.layout{display:block;max-width:none;padding:0}.toc{display:none}.hero,.section,.summary article{box-shadow:none;break-inside:avoid}.section{border:0;border-top:1px solid #ddd;padding:18px 0;margin:0}.hero{padding:18px 0;background:white}.table-wrap{overflow:visible}table{min-width:0;font-size:10px}th,td{padding:6px}.toplink{display:none}}
+  </style>
+</head>
+<body>
+<div class="layout">
+  <nav class="toc" aria-label="สารบัญแผน">
+    <strong>สารบัญ</strong>
+    <a href="#goal">เป้าหมาย</a><a href="#providers">เลือกผู้ให้บริการ</a><a href="#storage">โครงสร้าง storage</a>
+    <a href="#first-setup">ติดตั้งครั้งแรก</a><a href="#each-run">ขั้นตอนใช้ซ้ำ</a><a href="#cost">ค่าใช้จ่ายและปิดเครื่อง</a>
+    <a href="#security">Security และข้อมูล</a><a href="#limits">ข้อจำกัด runner</a><a href="#acceptance">Checklist รับมอบ</a><a href="#execution">ลำดับลงมือ</a>
+  </nav>
+  <main class="content">
+    <header class="hero" id="top">
+      <div class="eyebrow">FaroAI · Local model training</div>
+      <h1>แผนเตรียม Cloud GPU<br>ติดตั้งครั้งเดียว เปิดใช้ซ้ำได้</h1>
+      <p>เตรียมเครื่องฝึก LoRA แยกจาก FAROAI ให้พร้อมใช้งานเร็ว เก็บ dependencies, model cache และไฟล์งานข้ามการปิดเครื่อง พร้อมควบคุมค่า GPU เมื่อไม่ได้เทรน</p>
+      <div class="badges"><span class="badge status">แผนเสนอ · ยังไม่ได้สร้าง Cloud resource</span><span class="badge">วันที่ 15 ตุลาคม 2026</span><span class="badge">อ้างอิง ADR-0022 / SPEC</span></div>
+    </header>
+
+    <div class="summary">
+      <article><b>ติดตั้งครั้งเดียว</b><span>Python, CUDA runtime, dependencies และ runner อยู่ใน image/boot disk</span></article>
+      <article><b>เปิดซ้ำแล้วใช้ cache เดิม</b><span>เก็บ model checkpoint, dataset และ adapter บน encrypted persistent volume</span></article>
+      <article><b>หยุด GPU เมื่อเสร็จ</b><span>เลือก Stop หรือ Destroy ให้ตรง billing ของผู้ให้บริการ</span></article>
+    </div>
+
+    <div class="callout primary"><strong>แนวทางหลักที่เสนอ:</strong> AWS EC2 On-Demand + encrypted EBS. Stop EC2 เมื่อไม่ใช้เพื่อลดค่า compute; EBS ยังเก็บข้อมูลแต่คิดค่าพื้นที่ต่อ. สำหรับ runner ตอนนี้เริ่มพิจารณา <code>g4dn.xlarge</code> ที่มี T4 VRAM 16 GB. ราคาในเอกสารราว <b>$0.526/ชั่วโมงใน us-east-1</b> เป็น snapshot จากผู้ให้บริการข้อมูลราคา ต้องยืนยันใน AWS console ก่อนสร้างเครื่อง.</div>
+
+    <section class="section" id="goal">
+      <h2>1. เป้าหมายการใช้งาน</h2>
+      <p>เตรียม environment ให้เสร็จครั้งเดียว รอบถัดไปให้ทำตามขั้นตอนสั้นๆ นี้:</p>
+      <ol class="steps"><li>เปิด GPU instance จาก image ที่เตรียมไว้</li><li>ตรวจ CUDA และ mount volume สำหรับงาน</li><li>นำ dataset ที่ผ่าน consent/review เข้าพื้นที่ฝึก</li><li>สั่ง runner โดยใช้ model cache ที่มีอยู่แล้ว</li><li>ตรวจผลลัพธ์และหยุด GPU instance</li></ol>
+      <div class="callout warning"><strong>เป้าหมายด้านความเร็ว:</strong> รอบถัดไปไม่ติดตั้ง Python dependencies หรือดาวน์โหลด base model ซ้ำ ต้องวัดเวลาจริงกับ cloud และ region ที่เลือกก่อนถือว่าผ่าน</div>
+    </section>
+
+    <section class="section" id="providers">
+      <h2>2. เลือกผู้ให้บริการ</h2>
+      <div class="table-wrap"><table><thead><tr><th>ผู้ให้บริการ</th><th>วิธีเปิด/ปิด</th><th>ผลกับค่าใช้จ่าย</th><th>เหมาะกับกรณี</th></tr></thead><tbody>
+        <tr><td><b>AWS EC2 + EBS</b><span class="sub">แนวทางหลัก</span></td><td>Stop/Start instance และคง EBS ไว้</td><td>หยุดค่า compute เมื่อ Stop; EBS/snapshot ยังมี storage charge</td><td>ใช้งานซ้ำและอยากเก็บ OS/environment เดิมไว้</td></tr>
+        <tr><td><b>Google Cloud VM + Persistent Disk</b></td><td>Stop/Start VM และคง Persistent Disk ไว้</td><td>หยุด CPU/GPU; disk/IP ที่เก็บไว้ยังคิดเงิน. ตรวจ GPU capacity ใน zone</td><td>ทีมที่ใช้งาน Google Cloud อยู่แล้ว</td></tr>
+        <tr><td><b>DigitalOcean GPU Droplet</b></td><td>Destroy Droplet แล้วสร้างใหม่เมื่อต้องใช้</td><td>Power off ยังคิดค่า GPU จนกว่าจะ Destroy; volume แยกคิดเงิน</td><td>งานเป็นครั้งคราวและรับ setup/rebuild เครื่องใหม่ได้</td></tr>
+        <tr><td><b>Runpod Pod</b></td><td>สร้าง Pod ตามรอบงาน</td><td>ตรวจ Cloud tier, region และ storage charge ก่อน Deploy; อย่าคิดว่าราคา Pod รวม storage ที่เก็บข้ามรอบ</td><td>ต้องการเช่าเครื่อง GPU ตามรอบและเช็กยอดก่อนสร้างทุกครั้ง</td></tr>
+      </tbody></table></div>
+      <p><b>ข้อเสนอเริ่มต้น:</b> ใช้ AWS EC2 + EBS สำหรับ setup นี้ เพราะ Stop/Start ได้และเก็บ environment บนเครื่องได้. ราคากับ availability เปลี่ยนตาม region, OS และ quota จึงต้องยืนยันก่อนเปิดจริง.</p>
+      <div class="links"><a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/how-ec2-instance-stop-start-works.html" target="_blank" rel="noreferrer">AWS stop/start และ EBS</a><a href="https://docs.cloud.google.com/compute/docs/instances/suspend-stop-reset-instances-overview" target="_blank" rel="noreferrer">Google Cloud stop billing</a><a href="https://docs.digitalocean.com/products/droplets/details/pricing/" target="_blank" rel="noreferrer">DigitalOcean billing</a><a href="gpu-cloud-pricelist-15-10-26.html">เปิด GPU Cloud Pricelist</a></div>
+    </section>
+
+    <section class="section" id="storage">
+      <h2>3. โครงสร้างพื้นที่เก็บข้อมูล</h2>
+      <p>แยกข้อมูลที่ต้องเก็บจาก scratch/temporary storage. ตัวอย่าง volume ที่ mount คงที่ไว้ที่ <code>/mnt/faro-training</code>:</p>
+      <pre class="tree"><code>/mnt/faro-training/
+├── datasets/             # JSONL export ที่อนุมัติแล้ว; จำกัดสิทธิ์และเข้ารหัส
+├── model-cache/          # Transformers checkpoint ที่ดาวน์โหลดครั้งแรก
+├── runs/&lt;run-id&gt;/        # adapter, tokenizer metadata, training-manifest.json
+├── logs/                 # log แต่ละรอบ; ห้ามใส่ secret
+└── backups/              # ที่พักชั่วคราวก่อนส่งกลับ storage ปลายทาง</code></pre>
+      <ul><li>เก็บ OS, Python, dependencies และ runner ใน boot disk/image ที่สร้างซ้ำได้.</li><li>เก็บ dataset, model cache และผลลัพธ์บน encrypted persistent volume หรือ storage ที่ mount กลับ path เดิมได้.</li><li>แยกแต่ละรอบด้วย <code>runs/&lt;run-id&gt;</code> เพื่อไม่เขียน adapter ทับงานเดิม.</li><li>ห้ามเก็บข้อมูลสำคัญไว้บน instance-store/local scratch เพียงที่เดียว เพราะอาจหายเมื่อหยุดหรือสร้าง instance ใหม่.</li><li>กำหนด retention และลบ dataset/cache ที่ไม่ต้องเก็บ; volume ยังคงคิดค่า storage แม้ GPU หยุด.</li></ul>
+    </section>
+
+    <section class="section" id="first-setup">
+      <h2>4. เตรียม environment ครั้งแรก</h2>
+      <ol class="steps">
+        <li><b>เลือก Cloud และสิทธิ์:</b> ใช้บัญชีทดลองเฉพาะ, ตั้ง budget alert, ตรวจ GPU quota/region/ราคา Linux/disk/IP/network. ใช้ IAM role ที่ให้สิทธิ์เท่าที่จำเป็น.</li>
+        <li><b>สร้างเครื่องส่วนตัว:</b> ใช้ Linux x86_64 image ที่รองรับ NVIDIA CUDA; พิจารณา AWS Deep Learning AMI หรือ base image ที่ทีมดูแลได้. ห้ามเปิด SSH/RDP สู่ internet แบบกว้าง; ใช้ Session Manager หรือ allowlist IP ชั่วคราว.</li>
+        <li><b>เข้ารหัสดิสก์:</b> เข้ารหัส boot disk, data disk และ snapshot; ปิด public access ของ object storage.</li>
+        <li><b>ติดตั้ง software:</b> ใช้ Python 3.12 และ virtual environment; ติดตั้ง runner/dependencies ด้วย <code>pip --no-cache-dir</code>. Pin เวอร์ชันที่ทดสอบแล้วใน lock file เพราะ requirements ปัจจุบันเป็น version ranges.</li>
+        <li><b>ตรวจ GPU:</b> ตรวจ <code>nvidia-smi</code> และ <code>torch.cuda.is_available()</code> ว่า driver/CUDA/PyTorch เห็น GPU จริง.</li>
+        <li><b>เตรียม volume:</b> mount encrypted data volume ที่ <code>/mnt/faro-training</code>; ตรวจ filesystem, permissions, พื้นที่ว่าง และเจ้าของ directory.</li>
+        <li><b>Warm model cache:</b> ดาวน์โหลดเฉพาะ Transformers checkpoint ที่เลือกและมี license อนุญาตลง <code>model-cache</code>. ตั้ง path คงที่และไม่ใส่ API key ใน shell history/config.</li>
+        <li><b>สร้าง image ที่ใช้ซ้ำ:</b> รัน smoke check ขนาดเล็กให้ผ่าน แล้วสร้าง AMI/snapshot ของ boot environment. ห้าม bake dataset หรือ credentials ลง image.</li>
+        <li><b>บันทึกเวอร์ชัน:</b> จด Python, driver, CUDA, PyTorch/Transformers/PEFT, image ID, รุ่น GPU, region และวันที่ไว้ใน runbook.</li>
+      </ol>
+    </section>
+
+    <section class="section" id="each-run">
+      <h2>5. วิธีใช้ซ้ำในแต่ละรอบ</h2>
+      <h3>ก่อนเปิด GPU</h3>
+      <ul><li>ยืนยันเงื่อนไข local training ตาม ADR-0012/ADR-0022/ADR-0023: เปิด local LLM, มี tenant authorization และ consent ตามแหล่งข้อมูล, ผ่าน human review และอนุมัติ preferred answer แล้ว; รองรับ hosted multi-tenant โดย export แยก tenant.</li><li>Export dataset ผ่าน Backoffice เก็บชั่วคราวบนพื้นที่เข้ารหัส และตรวจ manifest/hash กับ tenant scope.</li><li>ยืนยันว่าไม่ใช่ shared-training data และไม่มี secret/ข้อมูลที่ไม่ควรนำไปฝึก.</li><li>กำหนด <code>run-id</code>, ระยะเวลา และ budget alert ก่อนเริ่ม.</li></ul>
+      <h3>เปิดเครื่องและเทรน</h3>
+      <ol class="steps"><li>Start instance จาก image ที่เตรียมไว้.</li><li>Mount persistent volume แล้วตรวจ <code>nvidia-smi</code>, CUDA, free disk และ model cache.</li><li>วาง dataset ที่อนุมัติแล้วใน <code>datasets/&lt;run-id&gt;.jsonl</code> และตรวจ hash.</li><li>รันคำสั่งนี้โดยใช้ output แยกตามรอบ:</li></ol>
+      <pre><code>python train_lora.py \
+  --dataset /mnt/faro-training/datasets/&lt;run-id&gt;.jsonl \
+  --model Qwen/Qwen2.5-0.5B-Instruct \
+  --model-cache-dir /mnt/faro-training/model-cache \
+  --output-dir /mnt/faro-training/runs/&lt;run-id&gt; \
+  --max-sequence-length 512</code></pre>
+      <ol start="5"><li>เก็บ log และตรวจว่ามี <code>adapter/</code>, tokenizer metadata และ <code>training-manifest.json</code>. ประเมินกับ held-out prompts ก่อนนำไปใช้.</li><li>สำรองผลที่ต้องเก็บกลับ encrypted S3/object storage หรือดาวน์โหลดสู่พื้นที่ควบคุมของ tenant. ห้ามปล่อย adapter เข้า LM Studio/production อัตโนมัติ.</li><li>ตรวจสำเนาให้ครบแล้ว Stop instance; ลบข้อมูลชั่วคราวตาม retention policy.</li></ol>
+    </section>
+
+    <section class="section" id="cost">
+      <h2>6. ค่าใช้จ่ายและการปิดเครื่อง</h2>
+      <div class="table-wrap"><table><thead><tr><th>ผู้ให้บริการ</th><th>เมื่อต้องหยุดชั่วคราว</th><th>สิ่งที่ยังคิดเงิน/ต้องระวัง</th></tr></thead><tbody>
+        <tr><td><b>AWS</b></td><td><code>Stop</code> EC2</td><td>EBS/snapshot ยังคิด storage. อย่า <code>Terminate</code> จนตรวจ DeleteOnTermination และ backup แล้ว.</td></tr>
+        <tr><td><b>Google Cloud</b></td><td><code>Stop</code> VM</td><td>Persistent disk/IP ที่เก็บไว้ยังคิดค่าใช้จ่าย; Local SSD อาจไม่คงข้อมูล.</td></tr>
+        <tr><td><b>DigitalOcean GPU</b></td><td>สำรองข้อมูลแล้ว <code>Destroy</code></td><td><code>Power off</code> ยังคิดค่า GPU; backup boot disk ก่อน Destroy.</td></tr>
+        <tr><td><b>ทุกค่าย</b></td><td>ตรวจ billing console หลัง stop/destroy</td><td>ลบ unattached volumes, snapshots, public IP และ storage ที่ไม่ต้องใช้. ตั้ง lifecycle expiration ให้ object storage.</td></tr>
+      </tbody></table></div>
+      <p>เก็บ artifact บน object storage มี storage/egress charge. ต้องกำหนด encryption, access policy, lifecycle expiration และ audit ให้ครบ.</p>
+    </section>
+
+    <section class="section" id="security">
+      <h2>7. Security และการจัดการข้อมูล</h2>
+      <ul><li>Cloud GPU เป็นเครื่องฝึกแยกจาก FaroAI; ไม่เปิด inbound API และไม่ให้ runner ต่อ Qdrant, FaroAI database, OpenRouter หรือ LM Studio API.</li><li>ใช้เฉพาะ JSONL export ที่ผ่าน consent/review; จำกัดข้อมูลต่อ tenant และสิทธิ์ผู้ปฏิบัติงาน.</li><li>เข้ารหัสดิสก์, volume, snapshots, object storage และทางส่งข้อมูล; ใช้ role/short-lived credentials แทน key ที่ฝังใน image.</li><li>ห้ามใส่ข้อมูลจริงใน image/AMI, repository, issue หรือ log; ห้ามเปิด volume เป็น public.</li><li>ตรวจ model license, provenance, dataset hash และ output hash ก่อนส่งต่อ.</li><li>ลบ dataset, checkpoint, cache และสำเนา backup ตาม retention policy ของ tenant เมื่อหมดความจำเป็น.</li><li><b>Qdrant ใช้เป็น retrieval index เท่านั้น.</b> Dataset และ adapter ไม่ถูกส่งเข้า Qdrant.</li></ul>
+    </section>
+
+    <section class="section" id="limits">
+      <h2>8. ข้อจำกัดของ runner ปัจจุบัน</h2>
+      <div class="callout warning"><strong>ถ้าเครื่องหยุดกลางงาน เทรนต่อจากจุดเดิมไม่ได้ในตอนนี้</strong><br>Runner ตั้ง <code>save_strategy="epoch"</code>, ค่าเริ่มต้น 1 epoch และไม่มี <code>--resume-from-checkpoint</code>. ถ้าถูกหยุดกลาง epoch ต้องเริ่มรอบใหม่. ควรรอ Trainer จบและตรวจ output ก่อนหยุด instance.</div>
+      <p>หากต้องรองรับ interruption/resume ภายหลัง ให้ทำ enhancement แยก: periodic checkpoint, resume argument, manifest สถานะ และทดสอบ restore; อัปเดต SPEC/changelog ก่อนใช้จริง. ไม่ย้าย training dependencies เข้า FaroAI Docker image และไม่เริ่มเทรนอัตโนมัติหลัง export.</p>
+    </section>
+
+    <section class="section" id="acceptance">
+      <h2>9. Checklist รับมอบเมื่อลงมือทำ</h2>
+      <ul class="checklist"><li>เปิด/หยุด GPU ได้จาก console หรือ script จำกัดสิทธิ์ และค่า compute ลด/หยุดตาม billing page.</li><li>Boot image มี Python, runner dependencies และ NVIDIA runtime ที่ตรวจเวอร์ชันได้.</li><li>หลัง Stop/Start, persistent volume กลับ path เดิมและ model cache ใช้ซ้ำได้โดยไม่โหลด base model ใหม่.</li><li>dataset/output ไม่อยู่บน temporary disk เพียงที่เดียว; เข้ารหัสและจำกัดสิทธิ์.</li><li>run log เก็บ run-id, dataset hash, model ID, image/GPU, parameters สำคัญ, เวลาเริ่ม/จบ และ output location โดยไม่มี secret.</li><li>run ตัวอย่างจบครบ มี adapter/manifest, hash ตรง และสำรองออกได้ก่อนหยุดเครื่อง.</li><li>ทดลอง budget alert, idle-cost check, volume cleanup และ data-retention.</li><li>ไม่มี data/adapter/credentials ใน Qdrant, FaroAI Docker image, Git หรือ public object storage.</li></ul>
+    </section>
+
+    <section class="section" id="execution">
+      <h2>10. ลำดับงานเมื่อเริ่มลงมือ</h2>
+      <ol class="steps"><li>เลือก Cloud/region และยืนยันราคา, quota, GPU availability ใน console.</li><li>สร้าง permissions, budget alert, private access, encrypted EBS และ GPU instance.</li><li>ทำ provisioning script แบบ idempotent สำหรับ mount, environment check, logs และ start/stop.</li><li>ติดตั้ง dependencies, pin เวอร์ชันที่ทดสอบ, warm model cache และสร้าง AMI.</li><li>ทดลอง Stop/Start ตรวจ cache persistence และค่า disk.</li><li>ลองกับ approved dataset ชุดเล็ก แล้วเก็บเวลา/token count จริงเพื่อแทนค่าประมาณ.</li><li>สรุป runbook, ต้นทุน, cleanup policy และผลตรวจ; อัปเดต SPEC/changelog หาก implementation ต่างจากแผน.</li></ol>
+    </section>
+
+    <section class="section" id="references">
+      <h2>เอกสารที่เกี่ยวข้อง</h2>
+      <div class="links"><a href="../adr/0022-local-fine-tuning-runner.md">ADR-0022</a><a href="../spec/local-fine-tuning-runner.md">SPEC Local fine-tuning</a><a href="../../backoffice/public/local-training/README.md">คู่มือ runner</a><a href="gpu-cloud-pricelist-15-10-26.html">GPU Cloud Pricelist</a></div>
+      <div class="links"><a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/how-ec2-instance-stop-start-works.html" target="_blank" rel="noreferrer">AWS Stop/Start และ EBS</a><a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-lifecycle.html" target="_blank" rel="noreferrer">AWS lifecycle billing</a><a href="https://docs.cloud.google.com/compute/docs/instances/suspend-stop-reset-instances-overview" target="_blank" rel="noreferrer">Google Cloud stop billing</a><a href="https://docs.digitalocean.com/products/droplets/details/pricing/" target="_blank" rel="noreferrer">DigitalOcean GPU billing</a></div>
+    </section>
+    <footer class="foot">FaroAI · แผนเอกสารเท่านั้น · ยังไม่ได้สร้าง Cloud resources, images, volumes, scripts หรือ billing settings<a class="toplink" href="#top">กลับด้านบน ↑</a></footer>
+  </main>
+</div>
+</body>
+</html>

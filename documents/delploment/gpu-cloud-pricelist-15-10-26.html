@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ตารางค้นหาราคาเช่า Cloud GPU สำหรับทดลอง fine-tuning โมเดล">
+  <title>Cloud GPU Pricelist — 15-10-26</title>
+  <style>
+    :root { color-scheme: light; --ink:#17233b; --muted:#61708a; --line:#dce4ef; --accent:#49c7c1; --blue:#667bfa; --paper:#f5f7fb; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:15px/1.55 "Segoe UI",Tahoma,sans-serif; }
+    main { max-width:1440px; margin:0 auto; padding:36px 24px 64px; }
+    h1 { margin:0; font:500 clamp(30px,4vw,44px)/1.15 Georgia,serif; }
+    h2 { margin:34px 0 10px; font-size:20px; }
+    p { color:var(--muted); }
+    .eyebrow { color:#5f6f8d; font-size:11px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; }
+    .intro { max-width:850px; margin:12px 0 22px; }
+    .callout { background:linear-gradient(110deg,#e9edff,#e3fbf7); border:1px solid #d8e6f4; border-radius:16px; padding:17px 20px; }
+    .filters { display:grid; grid-template-columns:minmax(240px,1fr) 200px 180px; gap:12px; margin:22px 0 12px; }
+    input,select { width:100%; height:44px; border:1px solid var(--line); border-radius:10px; background:white; color:var(--ink); padding:0 13px; font:inherit; }
+    input:focus,select:focus { outline:2px solid #91a5ff; outline-offset:1px; }
+    .summary { display:flex; flex-wrap:wrap; gap:10px 20px; color:var(--muted); font-size:13px; margin:10px 2px 14px; }
+    .table-wrap { overflow:auto; border:1px solid var(--line); border-radius:15px; background:white; box-shadow:0 8px 30px #19365b0a; }
+    table { width:100%; border-collapse:collapse; min-width:1000px; }
+    th,td { padding:13px 14px; text-align:left; vertical-align:top; border-bottom:1px solid #e9edf4; }
+    th { background:#f9faff; color:#435371; font-size:12px; letter-spacing:.04em; position:sticky; top:0; z-index:1; }
+    tbody tr:last-child td { border-bottom:0; }
+    tbody tr:hover { background:#fbfcff; }
+    .price { white-space:nowrap; font-weight:700; font-size:16px; }
+    .tag { display:inline-block; padding:3px 8px; border-radius:999px; background:#e5f8f5; color:#177d77; font-size:11px; font-weight:700; white-space:nowrap; }
+    .tag.partial { background:#fff2dc; color:#8b5b06; }
+    .sub { display:block; color:var(--muted); font-size:12px; margin-top:3px; }
+    a { color:#3858c7; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    ul { padding-left:22px; color:var(--muted); }
+    li { margin:6px 0; }
+    .foot { font-size:12px; margin-top:30px; }
+    @media(max-width:750px) { main { padding:24px 14px 44px; } .filters { grid-template-columns:1fr; } }
+    @media print { body { background:white; } main { max-width:none; padding:0; } .filters { display:none; } .table-wrap { overflow:visible; box-shadow:none; } table { min-width:0; font-size:10px; } th,td { padding:7px; } }
+  </style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">FaroAI · Training workstation cost reference</div>
+  <h1>Cloud GPU Pricelist</h1>
+  <p class="intro">ราคาเช่า GPU สำหรับทดลอง fine-tuning แบบเปิดใช้เฉพาะเวลาทำงาน ราคาทั้งหมดเป็น USD และตรวจจากหน้า pricing วันที่ <strong>15 ตุลาคม 2026</strong> ใช้ค้นหา/กรองตามผู้ให้บริการ, รุ่น GPU และขนาด VRAM ได้</p>
+  <div class="callout"><strong>แนะนำสำหรับ runner ปัจจุบัน:</strong> โมเดลเริ่มต้น 0.5B ที่ context 512 ใช้ GPU 8 GB ได้เป็นเป้าหมายเริ่มต้น; เครื่อง 16 GB VRAM มีพื้นที่เผื่อมากขึ้น ส่วน 32 GB ขึ้นไปเหมาะเมื่อจะลองโมเดลใหญ่หรือเพิ่ม context. ราคา Cloud อาจมีค่า disk, IP, network, ภาษี หรือค่า VM เพิ่มตามแผน</div>
+
+  <div class="filters" role="search">
+    <input id="search" type="search" placeholder="ค้น provider, GPU, region, ราคา…" aria-label="ค้นหาราคา GPU">
+    <select id="provider" aria-label="กรองผู้ให้บริการ"><option value="">ทุกผู้ให้บริการ</option><option>Amazon Web Services</option><option>Google Cloud</option><option>DigitalOcean</option><option>Runpod</option></select>
+    <select id="tier" aria-label="กรองขนาด VRAM"><option value="">ทุกขนาด VRAM</option><option value="8">ประมาณ 8 GB</option><option value="16">ประมาณ 16 GB</option><option value="32">ประมาณ 32 GB</option><option value="48">48 GB ขึ้นไป</option></select>
+  </div>
+  <div class="summary"><span id="count" aria-live="polite"></span><span>ตัวเลขราคาเป็นราคาต่อ GPU/instance ต่อชั่วโมงตามฐานที่ระบุในแต่ละแถว</span></div>
+
+  <div class="table-wrap">
+    <table id="prices">
+      <thead><tr><th>กลุ่ม VRAM</th><th>ผู้ให้บริการ / GPU</th><th>VRAM</th><th>เครื่องที่ได้</th><th>ราคา USD/ชม.</th><th>ฐานราคาและการคิดเงิน</th><th>แหล่งราคา</th></tr></thead>
+      <tbody>
+        <tr data-provider="Google Cloud" data-tier="8" data-search="google cloud nvidia p4 8 gb gcp us regions compute engine">
+          <td>ประมาณ 8 GB</td><td><strong>Google Cloud</strong><span class="sub">NVIDIA P4</span></td><td>8 GB</td><td>1 GPU; VM host คิดแยก</td><td class="price">$0.60<span class="sub">GPU อย่างเดียว</span></td><td><span class="tag partial">ยังไม่รวม VM</span><span class="sub">เพิ่มค่า vCPU, RAM, disk และ network; availability ขึ้นกับ zone. เป็น GPU รุ่นเก่า</span></td><td><a href="https://cloud.google.com/products/compute/gpus-pricing?hl=en" target="_blank" rel="noreferrer">Google GPU pricing</a></td>
+        </tr>
+        <tr data-provider="Amazon Web Services" data-tier="16" data-search="aws amazon ec2 g4dn.xlarge nvidia t4 16 gb us-east-1 on demand">
+          <td>ประมาณ 16 GB</td><td><strong>AWS EC2</strong><span class="sub">g4dn.xlarge · NVIDIA T4</span></td><td>16 GB</td><td>1 GPU · 4 vCPU · 16 GiB RAM · 125 GB NVMe</td><td class="price">$0.526<span class="sub">instance รวม</span></td><td>On-Demand Linux, us-east-1 estimate. Region/OS/tax/EBS can change total; stop the instance to stop compute charges, disk remains chargeable.</td><td><a href="https://aws.amazon.com/ec2/instance-types/g4/" target="_blank" rel="noreferrer">AWS G4 specs</a><span class="sub"><a href="https://aws.amazon.com/ec2/pricing/on-demand/" target="_blank" rel="noreferrer">AWS on-demand pricing</a> · price snapshot: <a href="https://www.economize.cloud/resources/aws/pricing/ec2/g4dn.xlarge/" target="_blank" rel="noreferrer">Economize</a></span></td>
+        </tr>
+        <tr data-provider="Google Cloud" data-tier="16" data-search="google cloud nvidia t4 16 gb gcp compute engine">
+          <td>ประมาณ 16 GB</td><td><strong>Google Cloud</strong><span class="sub">NVIDIA T4</span></td><td>16 GB</td><td>1 GPU; VM host คิดแยก</td><td class="price">$0.35<span class="sub">GPU อย่างเดียว</span></td><td><span class="tag partial">ยังไม่รวม VM</span><span class="sub">เพิ่มค่า vCPU, RAM, disk และ network. เลือก region/zone ที่มี T4</span></td><td><a href="https://cloud.google.com/products/compute/gpus-pricing?hl=en" target="_blank" rel="noreferrer">Google GPU pricing</a></td>
+        </tr>
+        <tr data-provider="DigitalOcean" data-tier="16" data-search="digitalocean nvidia rtx 4000 ada 20 gb gpu droplet 32 gib ram">
+          <td>ประมาณ 16 GB</td><td><strong>DigitalOcean GPU Droplet</strong><span class="sub">NVIDIA RTX 4000 Ada</span></td><td>20 GB</td><td>1 GPU · 8 vCPU · 32 GiB RAM · 500 GB NVMe</td><td class="price">$0.76<span class="sub">GPU Droplet</span></td><td>On-Demand, billed per second. <strong>ปิดเครื่องแล้วยังคิดเงิน</strong>; ต้อง Destroy Droplet เพื่อหยุดค่า compute</td><td><a href="https://www.digitalocean.com/pricing/gpu-droplets" target="_blank" rel="noreferrer">DigitalOcean GPU pricing</a><span class="sub"><a href="https://docs.digitalocean.com/products/droplets/details/pricing/" target="_blank" rel="noreferrer">Billing details</a></span></td>
+        </tr>
+        <tr data-provider="Runpod" data-tier="32" data-search="runpod pod nvidia rtx 5090 32 gb vram 35 gb ram">
+          <td>ประมาณ 32 GB</td><td><strong>Runpod Pod</strong><span class="sub">NVIDIA RTX 5090</span></td><td>32 GB</td><td>1 GPU · 9 vCPU · 35 GB RAM</td><td class="price">$1.19<span class="sub">/ ชั่วโมง (ราคาที่แสดง)</span></td><td>หน้า pricing แสดงราคา Pod; Cloud type/region/availability อาจทำให้ราคาจริงต่างกัน. ตรวจราคาในหน้าสร้าง Pod ก่อน Deploy</td><td><a href="https://www.runpod.io/pricing" target="_blank" rel="noreferrer">Runpod live pricing</a></td>
+        </tr>
+        <tr data-provider="DigitalOcean" data-tier="48" data-search="digitalocean nvidia rtx 6000 ada 48 gb gpu droplet 64 gib ram">
+          <td>32 GB ขึ้นไป</td><td><strong>DigitalOcean GPU Droplet</strong><span class="sub">NVIDIA RTX 6000 Ada</span></td><td>48 GB</td><td>1 GPU · 8 vCPU · 64 GiB RAM · 500 GB NVMe</td><td class="price">$1.57<span class="sub">GPU Droplet</span></td><td>On-Demand, billed per second. <strong>ปิดเครื่องแล้วยังคิดเงิน</strong>; ต้อง Destroy Droplet เพื่อหยุดค่า compute</td><td><a href="https://www.digitalocean.com/pricing/gpu-droplets" target="_blank" rel="noreferrer">DigitalOcean GPU pricing</a><span class="sub"><a href="https://docs.digitalocean.com/products/droplets/details/pricing/" target="_blank" rel="noreferrer">Billing details</a></span></td>
+        </tr>
+        <tr data-provider="Google Cloud" data-tier="32" data-search="google cloud 2x nvidia t4 32 gb total two gpus not one">
+          <td>ประมาณ 32 GB รวม</td><td><strong>Google Cloud</strong><span class="sub">2 × NVIDIA T4</span></td><td>32 GB รวม (16 GB/GPU)</td><td>2 GPUs; VRAM ไม่ใช่การ์ดเดียว 32 GB</td><td class="price">$0.70<span class="sub">GPU อย่างเดียว</span></td><td><span class="tag partial">ยังไม่รวม VM</span><span class="sub">เพิ่มค่า VM host, disk และ network; งานต้องรองรับ multi-GPU จึงใช้ VRAM รวมได้</span></td><td><a href="https://cloud.google.com/products/compute/gpus-pricing?hl=en" target="_blank" rel="noreferrer">Google GPU pricing</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>ข้อควรรู้ก่อนเปิดเครื่อง</h2>
+  <ul>
+    <li><strong>เริ่มประหยัด:</strong> AWS g4dn.xlarge (T4 16 GB) ที่ประมาณ $0.526/ชม. รวม instance หรือ DigitalOcean RTX 4000 Ada 20 GB ที่ $0.76/ชม. โดยราคาจริงขึ้นกับ region และภาษี</li>
+    <li><strong>ราคาของ Google Cloud P4/T4 ในตารางเป็นเฉพาะค่า GPU</strong> ต้องบวก VM host และ disk ก่อนเทียบกับราคารวมของ AWS/DO/Runpod</li>
+    <li>Runpod แสดงตัวเลือก Cloud หลายแบบ ให้ดูยอดรวมและ storage ที่เลือกก่อนสร้าง Pod; ค่า volume ที่เก็บไว้หลังหยุดงานอาจยังมีค่าใช้จ่าย</li>
+    <li>AWS/GCP หยุดคิดค่า compute/GPU เมื่อ instance อยู่สถานะ stopped แต่ยังคิดค่า disk/storage ที่เก็บไว้. DigitalOcean GPU Droplet ยังคิดเงินแม้ power off จึงต้อง Destroy เพื่อหยุดค่า compute; เก็บข้อมูลที่ต้องใช้ต่อใน volume/storage ที่คิดค่าบริการตามจริง</li>
+    <li>ตั้ง budget alert ก่อนเริ่ม, บันทึก dataset/model กลับลงเครื่องของคุณ และตรวจว่า instance ถูก Stop หรือ Destroy ตามรูปแบบ billing ของผู้ให้บริการ</li>
+    <li>ราคานี้ไม่ใช่ใบเสนอราคา และไม่รวมภาษี/ค่า storage/network เว้นแต่ระบุไว้ ราคาและ GPU ที่ว่างเปลี่ยนได้</li>
+  </ul>
+  <p class="foot">อัปเดตข้อมูล: 2026-10-15 · สกุลเงิน USD · <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/how-ec2-instance-stop-start-works.html" target="_blank" rel="noreferrer">AWS stop/start billing</a> · <a href="https://docs.cloud.google.com/compute/docs/instances/suspend-stop-reset-instances-overview" target="_blank" rel="noreferrer">Google Cloud stop billing</a> · รายการและแหล่งราคา GPU ตรวจจากหน้า pricing/spec ที่ลิงก์ไว้ในแต่ละแถว</p>
+</main>
+<script>
+  const search = document.getElementById('search');
+  const provider = document.getElementById('provider');
+  const tier = document.getElementById('tier');
+  const rows = [...document.querySelectorAll('#prices tbody tr')];
+  function filterRows() {
+    const q = search.value.trim().toLowerCase();
+    let visible = 0;
+    for (const row of rows) {
+      const providerMatch = !provider.value || row.dataset.provider === provider.value;
+      const tierMatch = !tier.value || row.dataset.tier === tier.value;
+      const searchMatch = !q || `${row.innerText} ${row.dataset.search}`.toLowerCase().includes(q);
+      const show = providerMatch && tierMatch && searchMatch;
+      row.hidden = !show;
+      if (show) visible++;
+    }
+    document.getElementById('count').textContent = `แสดง ${visible} จาก ${rows.length} รายการ`;
+  }
+  search.addEventListener('input', filterRows);
+  provider.addEventListener('change', filterRows);
+  tier.addEventListener('change', filterRows);
+  filterRows();
+</script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "name": "@faroai/example-gateway",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "provision-tenant": "node dist/provision-tenant.js",
+    "provision-gis-prompt-key": "node dist/provision-gis-prompt-key.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "tsx --test src/admin-security.test.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.0",
+    "@node-rs/argon2": "2.2.2",
+    "hono": "^4.9.0",
+    "ioredis": "^5.6.0",
+    "openid-client": "6.8.8",
+    "pg": "^8.16.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/pg": "^8.15.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
+  }
+}

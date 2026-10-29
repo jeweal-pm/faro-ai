@@ -1,0 +1,4 @@
+interface:
+  display_name: "Infrastructure Engineer"
+  short_description: "Secure container setup from approved ADRs"
+  default_prompt: "Use $infra to research and configure the approved container services securely, preserving required connectivity and the production resource budget."
