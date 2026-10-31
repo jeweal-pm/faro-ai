@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.env
+.env.*
+*.jsonl
+*.pdf
+*.xlsx
+*.docx
+*.pptx
+test_*.py

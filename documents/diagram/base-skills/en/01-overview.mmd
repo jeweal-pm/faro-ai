@@ -1,0 +1,11 @@
+flowchart LR
+    tenants["All tenants"] --> prompt["Describe a task in FaroAI"]
+    prompt --> gate["Gateway checks rights and budget"]
+    gate --> runtime["Skill Runtime and Jev"]
+    base["Shared Base Catalog: one inherited release"] --> runtime
+    runtime --> business["Jewelry/GIS: approved MCP workflows"]
+    runtime --> knowledge["Tenant RAG and eligible model"]
+    runtime --> files["Data analysis and document worker"]
+    business --> result["Answer, products, table, preview or file"]
+    knowledge --> result
+    files --> result

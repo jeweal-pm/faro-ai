@@ -15,7 +15,7 @@ type McpConnection = {
   connection_status: 'untested' | 'connected' | 'error'; discovered_tools: string[]; allowed_tools: string[];
   secret_hint: string | null; last_checked_at: string | null; last_error_code: string | null;
 };
-export type Section = 'overview' | 'tenants' | 'providers' | 'routing' | 'knowledge' | 'mcp' | 'learning' | 'audit' | 'settings';
+export type Section = 'overview' | 'tenants' | 'providers' | 'routing' | 'skills' | 'knowledge' | 'mcp' | 'learning' | 'audit' | 'settings';
 
 async function adminApi<T>(path: string, init?: RequestInit): Promise<ApiResult<T>> {
   const method = (init?.method ?? 'GET').toUpperCase();
@@ -197,6 +197,7 @@ export default function AdminConsole({ section }: { section: Section }) {
     { id: 'tenants', label: 'Tenants & credits', icon: Building2 },
     { id: 'providers', label: 'AI providers', icon: BrainCircuit },
     { id: 'routing', label: 'Jev model routing', icon: Workflow },
+    { id: 'skills', label: 'Base Skills', icon: Sparkles },
     { id: 'knowledge', label: 'Knowledge & jobs', icon: Database },
     { id: 'mcp', label: 'MCP connections', icon: Boxes },
     { id: 'learning', label: 'Learning & training', icon: Sparkles },
@@ -248,6 +249,7 @@ export default function AdminConsole({ section }: { section: Section }) {
             </>}
           </section>
         </>}
+        {section === 'skills' && <><PageTitle eyebrow="SHARED CAPABILITIES" title="Base Skills" description="The same platform release is inherited by every tenant. Existing permissions, connections and model policies still apply." /><BaseSkills /></>}
         {section === 'knowledge' && <><PageTitle eyebrow="RETRIEVAL OPERATIONS" title="Knowledge & embedding jobs" description="Add tenant-owned knowledge, review it before Qdrant indexing, and inspect embedding work." />
           <section className="panel"><PanelTitle title="Embedding jobs" />{tenants.length > 1 && <p className="form-footnote">Showing the selected first tenant in this initial console. Tenant-specific navigation follows the current deployment mode.</p>}{jobs.length === 0 ? <Empty text="No embedding jobs for this tenant yet." /> : <div className="table-wrap"><table><thead><tr><th>Job</th><th>State</th><th>Progress</th><th>Collection / model</th></tr></thead><tbody>{jobs.map((job) => <tr key={job.id}><td><code>{job.id.slice(0, 12)}â€¦</code></td><td><span className={`status-pill ${job.status === 'completed' ? 'active' : job.status === 'failed' ? 'suspended' : 'pending'}`}>{job.status}</span></td><td>{job.completed_documents} / {job.total_documents}</td><td>{job.collection_name}<small>{job.job_kind === 'catalogue_products' ? 'Product catalog · ' : 'Knowledge · '}{job.embedding_model}</small></td></tr>)}</tbody></table></div>}</section>
           <KnowledgeDocuments tenants={tenants} />
@@ -268,6 +270,31 @@ function Stat({ icon: Icon, label, value, sub }: { icon: typeof Activity; label:
 function PanelTitle({ title, action, href }: { title: string; action?: string; href?: string }) { return <div className="panel-title"><h2>{title}</h2>{action && href && <Link href={href}>{action}<ChevronRight size={14} /></Link>}</div>; }
 function PageTitle({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) { return <div className="page-heading"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p>{description}</p></div></div>; }
 function Empty({ text }: { text: string }) { return <div className="empty-state"><Boxes size={22} /><p>{text}</p></div>; }
+
+type BaseSkillCatalog = { release: string; release_digest: string; skills: Array<{ id: string; name: string; description: string; version: string; status: 'ready' | 'planned'; executor: string }> };
+function BaseSkills() {
+  const [catalog, setCatalog] = useState<BaseSkillCatalog | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  async function loadCatalog() {
+    setLoading(true); setError('');
+    try {
+      const response = await adminApi<BaseSkillCatalog>('/skills/base');
+      if (!response.success || !response.data) { setError(response.message ?? 'Base Skills could not be loaded.'); return; }
+      setCatalog(response.data);
+    } catch { setError('Base Skills could not be loaded.'); }
+    finally { setLoading(false); }
+  }
+  useEffect(() => { void loadCatalog(); }, []);
+  return <section className="panel">
+    <PanelTitle title="Platform catalog" />
+    <p className="form-footnote">All tenants inherit this catalog automatically. Available workflows still require the appropriate tenant configuration and permissions.</p>
+    {loading ? <p role="status">Loading Base Skills...</p> : error ? <div><p className="form-error" role="alert">{error}</p><button type="button" className="soft-button" onClick={() => void loadCatalog()}>Try again</button></div> : catalog && <>
+      <p className="form-footnote">Release {catalog.release} · {catalog.skills.filter((skill) => skill.status === 'ready').length} available workflows</p>
+      <div className="table-wrap"><table><thead><tr><th>Skill</th><th>Purpose</th><th>Version</th><th>Status</th></tr></thead><tbody>{catalog.skills.map((skill) => <tr key={skill.id}><td><b>{skill.name}</b><small>{skill.id}</small></td><td>{skill.description}</td><td>{skill.version}</td><td><span className={`status-pill ${skill.status === 'ready' ? 'active' : 'pending'}`}>{skill.status === 'ready' ? 'Available' : 'Planned'}</span></td></tr>)}</tbody></table></div>
+    </>}
+  </section>;
+}
 
 function ProviderPriceLimits({ provider, onSaved, onError, onNotice }: { provider: Provider; onSaved: () => Promise<void>; onError: (message: string) => void; onNotice: (message: string) => void }) {
   const [inputLimit, setInputLimit] = useState(String(provider.max_input_usd_per_million_tokens));

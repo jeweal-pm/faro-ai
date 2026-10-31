@@ -1,0 +1,11 @@
+flowchart LR
+    tenants["ผู้ใช้ทุก tenant"] --> prompt["พิมพ์งานใน FaroAI"]
+    prompt --> gate["Gateway ตรวจสิทธิ์และ budget"]
+    gate --> runtime["Skill Runtime และ Jev"]
+    base["Base Catalog กลาง: ทุก tenant inherit release เดียวกัน"] --> runtime
+    runtime --> business["Jewelry/GIS: approved MCP workflows"]
+    runtime --> knowledge["Tenant RAG และ eligible model"]
+    runtime --> files["Data analysis และ document worker"]
+    business --> result["คำตอบ สินค้า ตาราง Preview หรือไฟล์"]
+    knowledge --> result
+    files --> result

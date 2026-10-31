@@ -1,0 +1,23 @@
+sequenceDiagram
+    title Sequence 2/2: งานเบื้องหลังและไฟล์ส่วนตัว
+    participant user
+    participant gateway
+    participant pg
+    participant redis
+    participant worker
+    participant store
+    worker->>redis: รับ job ID จาก queue
+    worker->>pg: claim งานและตรวจ tenant / version / policy
+    pg-->>worker: คืน job manifest และ snapshot reference
+    worker->>worker: คำนวณ สร้าง XLSX และตรวจผล
+    worker->>store: บันทึกไฟล์ส่วนตัว + content hash
+    store-->>worker: คืน artifact ID
+    worker->>pg: บันทึก completed และ file metadata
+    user->>gateway: หน้าเว็บติดตาม job status
+    gateway->>pg: อ่านสถานะตาม tenant / actor
+    pg-->>gateway: คืนผลลัพธ์ที่ตรวจสิทธิ์แล้ว
+    gateway-->>user: แสดงไฟล์พร้อมดาวน์โหลด
+    user->>gateway: ขอดาวน์โหลด artifact ID
+    gateway->>store: ตรวจสิทธิ์/วันหมดอายุ แล้วอ่านไฟล์
+    store-->>gateway: คืน file bytes
+    gateway-->>user: stream ไฟล์ให้ผู้ใช้

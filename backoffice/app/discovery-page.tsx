@@ -200,8 +200,9 @@ export default function DiscoveryPage({ trainingOptions = { local: false, shared
     const prompt = value.trim();
     const hasPurchaseOrder = /\bpo(?:s)?\b(?:\s*[-#]?\s*\d+)?|\bpurchase[-\s]+orders?\b|ใบสั่งซื้อ/i.test(prompt);
     const hasInventory = /\binventory\b|\bstock\b|\binbound\b|\breceipt\b|รับสินค้า|รับของเข้า|ใบรับสินค้า/i.test(prompt);
-    const hasAction = /\b(?:create|make|new|check|search|find|show|list|display|view|get|receive|inspect)\b|สร้าง|เปิด|ทำ|เช็ก|ตรวจ|ค้นหา|รับ/i.test(prompt);
-    return hasAction && (hasPurchaseOrder || hasInventory);
+    const hasSupplier = /\bsuppliers?\b|\bvendors?\b|ผู้ขาย/i.test(prompt);
+    const hasAction = /\b(?:create|add|register|activate|enable|make|new|check|search|find|show|list|display|view|get|receive|inspect)\b|สร้าง|เพิ่ม|ลงทะเบียน|เปิดใช้งาน|เปิด|ทำ|เช็ก|ตรวจ|ค้นหา|แสดงรายชื่อ|รับ/i.test(prompt);
+    return hasAction && (hasPurchaseOrder || hasInventory || hasSupplier);
   }
 
   function openProduct(product: DiscoveryResult['products'][number]) {
@@ -285,6 +286,8 @@ export default function DiscoveryPage({ trainingOptions = { local: false, shared
 
       {pending && <p className="shopping-loading" role="status"><LoaderCircle size={16} className="spin" /> Finding the right pieces for you…</p>}
       {answer && <section className="catalog-results" aria-live="polite" aria-label="Search results">
+        {answer.answer && <p className="catalog-answer">{answer.answer}</p>}
+        {answer.products.length > 0 && <>
         <div className="catalog-results-head">
           <div><span>Showing ({visibleProducts.length})</span></div>
           <label className="stock-toggle"><input type="checkbox" checked={inStockOnly} onChange={(event) => setInStockOnly(event.target.checked)} /><span>In stock only</span></label>
@@ -305,8 +308,9 @@ export default function DiscoveryPage({ trainingOptions = { local: false, shared
             {product.summary && <p className="catalog-product-summary">{product.summary}</p>}
           </article>)}
         </div> : <div className="catalog-empty">No in-stock pieces in these results.</div>}
+        </>}
         {answer.sources.some((source) => source.kind === 'mcp') && <p className="catalog-source-note">Product details provided by {answer.sources.filter((source) => source.kind === 'mcp').map((source) => source.label).filter(Boolean).join(', ') || 'a connected MCP source'}.</p>}
-        {answer.sources.length > 0 && !answer.sources.some((source) => source.kind === 'mcp') && <p className="catalog-source-note">Answer grounded in {answer.sources.length} approved knowledge source{answer.sources.length === 1 ? '' : 's'}.</p>}
+        {answer.sources.length > 0 && !answer.sources.some((source) => source.kind === 'mcp') && <p className="catalog-source-note">Retrieved {answer.sources.length} approved knowledge source{answer.sources.length === 1 ? '' : 's'}; relevance may vary.</p>}
       </section>}
 
       <footer className="shopping-footer">Thoughtful discoveries, guided by FaroAI</footer>

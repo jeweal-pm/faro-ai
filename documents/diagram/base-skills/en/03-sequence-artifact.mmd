@@ -1,0 +1,23 @@
+sequenceDiagram
+    title Sequence 2/2: Background jobs and private files
+    participant user
+    participant gateway
+    participant pg
+    participant redis
+    participant worker
+    participant store
+    worker->>redis: Consume job ID from queue
+    worker->>pg: Claim job; check tenant/version/policy
+    pg-->>worker: Job manifest + snapshot reference
+    worker->>worker: Calculate, build XLSX, validate
+    worker->>store: Save private file + content hash
+    store-->>worker: Artifact ID
+    worker->>pg: Record completion + file metadata
+    user->>gateway: Web app polls job status
+    gateway->>pg: Read status by tenant/actor
+    pg-->>gateway: Authorized job result
+    gateway-->>user: Show downloadable file
+    user->>gateway: Download by artifact ID
+    gateway->>store: Check access/expiry; read file
+    store-->>gateway: File bytes
+    gateway-->>user: Stream file to user

@@ -60,6 +60,17 @@ if (env.BACKOFFICE_ENABLED) {
 }
 const pool = new Pool({ connectionString: env.DATABASE_URL, max: 5, idleTimeoutMillis: 30_000 });
 const redis = new Redis(env.REDIS_URL, { maxRetriesPerRequest: 1, enableOfflineQueue: false, lazyConnect: true });
+let redisConnectPromise;
+async function ensureAdminRedisConnected() {
+    if (redis.status === 'wait') {
+        redisConnectPromise ??= redis.connect().finally(() => {
+            redisConnectPromise = undefined;
+        });
+        await redisConnectPromise;
+    }
+    if (redis.status !== 'ready')
+        throw new Error('admin_redis_not_ready');
+}
 const ADMIN_SESSION_SECONDS = 8 * 60 * 60;
 const SESSION_COOKIE = env.BACKOFFICE_COOKIE_SECURE ? '__Host-faroai_admin' : 'faroai_admin';
 const CSRF_COOKIE = env.BACKOFFICE_COOKIE_SECURE ? '__Host-faroai_admin_csrf' : 'faroai_admin_csrf';
@@ -314,6 +325,7 @@ adminRoutes.post('/auth/local/login', async (c) => {
     const email = parsed.data.email.trim().toLowerCase();
     const rateKey = `platform:auth:local:${hashToken(email).toString('hex')}`;
     try {
+        await ensureAdminRedisConnected();
         const attempts = await redis.incr(rateKey);
         if (attempts === 1)
             await redis.expire(rateKey, 900);
@@ -538,6 +550,12 @@ async function postToAiService(path, payload, timeoutMs = 20_000) {
         return { ok: false, data: null };
     }
 }
+adminRoutes.get('/skills/base', async (c) => {
+    const result = await postToAiService('/internal/v1/skills/catalog', {}, 5_000);
+    if (!result.ok || !result.data || !Array.isArray(result.data.skills))
+        return fail(c, 503, 'base_skill_catalog_unavailable', 'The Base Skills catalog is temporarily unavailable.');
+    return c.json({ success: true, data: result.data, correlation_id: c.get('correlationId') });
+});
 adminRoutes.get('/tenants/:tenantId', async (c) => {
     const tenantId = c.req.param('tenantId');
     if (!z.string().uuid().safeParse(tenantId).success)
@@ -1346,7 +1364,7 @@ const productCreativePromptSchema = z.object({
     avoid_names: z.array(z.string().trim().min(1).max(200)).max(60).optional(),
 }).strict();
 const productMcpActionSchema = z.object({
-    action: z.enum(['masters', 'preview', 'create', 'bulk_create', 'bulk_status']),
+    action: z.enum(['masters', 'preview', 'create', 'bulk_create', 'bulk_status', 'master_tool_schemas', 'create_masters']),
     types: z.array(z.enum(['item','collection','style','category','metal','color','size','stone','stone_group','shape','cut','clarity','stone_color','stone_size','setting_type','location','tax'])).min(1).max(17).optional(),
     query: z.string().trim().max(100).optional(),
     product: z.record(z.unknown()).optional(),
@@ -1354,11 +1372,13 @@ const productMcpActionSchema = z.object({
     job_id: z.string().regex(/^[a-fA-F0-9]{24}$/).optional(),
     offset: z.number().int().min(0).max(10000).optional(),
     limit: z.number().int().min(1).max(100).optional(),
+    tools: z.array(z.enum(['create_product_master','create_product_masters_bulk','search_locations','create_location','create_voucher_type','get_mcp_bulk_job_status'])).min(1).max(6).optional(),
+    masters: z.array(z.record(z.unknown())).min(1).max(100).optional(),
     confirm: z.literal(true).optional(),
 }).strict();
 const PRODUCT_CREATION_TOOLS = ['get_product_master_data', 'preview_product', 'create_product', 'create_products_bulk', 'get_mcp_bulk_job_status'];
-const PROCUREMENT_TOOLS = ['get_product_master_data', 'search_po_products', 'preview_purchase_order', 'create_purchase_order',
-    'search_purchase_orders', 'get_purchase_order', 'preview_inventory_receipt', 'receive_inventory'];
+const PROCUREMENT_TOOLS = ['get_product_master_data', 'search_locations', 'get_location', 'create_voucher_type', 'search_po_products',
+    'preview_purchase_order', 'create_purchase_order', 'search_purchase_orders', 'get_purchase_order', 'preview_inventory_receipt', 'receive_inventory'];
 const procurementAssistantSchema = z.object({
     message: z.string().trim().min(1).max(1500),
     history: z.array(z.record(z.unknown())).max(12).optional(),
@@ -1439,6 +1459,10 @@ adminRoutes.post('/tenants/:tenantId/product-creation/tool', async (c) => {
         return fail(c, 400, 'invalid_request', 'A product list is required.');
     if (action === 'bulk_status' && !parsed.data.job_id)
         return fail(c, 400, 'invalid_request', 'A bulk job ID is required.');
+    if (action === 'master_tool_schemas' && !parsed.data.tools)
+        return fail(c, 400, 'invalid_request', 'Choose the GIS Master tools to inspect.');
+    if (action === 'create_masters' && (!parsed.data.masters || parsed.data.confirm !== true))
+        return fail(c, 400, 'confirmation_required', 'Review and explicitly confirm the Product Master batch before creating it.');
     if (action === 'create' && parsed.data.confirm !== true)
         return fail(c, 400, 'confirmation_required', 'Confirm the reviewed product before saving it.');
     if (['preview', 'create'].includes(action)) {
@@ -1468,18 +1492,47 @@ adminRoutes.post('/tenants/:tenantId/product-creation/tool', async (c) => {
             || new Set(identities).size !== identities.length || names.some((name) => !name) || new Set(names).size !== names.length)
             return fail(c, 400, 'invalid_product_batch', 'Every product must have a unique name, SKU, and ID, a verified GIS item ID, and valid descriptions.');
     }
+    if (action === 'create_masters') {
+        const masters = parsed.data.masters!;
+        const allowedTypes = new Set(['item','collection','style','category','metal','color','size','stone','stone_group','shape','cut','clarity','stone_color','stone_size','setting_type']);
+        const allowedKeys = new Set(['type','name','code','item_id','color_id','pointer']);
+        const identities = masters.map((master) => `${String(master.type ?? '')}:${String(master.code ?? master.name ?? '').trim().toLocaleLowerCase()}`);
+        const invalid = masters.some((master) => Object.keys(master).some((key) => !allowedKeys.has(key))
+            || typeof master.type !== 'string' || !allowedTypes.has(master.type)
+            || typeof master.name !== 'string' || !master.name.trim() || master.name.length > 120
+            || (master.code !== undefined && (typeof master.code !== 'string' || !master.code.trim() || master.code.length > 80))
+            || (master.item_id !== undefined && (typeof master.item_id !== 'string' || master.item_id.length > 120))
+            || (master.color_id !== undefined && (typeof master.color_id !== 'string' || master.color_id.length > 120))
+            || (master.pointer !== undefined && (typeof master.pointer !== 'number' || !Number.isFinite(master.pointer)))
+            || Buffer.byteLength(JSON.stringify(master), 'utf8') > 2_000);
+        if (invalid || new Set(identities).size !== identities.length)
+            return fail(c, 400, 'invalid_master_batch', 'Master rows must have a unique type and code/name with supported GIS fields.');
+    }
     const tool = action === 'masters' ? 'get_product_master_data'
         : action === 'preview' ? 'preview_product'
             : action === 'create' ? 'create_product'
-                : action === 'bulk_create' ? 'create_products_bulk' : 'get_mcp_bulk_job_status';
-    const gis = await productGisConnection(tenantId, PRODUCT_CREATION_TOOLS);
+                : action === 'bulk_create' ? 'create_products_bulk'
+                    : action === 'create_masters' ? 'create_product_masters_bulk' : 'get_mcp_bulk_job_status';
+    const gis = await productGisConnection(tenantId,
+        action === 'masters' ? ['get_product_master_data']
+            : action === 'master_tool_schemas' ? parsed.data.tools!
+                : action === 'create_masters' ? ['create_product_masters_bulk', 'get_mcp_bulk_job_status']
+                    : action === 'bulk_status' ? ['get_mcp_bulk_job_status']
+                : PRODUCT_CREATION_TOOLS);
     if (!gis.connection)
         return c.json({ success: false, error: gis.error, message: gis.missing_tools
             ? `Approve these GIS tools in MCP connections first: ${gis.missing_tools.join(', ')}.`
             : 'Enable and test the tenant GIS MCP connection first.', correlation_id: c.get('correlationId') }, 409);
     try {
+        if (action === 'master_tool_schemas') {
+            const result = await callProductAi('/internal/v1/products/mcp-tool-schemas', tenantId, c.get('correlationId'), {
+                mcp_connection: gis.connection, tools: parsed.data.tools,
+            });
+            return c.json({ success: true, data: { tools: result.tools }, correlation_id: c.get('correlationId') });
+        }
         const args = action === 'masters'
             ? { types: parsed.data.types, ...(parsed.data.query ? { query: parsed.data.query } : {}), limit: 100 }
+            : action === 'create_masters' ? { masters: parsed.data.masters }
             : action === 'bulk_create' ? { products: parsed.data.products }
                 : action === 'bulk_status' ? { job_id: parsed.data.job_id, offset: parsed.data.offset ?? 0, limit: parsed.data.limit ?? 100 }
                     : parsed.data.product;
@@ -1512,6 +1565,16 @@ adminRoutes.post('/tenants/:tenantId/product-creation/tool', async (c) => {
              VALUES($1,$2,$3,$4,'product.bulk_create.queued','gis_product_batch',$5)`, [tenantId, c.get('correlationId'), c.get('platformAdmin').email, gisPromptActorKind(c),
                 JSON.stringify({ count: parsed.data.products?.length ?? 0, job_id: result.result?.job_id ?? null })]);
         }
+        else if (action === 'create_masters') {
+            const counts = Object.fromEntries((parsed.data.masters ?? []).reduce((map, master) => {
+                const key = String(master.type);
+                map.set(key, (map.get(key) ?? 0) + 1);
+                return map;
+            }, new Map()));
+            await pool.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,metadata)
+             VALUES($1,$2,$3,$4,'product_masters.bulk_submitted','gis_product_master_batch',$5)`, [tenantId, c.get('correlationId'), c.get('platformAdmin').email, gisPromptActorKind(c),
+                JSON.stringify({ count: parsed.data.masters?.length ?? 0, types: counts, integration: 'gis' })]);
+        }
         return c.json({ success: true, data: result.result, correlation_id: c.get('correlationId') });
     }
     catch {
@@ -1526,8 +1589,10 @@ adminRoutes.post('/tenants/:tenantId/procurement/assistant', async (c) => {
         return fail(c, 404, 'not_found', 'The tenant was not found.');
     const parsed = procurementAssistantSchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success)
-        return fail(c, 400, 'invalid_request', 'Enter a Thai or English PO or inventory request.');
-    const gis = await productGisConnection(tenantId, PROCUREMENT_TOOLS);
+        return fail(c, 400, 'invalid_request', 'Enter a Thai or English supplier, PO, or inventory request.');
+    // Assistant exposes only discovered and approved tools; each operation is
+    // authorized independently instead of requiring every write capability.
+    const gis = await productGisConnection(tenantId, []);
     if (!gis.connection)
         return c.json({ success: false, error: gis.error, message: gis.missing_tools
             ? `Approve these GIS procurement tools in MCP connections first: ${gis.missing_tools.join(', ')}.`
@@ -1558,17 +1623,76 @@ adminRoutes.post('/tenants/:tenantId/procurement/assistant', async (c) => {
         procurementStage = 'settle_credit';
         await settleModelCredit(reservationId, result.model_used === true);
         let pendingConfirmation = null;
+        let supplierCreateAnswer: string | null = null;
         if (result.pending_action && typeof result.pending_action === 'object') {
             procurementStage = 'validate_preview';
             const action = result.pending_action;
             const kind = action.kind;
             const argumentsValue = action.arguments;
             const preview = action.preview;
-            if (!['create_purchase_order', 'receive_inventory'].includes(kind)
+            if (!['create_purchase_order', 'receive_inventory', 'create_voucher_type', 'create_supplier', 'activate_supplier'].includes(kind)
                 || typeof argumentsValue !== 'object' || argumentsValue === null
                 || typeof preview !== 'object' || preview === null) {
+                console.error(JSON.stringify({ event: 'procurement_preview_rejected', kind: typeof kind === 'string' ? kind : null,
+                    argument_keys: typeof argumentsValue === 'object' && argumentsValue !== null ? Object.keys(argumentsValue).slice(0, 30) : [],
+                    preview_keys: typeof preview === 'object' && preview !== null ? Object.keys(preview).slice(0, 20) : [] }));
                 return fail(c, 502, 'procurement_preview_invalid', 'The GIS preview could not be safely saved for confirmation.');
             }
+            const requiredForAction = kind === 'create_purchase_order'
+                ? ['preview_purchase_order', 'create_purchase_order']
+                : kind === 'receive_inventory'
+                    ? ['get_purchase_order', 'preview_inventory_receipt', 'receive_inventory']
+                    : kind === 'create_voucher_type'
+                        ? ['get_product_master_data', 'search_locations', 'get_location', 'create_voucher_type']
+                        : kind === 'create_supplier' ? ['search_suppliers', 'create_supplier']
+                            : ['search_suppliers', 'activate_supplier'];
+            const unapprovedActionTools = requiredForAction.filter((tool) => !gis.connection.allowed_tools.includes(tool));
+            if (unapprovedActionTools.length)
+                return fail(c, 403, 'procurement_action_not_approved', `Approve these GIS tools first: ${unapprovedActionTools.join(', ')}.`);
+            if (kind === 'create_supplier') {
+                const supplierArgs = argumentsValue as Record<string, unknown>;
+                const supplierFields = ['organization', 'code', 'contact_person', 'country', 'address', 'state', 'city', 'zip',
+                    'vendor_type', 'tax_id', 'email', 'phone', 'website'];
+                if (Object.keys(supplierArgs).some((field) => !supplierFields.includes(field))
+                    || ['organization', 'code', 'contact_person', 'country', 'address', 'state', 'city', 'zip']
+                        .some((field) => typeof supplierArgs[field] !== 'string' || !(supplierArgs[field] as string).trim()))
+                    return fail(c, 502, 'supplier_create_arguments_invalid', 'The supplier details are incomplete or contain unsupported fields. No supplier was created.');
+
+                for (const field of ['code', 'organization']) {
+                    const lookup = await callProductAi('/internal/v1/procurement/tool', tenantId, c.get('correlationId'), {
+                        mcp_connection: gis.connection, tool: 'search_suppliers', arguments: {
+                            query: String(supplierArgs[field]).trim(), limit: 100, offset: 0, include_inactive: true,
+                        },
+                    });
+                    const rows = lookup.result?.suppliers;
+                    if (!Array.isArray(rows) || (typeof lookup.result?.total === 'number' && lookup.result.total > rows.length))
+                        return fail(c, 502, 'supplier_duplicate_check_failed', 'GIS could not verify whether this supplier already exists. No supplier was created.');
+                    const duplicate = rows.find((row) => field === 'code'
+                        ? String(row?.code ?? '').trim().toLowerCase() === String(supplierArgs.code).trim().toLowerCase()
+                        : String(row?.organization ?? row?.name ?? '').trim().toLowerCase() === String(supplierArgs.organization).trim().toLowerCase());
+                    if (duplicate)
+                        return c.json({ success: true, data: { answer: `A GIS supplier with this organization or code already exists (${String(duplicate.organization ?? duplicate.name ?? '')}; ${String(duplicate.code ?? '')}). No duplicate was created.`, history: result.history ?? [], pending_confirmation: null, purchase_orders: [] }, correlation_id: c.get('correlationId') });
+                }
+
+                const supplier = Object.fromEntries(supplierFields
+                    .filter((field) => supplierArgs[field] !== undefined && supplierArgs[field] !== '')
+                    .map((field) => [field, String(supplierArgs[field]).trim()]));
+                supplier.status = 'active';
+                const created = await callProductAi('/internal/v1/procurement/tool', tenantId, c.get('correlationId'), {
+                    mcp_connection: gis.connection, tool: 'create_supplier', arguments: supplier,
+                }, 90_000);
+                const outcome = created.result;
+                if (outcome?.created !== true) {
+                    if (outcome?.already_exists === true)
+                        return c.json({ success: true, data: { answer: 'GIS found a matching supplier and did not create a duplicate.', history: result.history ?? [], pending_confirmation: null, purchase_orders: [] }, correlation_id: c.get('correlationId') });
+                    return fail(c, 502, 'supplier_create_result_unknown', 'GIS did not confirm supplier creation. Check GIS before retrying; FAROAI will not repeat the write automatically.');
+                }
+                const supplierName = String(outcome.supplier?.organization ?? outcome.supplier?.name ?? supplier.organization ?? '');
+                supplierCreateAnswer = `Supplier ${supplierName} was created and activated in GIS. This write does not synchronize supplier data to ERP.`;
+                await pool.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,resource_id,metadata)
+                  VALUES($1,$2,$3,$4,'gis_supplier.created','gis_supplier',$5,$6)`, [tenantId, c.get('correlationId'), c.get('platformAdmin').email, gisPromptActorKind(c),
+                    String(outcome.supplier?.id ?? ''), JSON.stringify({ status: 'active', source: 'procurement_prompt' })]);
+            } else {
             const draftId = randomBytes(16).toString('hex');
             const draft = { tenant_id: tenantId, actor_email: c.get('platformAdmin').email, kind,
                 arguments: argumentsValue, preview, status: 'pending', created_at: new Date().toISOString() };
@@ -1578,14 +1702,16 @@ adminRoutes.post('/tenants/:tenantId/procurement/assistant', async (c) => {
             if (redis.status === 'wait') await redis.connect();
             await redis.set(`faroai:procurement:preview:${tenantId}:${draftId}`, JSON.stringify(draft), 'EX', 900, 'NX');
             pendingConfirmation = { draft_id: draftId, kind, preview, expires_in_seconds: 900 };
+            }
         }
         procurementStage = 'audit';
         await pool.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,metadata)
          VALUES($1,$2,$3,$4,'procurement.assistant.used','gis_procurement',$5)`, [tenantId, c.get('correlationId'), c.get('platformAdmin').email, gisPromptActorKind(c),
             JSON.stringify({ provider: result.provider ?? 'unknown', model: result.model ?? 'unknown', decision_used: result.decision_used === true,
                 has_pending_confirmation: !!pendingConfirmation, conversation_history_enabled: conversationHistoryEnabled })]);
-        return c.json({ success: true, data: { answer: result.answer, history: conversationHistoryEnabled ? result.history ?? [] : [],
+        return c.json({ success: true, data: { answer: supplierCreateAnswer ?? result.answer, history: conversationHistoryEnabled ? result.history ?? [] : [],
             pending_confirmation: pendingConfirmation, purchase_orders: result.purchase_orders ?? [],
+            base_skill: result.base_skill ?? null,
             provider: result.provider, model: result.model,
             decision_used: result.decision_used === true }, correlation_id: c.get('correlationId') });
     }
@@ -1596,8 +1722,25 @@ adminRoutes.post('/tenants/:tenantId/procurement/assistant', async (c) => {
             stage: procurementStage, error_type: error instanceof Error ? error.name : 'unknown',
             error_message: error instanceof Error ? error.message.replace(/[\r\n]/g, ' ').slice(0, 160) : 'unknown',
             error_code: /^[a-z0-9_]{1,80}$/.test(code) ? code : 'internal_error' }));
-        if (code === 'required_gis_tools_not_approved')
-            return fail(c, 409, code, 'Some required GIS procurement tools are not currently discovered and approved. Retest the connection and approve the PO and receipt tools.');
+        if (code === 'required_gis_tools_not_approved') {
+            const prompt = parsed.data.message;
+            const mentionsSupplier = /\b(?:suppliers?|vendors?)\b|ผู้ขาย/i.test(prompt);
+            const negatesSupplierWrite = /\b(?:do not|don't|dont|never|without|no need to|must not|should not|shouldn't)\b[\s\S]{0,32}\b(?:create|add|register|activate|enable)\b|(?:ห้าม|ไม่ต้อง|ไม่ต้องการ|อย่า)[\s\S]{0,24}(?:สร้าง|เพิ่ม|ลงทะเบียน|เปิดใช้งาน)/i.test(prompt);
+            const requestsSupplierActivation = mentionsSupplier && !negatesSupplierWrite
+                && /\b(?:activate|enable)\b|เปิดใช้งาน/i.test(prompt);
+            const requestsSupplierCreation = mentionsSupplier && !negatesSupplierWrite
+                && /\b(?:create|add|register|new)\b|สร้าง|เพิ่ม|ลงทะเบียน/i.test(prompt);
+            const messageText = /(?:voucher\s+for\s+(?:a\s+)?po|purchase\s+order\s+voucher|po\s+voucher|สร้าง.{0,30}voucher|voucher.{0,30}ใบสั่งซื้อ)/i.test(prompt)
+                ? 'Approve the GIS location lookup and Purchase Order voucher creation tools for this connection before creating a voucher.'
+                : mentionsSupplier
+                    ? requestsSupplierActivation
+                        ? 'Sync the GIS MCP tool list, then enable `search_suppliers` and `activate_supplier` for this connection before activating a supplier.'
+                        : requestsSupplierCreation
+                            ? 'Sync the GIS MCP tool list, then enable `search_suppliers` and `create_supplier` for this connection before creating a supplier.'
+                            : 'Supplier lookup is read-only. Sync the GIS MCP tool list, then enable `search_suppliers` for this connection.'
+                : 'The read-only PO lookup needs approved GIS read tools (supplier master, PO search, and PO details). PO creation and inventory receipt permissions are not required to search.';
+            return fail(c, 409, code, messageText);
+        }
         return fail(c, 502, 'procurement_assistant_failed', 'FaroAI could not complete this PO or inventory request. No PO or receipt was created.');
     }
 });
@@ -1618,7 +1761,16 @@ adminRoutes.post('/tenants/:tenantId/procurement/confirm', async (c) => {
         return fail(c, 409, 'procurement_confirmation_replayed', 'This preview is already being processed or was already used.');
     let draft;
     try { draft = JSON.parse(claimed); } catch { return fail(c, 409, 'procurement_preview_invalid', 'The saved preview could not be read.'); }
-    const gis = await productGisConnection(tenantId, PROCUREMENT_TOOLS);
+    const requiredForDraft = draft.kind === 'create_purchase_order'
+        ? ['preview_purchase_order', 'create_purchase_order']
+        : draft.kind === 'receive_inventory'
+            ? ['get_purchase_order', 'preview_inventory_receipt', 'receive_inventory']
+            : draft.kind === 'create_voucher_type'
+                ? ['get_product_master_data', 'search_locations', 'get_location', 'create_voucher_type']
+                : draft.kind === 'create_supplier' ? ['search_suppliers', 'create_supplier']
+                    : draft.kind === 'activate_supplier' ? ['search_suppliers', 'activate_supplier'] : null;
+    if (!requiredForDraft) return fail(c, 409, 'procurement_preview_invalid', 'This GIS preview is invalid.');
+    const gis = await productGisConnection(tenantId, requiredForDraft);
     if (!gis.connection) {
         draft.status = 'blocked';
         await redis.set(key, JSON.stringify(draft), 'EX', 900);
@@ -1626,14 +1778,115 @@ adminRoutes.post('/tenants/:tenantId/procurement/confirm', async (c) => {
             ? `Approve these GIS procurement tools first: ${gis.missing_tools.join(', ')}.`
             : 'Enable and test the tenant GIS MCP connection first.' }, 409);
     }
-    const previewTool = draft.kind === 'create_purchase_order' ? 'preview_purchase_order' : 'preview_inventory_receipt';
+    const previewTool = draft.kind === 'create_purchase_order' ? 'preview_purchase_order' : draft.kind === 'receive_inventory' ? 'preview_inventory_receipt' : null;
     let mutationSent = false;
     try {
-        const current = await callProductAi('/internal/v1/procurement/tool', tenantId, c.get('correlationId'), {
-            mcp_connection: gis.connection, tool: previewTool, arguments: draft.arguments,
-        });
-        const preview = current.result;
-        if (!preview || preview.valid !== true || (draft.kind === 'receive_inventory' && preview.can_receive === false)) {
+        let preview;
+        if (draft.kind === 'create_supplier') {
+            const supplierArgs = draft.arguments;
+            const duplicates = [];
+            for (const field of ['code', 'organization']) {
+                const lookup = await callProductAi('/internal/v1/procurement/tool', tenantId, c.get('correlationId'), {
+                    mcp_connection: gis.connection, tool: 'search_suppliers', arguments: {
+                        query: String(supplierArgs[field] ?? ''), limit: 100, offset: 0, include_inactive: true,
+                    },
+                });
+                const rows = lookup.result?.suppliers;
+                if (!Array.isArray(rows)) throw new Error('supplier_duplicate_check_failed');
+                if (typeof lookup.result?.total === 'number' && lookup.result.total > rows.length)
+                    throw new Error('supplier_duplicate_check_incomplete');
+                for (const row of rows) {
+                    const same = field === 'code'
+                        ? String(row?.code ?? '').trim().toLowerCase() === String(supplierArgs.code ?? '').trim().toLowerCase()
+                        : String(row?.organization ?? row?.name ?? '').trim().toLowerCase() === String(supplierArgs.organization ?? '').trim().toLowerCase();
+                    if (same) duplicates.push(row);
+                }
+            }
+            if (duplicates.length) {
+                draft.status = 'blocked';
+                await redis.set(key, JSON.stringify(draft), 'EX', 900);
+                return c.json({ success: false, error: 'supplier_already_exists', message: 'A GIS supplier with the same organization or code already exists. No duplicate was created.', data: { name: duplicates[0].name, code: duplicates[0].code } }, 409);
+            }
+            const keys = ['organization', 'code', 'contact_person', 'country', 'address', 'state', 'city', 'zip',
+                'vendor_type', 'tax_id', 'email', 'phone', 'website'];
+            const supplier = Object.fromEntries(keys.filter((name) => supplierArgs[name] !== undefined && supplierArgs[name] !== '')
+                .map((name) => [name, String(supplierArgs[name]).trim()]));
+            supplier.status = 'active';
+            preview = { supplier };
+        }
+        else if (draft.kind === 'activate_supplier') {
+            const supplierId = String(draft.arguments?.supplier_id ?? '');
+            const supplierPreview = draft.preview?.supplier ?? {};
+            const query = String(supplierPreview.organization ?? supplierPreview.name ?? supplierPreview.code ?? '').trim();
+            if (!query) throw new Error('supplier_preview_missing_search_key');
+            const search = await callProductAi('/internal/v1/procurement/tool', tenantId, c.get('correlationId'), {
+                mcp_connection: gis.connection, tool: 'search_suppliers', arguments: {
+                    query, limit: 100, offset: 0, include_inactive: true,
+                },
+            });
+            const suppliers = search.result?.suppliers;
+            if (!Array.isArray(suppliers)) throw new Error('supplier_search_failed');
+            if (typeof search.result?.total === 'number' && search.result.total > suppliers.length)
+                throw new Error('supplier_search_incomplete');
+            const supplier = suppliers.find((item) => String(item?.id ?? '').toLowerCase() === supplierId.toLowerCase());
+            if (!supplier) {
+                draft.status = 'blocked';
+                await redis.set(key, JSON.stringify(draft), 'EX', 900);
+                return c.json({ success: false, error: 'supplier_missing', message: 'The selected GIS supplier is no longer available. Search again before activating it.' }, 409);
+            }
+            if (['1', 'active', 'enabled'].includes(String(supplier.status ?? '').toLowerCase())) {
+                draft.status = 'blocked';
+                await redis.set(key, JSON.stringify(draft), 'EX', 900);
+                return c.json({ success: false, error: 'supplier_already_active', message: 'This GIS supplier is already active. No change was made.' }, 409);
+            }
+            preview = { supplier: Object.fromEntries(['name', 'organization', 'code', 'contact_person', 'vendor_type']
+                .map((name) => [name, supplier[name] ?? null])), current_status: supplier.status, new_status: 'active' };
+        }
+        else if (draft.kind === 'create_voucher_type') {
+            const voucherArgs = draft.arguments;
+            const masterCheck = await callProductAi('/internal/v1/procurement/tool', tenantId, c.get('correlationId'), {
+                mcp_connection: gis.connection, tool: 'get_product_master_data', arguments: { types: ['purchase_voucher'], limit: 100 },
+            });
+            const activeVouchers = masterCheck.result?.masters?.purchase_voucher;
+            if (!Array.isArray(activeVouchers)) throw new Error('voucher_master_read_failed');
+            const duplicate = activeVouchers.find((item) => item &&
+                (String(item.name ?? '').trim().toLowerCase() === String(voucherArgs.name ?? '').trim().toLowerCase()
+                    || String(item.code ?? '').trim().toLowerCase() === String(voucherArgs.code ?? '').trim().toLowerCase()));
+            if (duplicate) {
+                draft.status = 'blocked';
+                await redis.set(key, JSON.stringify(draft), 'EX', 900);
+                return c.json({ success: false, error: 'voucher_already_active', message: 'An active matching GIS voucher already exists. No duplicate was created.', data: { name: duplicate.name, code: duplicate.code } }, 409);
+            }
+            const locationIds = Array.isArray(voucherArgs.location_ids) ? voucherArgs.location_ids : [];
+            const locations = [];
+            for (const locationId of locationIds) {
+                const locationResult = await callProductAi('/internal/v1/procurement/tool', tenantId, c.get('correlationId'), {
+                    mcp_connection: gis.connection, tool: 'get_location', arguments: { location_id: locationId },
+                });
+                const location = locationResult.result?.location;
+                if (locationResult.result?.found !== true || !location || String(location.Status) !== '1' || String(location.is_delete ?? '0') !== '0') {
+                    draft.status = 'blocked';
+                    await redis.set(key, JSON.stringify(draft), 'EX', 900);
+                    return c.json({ success: false, error: 'voucher_location_inactive', message: 'A selected GIS location is missing or inactive. Review a fresh voucher preview.', data: null }, 409);
+                }
+                locations.push({ name: String(location.name ?? ''), code: String(location.code ?? '') });
+            }
+            preview = { voucher_type: {
+                name: voucherArgs.name, code: voucherArgs.code, group: voucherArgs.group, locations,
+                numbering: {
+                    prefix: String(voucherArgs.conf_prefix ?? ''), start_number: String(voucherArgs.conf_startno ?? '1'),
+                    width: String(voucherArgs.width_start_number ?? '1'), zero_padded: String(voucherArgs.prefill_with_zero ?? '1') === '1',
+                    suffix: String(voucherArgs.conf_suffix ?? ''),
+                }, status: 'active',
+            } };
+        } else {
+            const current = await callProductAi('/internal/v1/procurement/tool', tenantId, c.get('correlationId'), {
+                mcp_connection: gis.connection, tool: previewTool, arguments: draft.arguments,
+            });
+            preview = current.result;
+        }
+        const isCustomMasterPreview = ['create_voucher_type', 'create_supplier', 'activate_supplier'].includes(draft.kind);
+        if (!preview || (isCustomMasterPreview ? !(preview.voucher_type || preview.supplier) : preview.valid !== true || (draft.kind === 'receive_inventory' && preview.can_receive === false))) {
             draft.status = 'blocked';
             await redis.set(key, JSON.stringify(draft), 'EX', 900);
             return c.json({ success: false, error: 'procurement_preview_failed', message: 'GIS data changed or the latest preview did not pass. Review a fresh preview before confirming.', data: preview ?? null }, 409);
@@ -1656,11 +1909,17 @@ adminRoutes.post('/tenants/:tenantId/procurement/confirm', async (c) => {
             mcp_connection: gis.connection, tool, arguments: draft.arguments,
         }, 90_000);
         const outcome = result.result;
-        const completed = tool === 'create_purchase_order' ? outcome?.created === true : outcome?.created === true || outcome?.accepted === true;
+        const completed = tool === 'activate_supplier' ? outcome?.activated === true
+            : tool === 'create_purchase_order' || tool === 'create_voucher_type' || tool === 'create_supplier'
+                ? outcome?.created === true : outcome?.created === true || outcome?.accepted === true;
         if (!completed) {
             draft.status = 'failed';
             draft.outcome = outcome;
             await redis.set(key, JSON.stringify(draft), 'EX', 900);
+            if (tool === 'create_voucher_type' && outcome?.already_exists === true)
+                return c.json({ success: false, error: 'voucher_activation_unavailable', message: 'A matching GIS voucher exists but this GIS operation cannot activate or update it. No new voucher was created.', data: outcome }, 409);
+            if (tool === 'create_supplier' && outcome?.already_exists === true)
+                return c.json({ success: false, error: 'supplier_already_exists', message: 'GIS found a matching supplier and did not create a duplicate.', data: outcome }, 409);
             return c.json({ success: false, error: 'procurement_write_not_confirmed', message: 'GIS did not confirm the write. Check the PO or receipt in GIS before retrying.', data: outcome ?? null }, 502);
         }
         draft.status = 'completed';
@@ -1668,12 +1927,24 @@ adminRoutes.post('/tenants/:tenantId/procurement/confirm', async (c) => {
         await redis.set(key, JSON.stringify(draft), 'EX', 900);
         await pool.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,resource_id,metadata)
          VALUES($1,$2,$3,$4,$5,$6,$7,$8)`, [tenantId, c.get('correlationId'), actorEmail, gisPromptActorKind(c),
-            tool === 'create_purchase_order' ? 'purchase_order.created' : 'inventory_receipt.created',
-            tool === 'create_purchase_order' ? 'gis_purchase_order' : 'gis_inventory_receipt',
-            String(outcome.purchase_order?.id ?? outcome.receipt?.id ?? outcome.job_id ?? ''),
-            JSON.stringify({ status: outcome.status ?? (outcome.accepted ? 'queued' : 'pending_approval') })]);
+            tool === 'create_purchase_order' ? 'purchase_order.created'
+                : tool === 'create_voucher_type' ? 'gis_voucher_type.created'
+                    : tool === 'create_supplier' ? 'gis_supplier.created'
+                        : tool === 'activate_supplier' ? 'gis_supplier.activated' : 'inventory_receipt.created',
+            tool === 'create_purchase_order' ? 'gis_purchase_order'
+                : tool === 'create_voucher_type' ? 'gis_voucher_type'
+                    : (tool === 'create_supplier' || tool === 'activate_supplier') ? 'gis_supplier' : 'gis_inventory_receipt',
+            String(outcome.purchase_order?.id ?? outcome.voucher_type?.id ?? outcome.supplier?.id ?? outcome.receipt?.id ?? outcome.job_id ?? ''),
+            JSON.stringify({ status: (tool === 'create_supplier' || tool === 'activate_supplier')
+                ? 'active' : outcome.status ?? (outcome.accepted ? 'queued' : 'pending_approval') })]);
         const answer = tool === 'create_purchase_order'
             ? 'The PO was created in GIS with pending approval status. Approve it in GIS before receiving inventory.'
+            : tool === 'create_voucher_type'
+                ? `The active Purchase Order voucher ${String(outcome.voucher_type?.name ?? '')} was created in GIS. No supplier, PO, or inventory records were created.`
+            : tool === 'create_supplier'
+                ? `Supplier ${String(outcome.supplier?.name ?? outcome.supplier?.organization ?? '')} was created and activated in GIS. This write does not synchronize supplier data to ERP.`
+            : tool === 'activate_supplier'
+                ? `Supplier ${String(outcome.supplier?.name ?? outcome.supplier?.organization ?? '')} was activated in GIS.`
             : outcome.accepted && outcome.job_id
                 ? `GIS accepted the inventory receipt job (${String(outcome.job_id)}). The resulting receipt remains pending GIS approval.`
                 : 'The inventory receipt was created in GIS with pending approval status. Approve it in GIS before stock is available.';
@@ -2232,6 +2503,7 @@ adminRoutes.get('/audit-events', async (c) => {
     return c.json({ success: true, data: { items: result.rows, ...paging.data }, correlation_id: c.get('correlationId') });
 });
 adminRoutes.onError((error, c) => {
-    console.error(JSON.stringify({ event: 'platform_admin_request_failed', correlation_id: c.get('correlationId'), name: error.name }));
+    console.error(JSON.stringify({ event: 'platform_admin_request_failed', correlation_id: c.get('correlationId'), name: error.name,
+        path: c.req.path, stack: error.stack?.split('\n').slice(0, 6) }));
     return fail(c, 500, 'server_error', 'The platform request could not be completed.');
 });

@@ -1,0 +1,9 @@
+- Removed the per-supplier confirmation preview; explicit create prompts now write through the Gateway after required-field and live duplicate checks.
+- Kept activation, PO, voucher, and inventory confirmation flows unchanged; updated ADR-0041 and supplier/procurement specifications.
+- Updated the FaroAI supplier prompts and backoffice copy; Gateway audits the GIS-confirmed create and will not retry an uncertain write.
+- Verification: Gateway and Backoffice typechecks passed; Gateway build and Backoffice Docker production build passed. The first Windows Turbopack build failed on unsupported pnpm junctions, and its Windows webpack fallback hit a page-generation memory limit; the Linux Docker build completed successfully.
+- Reloaded the API and AI service in local mode and the new Backoffice image; health endpoints returned HTTP 200. Removed the replaced Gateway and Backoffice images after the new containers started.
+- Prompt-created and GIS-confirmed 10 synthetic suppliers. Nine used sequential `AI-SUP-001`–`AI-SUP-010` values except `AI-SUP-004`, whose code was already occupied but hidden from GIS search; that record used `AI-SUP-TEST-004` instead. No ERP synchronization occurred.
+- Live UI verification confirmed a successful supplier response appears directly with no supplier preview or confirmation button. Other procurement confirmation flows remain in place.
+- PO prompts that named a voucher were misclassified as voucher setup, and free-form product requests could return without a catalog search. Updated intent routing and voucher-group normalization; PO requests now load GIS master/product candidates and force only the preview tool, keeping direct create unavailable to the model. Updated the procurement spec before continuing the batch.
+- Added identifier-free diagnostic logs for preview-tool outcomes while isolating why the authorized PO prompt did not produce a validated preview.

@@ -1,0 +1,22 @@
+sequenceDiagram
+    title Sequence 1/2: Select skills and read data
+    participant user
+    participant gateway
+    participant runtime
+    participant jev
+    participant model
+    participant mcp
+    user->>gateway: Summarize pending POs as Excel
+    gateway->>gateway: Check tenant/scopes/budget
+    gateway->>runtime: Request with trusted context
+    runtime->>runtime: Resolve release + metadata
+    runtime->>jev: Allowed skill/model choices
+    jev-->>runtime: Selected IDs or clarification
+    runtime->>runtime: Validate IDs; load skill version
+    runtime->>mcp: Check tool/schema; read POs
+    mcp-->>runtime: Verified data, rows and sources
+    runtime->>model: If prose needed: skill + data
+    model-->>runtime: Draft for schema/fact validation
+    runtime->>runtime: Persist job, then queue
+    runtime-->>gateway: Table + queued job ID
+    gateway-->>user: Show results; track the job

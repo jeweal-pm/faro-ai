@@ -24,6 +24,7 @@ $environmentKeys = @(
   'FAROAI_DEMO_ENABLED',
   'FAROAI_DEMO_TENANT_ID',
   'FAROAI_DEMO_API_KEY',
+  'FAROAI_GIS_API_KEY',
   'FAROAI_TENANT_MODE',
   'FAROAI_SINGLE_TENANT_ID',
   'FAROAI_DEPLOYMENT_MODE',
@@ -49,7 +50,7 @@ try {
   $env:FAROAI_API_INTERNAL_URL = 'http://127.0.0.1:3000'
   Push-Location $backofficePath
   $pushedLocation = $true
-  & pnpm exec next dev --hostname 127.0.0.1 --port 3001
+  & pnpm exec next dev --webpack --hostname 127.0.0.1 --port 3001
   if ($LASTEXITCODE -ne 0) {
     throw "Next.js dev server exited with code $LASTEXITCODE."
   }

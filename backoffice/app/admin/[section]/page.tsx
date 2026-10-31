@@ -5,6 +5,7 @@ const sections = new Set<Section>([
   'tenants',
   'providers',
   'routing',
+  'skills',
   'knowledge',
   'mcp',
   'learning',

@@ -1,5 +1,7 @@
 # Specification: Natural-language GIS purchasing and inventory
 
+Voucher master setup is governed by [Prompt-driven GIS master operations](gis-procurement-master-operations.md). Supplier lookup and confirmed supplier writes are governed by [GIS Supplier operations](gis-supplier-operations.md).
+
 ## Goal
 
 Let an authenticated FaroAI platform administrator manage GIS purchase orders and
@@ -45,6 +47,14 @@ Required tools:
 - `preview_inventory_receipt`
 - `receive_inventory`
 
+Supplier prompt requests use a separate minimum capability set:
+
+- Read-only supplier lookup: `search_suppliers`
+- Create supplier: `search_suppliers`, `create_supplier`
+- Activate supplier: `search_suppliers`, `activate_supplier`
+
+Supplier search does not require either mutation permission. An explicit supplier-create prompt writes through the authenticated Gateway after live duplicate checks; supplier activation retains the existing one-time confirmation endpoint.
+
 `get_mcp_bulk_job_status` is optional and is used only if GIS advertises it and the
 tenant enables it.
 
@@ -84,12 +94,22 @@ tenant enables it.
 ## Create PO workflow
 
 1. Classify the request as PO creation.
-2. Use GIS master/product search tools to resolve the requested records and product.
+   An explicit request to create a PO remains PO creation when it also names the
+   voucher to use. Classify as voucher setup only when the voucher itself is the
+   explicit create/configure target.
+   Recognize the GIS `Purchase order` group consistently across space, hyphen, and
+   underscore spellings when checking whether a usable PO voucher exists.
+2. Gateway resolves live supplier, location, and purchase-voucher masters and searches
+   the requested product family before the model prepares the PO preview.
 3. AI-propose missing commercial values; ask a follow-up only if required live GIS
    records are unavailable or no product can be matched or created through FaroAI.
 4. Call `preview_purchase_order` and show supplier, location, voucher,
    transaction and delivery dates, products, quantities, unit prices, and total.
 5. Wait for explicit administrator confirmation in the UI.
+   PO creation must require a tool call, expose the preview tool, and keep the
+   direct create mutation unavailable to the model until Gateway confirmation.
+   Once GIS masters and products are loaded, require the model to call only the
+   preview tool for this step.
 6. Gateway claims the one-time Redis preview draft for the same actor and tenant, then
    re-runs preview. If invalid or changed, stop and require review of a fresh preview.
 7. On an unchanged valid preview, gateway calls `create_purchase_order` exactly once.

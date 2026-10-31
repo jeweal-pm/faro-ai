@@ -1,0 +1,104 @@
+{
+  "release": "2026.10.30.1",
+  "skills": [
+    {
+      "id": "base.jewelry-search",
+      "name": "jewelry-search",
+      "description": "Find and explain verified jewelry products and explicit search constraints.",
+      "version": "1.0.0",
+      "status": "ready",
+      "executor": "discovery.product",
+      "digest": "41b09ffe4b946edc19ecac34551a41630fc474642f1caba547936446c97d5c80"
+    },
+    {
+      "id": "base.knowledge-answer",
+      "name": "knowledge-answer",
+      "description": "Answer questions using approved knowledge belonging to the current tenant.",
+      "version": "1.0.0",
+      "status": "ready",
+      "executor": "discovery.knowledge",
+      "digest": "973875246e8ef9aceb2b457e17be8e56bc9a26782e011428a1e67e74cfc8023e"
+    },
+    {
+      "id": "base.po-search",
+      "name": "po-search",
+      "description": "Find purchase orders and summarize verified GIS records without making changes.",
+      "version": "1.0.0",
+      "status": "ready",
+      "executor": "procurement.read",
+      "digest": "b11c6c5faac47ec5d9b05196224f86fcc0b7cf7dcba7fd4f5b21b0d1f3d207b5"
+    },
+    {
+      "id": "base.catalog-create",
+      "name": "catalog-create",
+      "description": "Create creative catalog products through the authorized GIS catalog workflow.",
+      "version": "1.0.0",
+      "status": "ready",
+      "executor": "catalog.create",
+      "digest": "c0d00412bfd77d7511b0a7d1c3e8376cd1979ae9492c8fe8687a0e78d0026729"
+    },
+    {
+      "id": "base.po-create",
+      "name": "po-create",
+      "description": "Prepare a purchase order preview and use the existing confirmed GIS workflow.",
+      "version": "1.0.0",
+      "status": "ready",
+      "executor": "procurement.create",
+      "digest": "7e246123d85fad8b7dc0c57eec59bd33fb135e30a03d40b067b7e15e13b35980"
+    },
+    {
+      "id": "base.inventory-receive",
+      "name": "inventory-receive",
+      "description": "Prepare a receipt against a GIS-approved purchase order with confirmation.",
+      "version": "1.0.0",
+      "status": "ready",
+      "executor": "procurement.receive",
+      "digest": "cca9e8f7eb64e926511f1cf75764e3a785972c7af86cc3e70bb774050885e6a6"
+    },
+    {
+      "id": "base.data-analysis",
+      "name": "data-analysis",
+      "description": "Analyze authorized tabular data using verified deterministic calculations.",
+      "version": "1.0.0",
+      "status": "planned",
+      "executor": "artifact.analysis",
+      "digest": "19ccd7f38be478f8b666b4e27b8a00e0f5b7d0a257e84fd1504cf433440a5d13"
+    },
+    {
+      "id": "base.pdf",
+      "name": "pdf",
+      "description": "Create an authorized PDF document from approved content and data.",
+      "version": "1.0.0",
+      "status": "planned",
+      "executor": "artifact.pdf",
+      "digest": "4307bb17d24d524f95f199f693943ea67aec47250b43cdca33a41159f4db694a"
+    },
+    {
+      "id": "base.xlsx",
+      "name": "xlsx",
+      "description": "Create an authorized Excel workbook from verified tabular data.",
+      "version": "1.0.0",
+      "status": "planned",
+      "executor": "artifact.xlsx",
+      "digest": "7b877d6c27a9e42ea315f205b5257725465b3efbb3142f9370eb893f2bb0277d"
+    },
+    {
+      "id": "base.docx",
+      "name": "docx",
+      "description": "Create an authorized Word document from approved content and data.",
+      "version": "1.0.0",
+      "status": "planned",
+      "executor": "artifact.docx",
+      "digest": "81e7f9debb70cbfe8ce9e1cc3e712edfa32c0a9000af7b1a419628f4157cba1f"
+    },
+    {
+      "id": "base.pptx",
+      "name": "pptx",
+      "description": "Create an authorized PowerPoint presentation from approved content and data.",
+      "version": "1.0.0",
+      "status": "planned",
+      "executor": "artifact.pptx",
+      "digest": "10e2f8a16c1d4a72f3e6166d0f381f32e6f228347b0fbfc9d5830c2fa37502dc"
+    }
+  ]
+}

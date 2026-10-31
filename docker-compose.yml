@@ -6,6 +6,8 @@ services:
       context: ./gateway
     environment:
       PORT: "3000"
+      FAROAI_ARTIFACT_ROOT: /var/faroai/artifacts
+      FAROAI_ARTIFACT_ENABLED: ${FAROAI_ARTIFACT_ENABLED:-false}
       DATABASE_URL: ${DATABASE_URL:-postgres://faroai:${FAROAI_DB_PASSWORD}@postgres:5432/faroai}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       PYTHON_SERVICE_URL: ${PYTHON_SERVICE_URL:-http://ai-service:8000}
@@ -49,6 +51,10 @@ services:
       - app
       - data
       - host_api
+    group_add:
+      - "10002"
+    volumes:
+      - artifact_data:/var/faroai/artifacts:ro
     read_only: true
     tmpfs:
       - /tmp
@@ -180,6 +186,42 @@ services:
         max-file: "3"
     restart: unless-stopped
 
+  artifact-worker:
+    profiles: ["artifacts"]
+    build:
+      context: ./artifact-worker
+    environment:
+      DATABASE_URL: ${FAROAI_ARTIFACT_DATABASE_URL:-}
+      REDIS_URL: ${FAROAI_ARTIFACT_REDIS_URL:-}
+      ARTIFACT_ROOT: /var/faroai/artifacts
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - data
+    volumes:
+      - artifact_data:/var/faroai/artifacts
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cpus: "0.35"
+    mem_limit: 512m
+    pids_limit: 96
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
   postgres:
     image: postgres:16-alpine
     environment:
@@ -243,6 +285,7 @@ services:
       FAROAI_DEMO_TENANT_ID: ${FAROAI_DEMO_TENANT_ID:-}
       FAROAI_DEMO_API_KEY: ${FAROAI_DEMO_API_KEY:-}
       FAROAI_GIS_API_KEY: ${FAROAI_GIS_API_KEY:-}
+      BACKOFFICE_COOKIE_SECURE: ${BACKOFFICE_COOKIE_SECURE:-false}
     ports:
       - "127.0.0.1:3001:3000"
     depends_on:
@@ -323,6 +366,7 @@ volumes:
   redis_data:
   qdrant_storage:
   qdrant_snapshots:
+  artifact_data:
 
 networks:
   app:

@@ -23,7 +23,7 @@ async function api<T>(tenantId: string, path: string, body: unknown): Promise<Ap
 }
 
 function exactMaster(masters: Master[], hint?: string | null) {
-  const normalize = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]/g, '').replace(/ies$/, 'y').replace(/s$/, '');
+  const normalize = (value: string) => value.trim().replace(/\s*\(AI\)$/i, '').toLowerCase().replace(/[^a-z0-9]/g, '').replace(/ies$/, 'y').replace(/s$/, '');
   const normalized = hint ? normalize(hint) : '';
   const matches = normalized ? masters.filter((item) => normalize(item.name) === normalized || (!!item.code && normalize(item.code) === normalized)) : [];
   return matches.length === 1 ? matches[0] : undefined;

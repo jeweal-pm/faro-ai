@@ -1,5 +1,7 @@
 'use server';
 
+import { artifactConfig } from './artifact-service';
+
 export type DiscoveryResult = {
   answer: string;
   products: Array<{ id?: string; name?: string; sku?: string; productType?: string | null; price?: number | null; currency?: string | null; availability?: string | null; summary?: string | null; image?: string | null; url?: string | null }>;
@@ -12,6 +14,30 @@ export type DiscoveryActionResult = { ok: true; data: DiscoveryResult } | { ok: 
 
 export type PromptTenant = { id: string; name: string };
 export type PromptApiResult<T> = { success: boolean; data?: T; error?: string; message?: string };
+
+export async function requestArtifact(input: { format: 'pdf' | 'xlsx' | 'docx' | 'pptx'; title: string; columns: string[]; rows: (string | number | boolean | null)[][] }) {
+  const config = await artifactConfig(true);
+  if (!config) return { success: false as const, message: 'Document creation is not configured for this tenant.' };
+  try {
+    const response = await fetch(new URL('/v1/artifacts', config.base), { method: 'POST',
+      headers: { ...config.headers, 'content-type': 'application/json' }, body: JSON.stringify(input),
+      cache: 'no-store', signal: AbortSignal.timeout(10000) });
+    const body = await response.json();
+    if (!response.ok || !body.success || !/^[0-9a-f-]{36}$/i.test(body.data?.id)) return { success: false as const, message: body.message ?? 'Document creation failed.' };
+    return { success: true as const, id: body.data.id as string };
+  } catch { return { success: false as const, message: 'The document service is unavailable.' }; }
+}
+
+export async function artifactStatus(id: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return 'failed';
+  const config = await artifactConfig(false);
+  if (!config) return 'failed';
+  try {
+    const response = await fetch(new URL(`/v1/artifacts/${id}`, config.base), { headers: config.headers, cache: 'no-store', signal: AbortSignal.timeout(5000) });
+    const body = await response.json();
+    return response.ok && ['pending', 'processing', 'completed', 'failed'].includes(body?.data?.status) ? body.data.status as string : 'failed';
+  } catch { return 'failed'; }
+}
 
 function promptServiceConfig() {
   const apiKey = process.env.FAROAI_GIS_API_KEY;

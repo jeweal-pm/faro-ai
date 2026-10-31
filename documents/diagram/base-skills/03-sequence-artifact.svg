@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1080" viewBox="0 0 1600 1080" role="img" aria-label="Sequence 2/2: งานเบื้องหลังและไฟล์ส่วนตัว">
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 Z" fill="#62758B"/></marker></defs>
+<rect x="0" y="0" width="1600" height="1080" rx="0" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<rect x="0" y="0" width="800" height="7" rx="0" fill="#6478F4" stroke="#6478F4" stroke-width="1.5"/>
+<rect x="800" y="0" width="800" height="7" rx="0" fill="#33AFA8" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="48" y="46" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="15" font-weight="700" fill="#62758B" text-anchor="start">FAROAI  /  PLATFORM BASE SKILLS</text>
+<text x="48" y="94" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="34" font-weight="700" fill="#17324D" text-anchor="start">Sequence 2/2: งานเบื้องหลังและไฟล์ส่วนตัว</text>
+<text x="48" y="130" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="18" font-weight="400" fill="#62758B" text-anchor="start">ต่อจาก job ID ในภาพก่อน: PostgreSQL เก็บสถานะถาวร; Redis ช่วยส่งงาน; ไฟล์ดาวน์โหลดผ่าน Gateway</text>
+<text x="48" y="1051" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="14" font-weight="400" fill="#62758B" text-anchor="start">PROPOSED TARGET DESIGN  |  ADR-0036 / Draft SPEC  |  29 October 2026</text>
+<text x="1552" y="1051" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="14" font-weight="400" fill="#62758B" text-anchor="end">03-SEQUENCE-ARTIFACT</text>
+<rect x="22" y="178" width="216" height="63" rx="10" fill="#EAF8F6" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="130" y="216" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="20" font-weight="700" fill="#17324D" text-anchor="middle">ผู้ใช้ / หน้าเว็บ</text>
+<polyline points="130,241 130,922" fill="none" stroke="#D9E2EC" stroke-width="1.5" stroke-dasharray="7 5"/>
+<rect x="290" y="178" width="216" height="63" rx="10" fill="#EAF8F6" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="398" y="216" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="20" font-weight="700" fill="#17324D" text-anchor="middle">Gateway</text>
+<polyline points="398,241 398,922" fill="none" stroke="#D9E2EC" stroke-width="1.5" stroke-dasharray="7 5"/>
+<rect x="558" y="178" width="216" height="63" rx="10" fill="#EAF8F6" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="666" y="216" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="20" font-weight="700" fill="#17324D" text-anchor="middle">PostgreSQL</text>
+<polyline points="666,241 666,922" fill="none" stroke="#D9E2EC" stroke-width="1.5" stroke-dasharray="7 5"/>
+<rect x="826" y="178" width="216" height="63" rx="10" fill="#EAF8F6" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="934" y="216" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="20" font-weight="700" fill="#17324D" text-anchor="middle">Redis Queue</text>
+<polyline points="934,241 934,922" fill="none" stroke="#D9E2EC" stroke-width="1.5" stroke-dasharray="7 5"/>
+<rect x="1094" y="178" width="216" height="63" rx="10" fill="#F0F2FF" stroke="#6478F4" stroke-width="1.5"/>
+<text x="1202" y="216" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="20" font-weight="700" fill="#17324D" text-anchor="middle">Artifact Worker</text>
+<polyline points="1202,241 1202,922" fill="none" stroke="#D9E2EC" stroke-width="1.5" stroke-dasharray="7 5"/>
+<rect x="1362" y="178" width="216" height="63" rx="10" fill="#F0F2FF" stroke="#6478F4" stroke-width="1.5"/>
+<text x="1470" y="216" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="20" font-weight="700" fill="#17324D" text-anchor="middle">Private Storage</text>
+<polyline points="1470,241 1470,922" fill="none" stroke="#D9E2EC" stroke-width="1.5" stroke-dasharray="7 5"/>
+<polyline points="1202,295 934,295" fill="none" stroke="#4053BF" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="982.51171875" y="262" width="170.9765625" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="1068.0" y="285" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="middle">1. รับ job ID จาก queue</text>
+<polyline points="1202,340 666,340" fill="none" stroke="#4053BF" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="773.79296875" y="307" width="320.4140625" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="934.0" y="330" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="middle">2. claim งานและตรวจ tenant / version / policy</text>
+<polyline points="666,385 1202,385" fill="none" stroke="#4053BF" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+<rect x="780.9609375" y="352" width="306.078125" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="934.0" y="375" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="middle">3. คืน job manifest และ snapshot reference</text>
+<polyline points="1202,410 1268,410 1268,428 1202,428" fill="none" stroke="#4053BF" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1184" y="418" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="end">4. คำนวณ สร้าง XLSX และตรวจผล</text>
+<polyline points="1202,475 1470,475" fill="none" stroke="#4053BF" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="1212.7578125" y="442" width="246.484375" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="1336.0" y="465" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="middle">5. บันทึกไฟล์ส่วนตัว + content hash</text>
+<polyline points="1470,520 1202,520" fill="none" stroke="#4053BF" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+<rect x="1274.8125" y="487" width="122.375" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="1336.0" y="510" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="middle">6. คืน artifact ID</text>
+<polyline points="1202,565 666,565" fill="none" stroke="#4053BF" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="798.79296875" y="532" width="270.4140625" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="934.0" y="555" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="middle">7. บันทึก completed และ file metadata</text>
+<polyline points="130,610 398,610" fill="none" stroke="#17324D" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="166.8984375" y="577" width="194.203125" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="264.0" y="600" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#17324D" text-anchor="middle">8. หน้าเว็บติดตาม job status</text>
+<polyline points="398,655 666,655" fill="none" stroke="#17324D" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="421.0234375" y="622" width="221.953125" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="532.0" y="645" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#17324D" text-anchor="middle">9. อ่านสถานะตาม tenant / actor</text>
+<polyline points="666,700 398,700" fill="none" stroke="#17324D" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+<rect x="434.88671875" y="667" width="194.2265625" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="532.0" y="690" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#17324D" text-anchor="middle">10. คืนผลลัพธ์ที่ตรวจสิทธิ์แล้ว</text>
+<polyline points="398,745 130,745" fill="none" stroke="#17324D" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+<rect x="164.7109375" y="712" width="198.578125" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="264.0" y="735" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#17324D" text-anchor="middle">11. แสดงไฟล์พร้อมดาวน์โหลด</text>
+<polyline points="130,790 398,790" fill="none" stroke="#17324D" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="165.26953125" y="757" width="197.4609375" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="264.0" y="780" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#17324D" text-anchor="middle">12. ขอดาวน์โหลด artifact ID</text>
+<polyline points="398,835 1470,835" fill="none" stroke="#17324D" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="808.76171875" y="802" width="250.4765625" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="934.0" y="825" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#17324D" text-anchor="middle">13. ตรวจสิทธิ์/วันหมดอายุ แล้วอ่านไฟล์</text>
+<polyline points="1470,880 398,880" fill="none" stroke="#17324D" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+<rect x="871.29296875" y="847" width="125.4140625" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="934.0" y="870" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#17324D" text-anchor="middle">14. คืน file bytes</text>
+<polyline points="398,925 130,925" fill="none" stroke="#17324D" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+<rect x="184.81640625" y="892" width="158.3671875" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="264.0" y="915" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#17324D" text-anchor="middle">15. stream ไฟล์ให้ผู้ใช้</text>
+<rect x="48" y="950" width="1504" height="74" rx="10" fill="#FFF7E8" stroke="#BB7A16" stroke-width="1.5"/>
+<text x="68" y="978" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="19" font-weight="700" fill="#BB7A16" text-anchor="start">งานอ่าน/สร้างไฟล์กับงานเขียนธุรกิจใช้กติกาต่างกัน</text>
+<text x="68" y="1005" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#17324D" text-anchor="start">Catalog create ใช้ direct policy เดิม; PO/receipt ต้อง preview  /  confirm  /  re-preview; ไฟล์/ข้อมูลไม่เข้า training อัตโนมัติ</text>
+</svg>

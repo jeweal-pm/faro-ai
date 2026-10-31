@@ -1,0 +1,22 @@
+sequenceDiagram
+    title Sequence 1/2: เลือก skill และอ่านข้อมูล
+    participant user
+    participant gateway
+    participant runtime
+    participant jev
+    participant model
+    participant mcp
+    user->>gateway: สรุป PO รออนุมัติ แล้วทำ Excel
+    gateway->>gateway: ตรวจ tenant / scopes / budget
+    gateway->>runtime: ส่งคำขอพร้อม trusted context
+    runtime->>runtime: resolve release และ metadata
+    runtime->>jev: ให้เลือกเฉพาะ skill / model ที่อนุญาต
+    jev-->>runtime: ส่ง IDs ที่เลือก หรือขอข้อมูลเพิ่ม
+    runtime->>runtime: ตรวจ IDs และโหลด skill version
+    runtime->>mcp: ตรวจ tools/schema และค้น PO แบบ read-only
+    mcp-->>runtime: คืนข้อมูลจริง จำนวนแถว และแหล่งที่มา
+    runtime->>model: เฉพาะต้องอธิบาย: skill + verified data
+    model-->>runtime: คำอธิบายที่ต้องตรวจ schema/ข้อเท็จจริง
+    runtime->>runtime: บันทึก durable job ก่อนเข้าคิว
+    runtime-->>gateway: ตาราง + job ID / สถานะ queued
+    gateway-->>user: แสดงผลและติดตามงานต่ออัตโนมัติ

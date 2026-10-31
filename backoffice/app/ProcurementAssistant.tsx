@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { Check, Filter, LayoutGrid, LoaderCircle, Pencil, Send, Table2, X } from 'lucide-react';
-import { getPromptTenant, gisPromptRequest } from './actions';
+import { artifactStatus, getPromptTenant, gisPromptRequest, requestArtifact } from './actions';
 
 type Tenant = { id: string; name: string; status: string };
 type PurchaseOrderLine = { product_name: string; sku: string; quantity: number | null; unit_price: number | null; line_total: number | null };
@@ -11,8 +11,8 @@ type PurchaseOrderDisplay = {
   line_count: number; total_quantity: number | null; total_amount: number | null; lines: PurchaseOrderLine[];
   filtered?: boolean; filter_label?: string;
 };
-type Message = { role: 'user' | 'assistant'; text: string; purchaseOrders?: PurchaseOrderDisplay[]; sourcePurchaseOrders?: PurchaseOrderDisplay[]; language?: 'th' | 'en'; historyAfter?: ModelMessage[] };
-type PendingConfirmation = { draft_id: string; kind: 'create_purchase_order' | 'receive_inventory'; preview: Record<string, unknown>; expires_in_seconds: number };
+type Message = { role: 'user' | 'assistant'; text: string; purchaseOrders?: PurchaseOrderDisplay[]; sourcePurchaseOrders?: PurchaseOrderDisplay[]; language?: 'th' | 'en'; historyAfter?: ModelMessage[]; artifactId?: string; artifactFormat?: string };
+type PendingConfirmation = { draft_id: string; kind: 'create_purchase_order' | 'receive_inventory' | 'create_voucher_type' | 'activate_supplier'; preview: Record<string, unknown>; expires_in_seconds: number };
 type ModelMessage = Record<string, unknown>;
 type ApiResult<T> = { success: boolean; data?: T; error?: string; message?: string };
 
@@ -82,6 +82,14 @@ function isPoContextFollowUp(prompt: string) {
   return /\b(?:only|filter|under|over|below|above|less|more|price|quantity|qty|items?|lines?|those|these|them|status|supplier|sort)\b|(?:เฉพาะ|กรอง|ต่ำกว่า|มากกว่า|ไม่เกิน|อย่างน้อย|จำนวน|รายการ|สินค้า|ราคา|สถานะ|ผู้ขาย|เรียง)/i.test(prompt);
 }
 
+function requestedDocument(prompt: string): 'pdf' | 'xlsx' | 'docx' | 'pptx' | null {
+  if (/\b(?:xlsx|excel|spreadsheet)\b|(?:เอ็กเซล|เอกเซล)/i.test(prompt)) return 'xlsx';
+  if (/\bpdf\b/i.test(prompt)) return 'pdf';
+  if (/\b(?:docx|word)\b/i.test(prompt)) return 'docx';
+  if (/\b(?:pptx|powerpoint)\b|(?:พาวเวอร์พอยต์)/i.test(prompt)) return 'pptx';
+  return null;
+}
+
 function formatPoNumber(value: number | null) {
   if (value === null || !Number.isFinite(value)) return '—';
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
@@ -105,12 +113,13 @@ function formatPoStatus(value: string, language: 'th' | 'en') {
 type PurchaseOrderView = 'cards' | 'table';
 
 function PurchaseOrderResults({
-  orders, language, view, onViewChange,
+  orders, language, view, onViewChange, onDisplayedChange,
 }: {
   orders: PurchaseOrderDisplay[];
   language: 'th' | 'en';
   view: PurchaseOrderView;
   onViewChange: (view: PurchaseOrderView) => void;
+  onDisplayedChange: (orders: PurchaseOrderDisplay[]) => void;
 }) {
   const th = language === 'th';
   const [filterOpen, setFilterOpen] = useState(false);
@@ -119,6 +128,7 @@ function PurchaseOrderResults({
   const [filterValue, setFilterValue] = useState('');
   const [appliedFilter, setAppliedFilter] = useState<PoLineFilter | null>(null);
   const visibleOrders = appliedFilter ? applyPoLineFilter(orders, appliedFilter) : orders;
+  useEffect(() => { onDisplayedChange(visibleOrders); }, [orders, appliedFilter, onDisplayedChange]);
   function applyFilter(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const value = Number(filterValue);
@@ -234,6 +244,7 @@ export default function ProcurementAssistant({ initialPrompt, onCancel }: { init
   const started = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const visibleOrdersByMessage = useRef(new Map<number, PurchaseOrderDisplay[]>());
 
   useEffect(() => {
     void getPromptTenant().then((result) => {
@@ -267,6 +278,7 @@ export default function ProcurementAssistant({ initialPrompt, onCancel }: { init
     const displayedOrders = latestPoMessage?.purchaseOrders;
     const previousOrders = latestPoMessage?.sourcePurchaseOrders ?? displayedOrders;
     const followUpFilter = parsePoLineFilter(normalized);
+    const documentFormat = requestedDocument(normalized);
     let transcriptBaseMessages = baseMessages;
     if (!context && previousOrders?.length && followUpFilter && isPoContextFollowUp(normalized)
       && displayedOrders?.some((order) => order.filtered)) {
@@ -279,6 +291,35 @@ export default function ProcurementAssistant({ initialPrompt, onCancel }: { init
     const messagePrefix: Message[] = context
       ? [...baseMessages, { role: 'user', text: normalized }]
       : alreadyShown ? messages : [...transcriptBaseMessages, { role: 'user', text: normalized }];
+    const makeDocument = async (orders: PurchaseOrderDisplay[], format: 'pdf' | 'xlsx' | 'docx' | 'pptx') => {
+      const rows = orders.flatMap((order) => order.lines.map((line) => [order.po_number, order.supplier_name, order.date, order.status,
+        line.product_name, line.sku, line.quantity, line.unit_price, line.line_total]));
+      if (rows.length > 500) throw new Error('The displayed results exceed the 500-row document limit; narrow the results first.');
+      const result = await requestArtifact({ format, title: 'Purchase orders - displayed results',
+        columns: ['PO number', 'Supplier', 'Date', 'Status', 'Product', 'SKU', 'Quantity', 'Unit price', 'Amount'], rows });
+      if (!result.success) throw new Error(result.message);
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        const status = await artifactStatus(result.id);
+        if (status === 'completed') {
+          const incomplete = orders.some((order) => order.line_count > order.lines.length);
+          setMessages((current) => [...current, { role: 'assistant', text: `Document created from ${rows.length} displayed line items. Only lines loaded in this conversation are included.${incomplete ? ' Some order lines were not loaded and are not included.' : ''} This link expires after 24 hours.`,
+            artifactId: result.id, artifactFormat: format.toUpperCase() }]);
+          return;
+        }
+        if (status === 'failed') throw new Error('The document could not be generated.');
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+      setMessages((current) => [...current, { role: 'assistant', text: 'The document is still processing. Use this link again later; it expires after 24 hours.',
+        artifactId: result.id, artifactFormat: format.toUpperCase() }]);
+    };
+    if (documentFormat && displayedOrders?.length && /(?:\bexport\b|\bdownload\b|\bfile\b|ส่งออก|ดาวน์โหลด|ไฟล์)/i.test(normalized)
+        && !/\b(?:create|approve|receive|cancel)\s+(?:a\s+)?(?:po|purchase\s+order|inventory)\b|(?:อนุมัติ|รับสินค้า|ยกเลิก)/i.test(normalized)) {
+      setMessages(messagePrefix); setInput(''); setError(''); setBusy(true);
+      try { await makeDocument(visibleOrdersByMessage.current.get(latestPoMessageIndex) ?? displayedOrders, documentFormat); }
+      catch (error) { setMessages((current) => [...current, { role: 'assistant', text: error instanceof Error ? error.message : 'Document creation failed.' }]); }
+      finally { setBusy(false); }
+      return;
+    }
     if (previousOrders?.length && followUpFilter && isPoContextFollowUp(normalized)) {
       setMessages([...messagePrefix]);
       setInput(''); setError(''); setPending(null);
@@ -313,6 +354,7 @@ export default function ProcurementAssistant({ initialPrompt, onCancel }: { init
         historyAfter: result.data!.history ?? historyForRequest,
       }]);
       setPending(result.data.pending_confirmation ?? null);
+      if (documentFormat && returnedOrders.length && !result.data.pending_confirmation) await makeDocument(returnedOrders, documentFormat);
     } catch (requestError) {
       const messageText = requestError instanceof Error ? requestError.message : 'FaroAI could not complete the procurement request.';
       setError(messageText);
@@ -365,9 +407,9 @@ export default function ProcurementAssistant({ initialPrompt, onCancel }: { init
 
   const latestUserMessageIndex = messages.reduce((latest, message, index) => message.role === 'user' ? index : latest, -1);
 
-  return <section className="catalog-results procurement-assistant" aria-label="GIS purchase orders and inventory">
+  return <section className="catalog-results procurement-assistant" aria-label="GIS procurement and suppliers">
     <div className="procurement-heading">
-      <div><p className="eyebrow">GIS PROCUREMENT</p><h2>Purchase orders & inventory</h2><p>Ask in Thai or English. FaroAI will check GIS data and pause for review before any write.</p></div>
+      <div><p className="eyebrow">GIS PROCUREMENT</p><h2>Purchasing, inventory & suppliers</h2><p>Ask in Thai or English. FaroAI checks GIS data and pauses for review when an action needs approval.</p></div>
       <button className="secondary-button" type="button" onClick={onCancel} disabled={busy} aria-label="Close procurement assistant"><X size={16} /> Close</button>
     </div>
     {tenants.length > 1 && <label className="procurement-tenant">Tenant<select value={tenantId} onChange={(event) => setTenantId(event.target.value)} required disabled={busy || messages.length > (initialPrompt ? 1 : 0)}>
@@ -382,25 +424,31 @@ export default function ProcurementAssistant({ initialPrompt, onCancel }: { init
             {index === latestUserMessageIndex && <button className="procurement-edit-prompt" type="button" onClick={() => editPrompt(index)} disabled={busy} aria-label="Edit latest prompt"><Pencil size={12} /> Edit</button>}
           </div>
           : <strong>FaroAI</strong>}
+        {message.artifactId && <p><a href={`/api/artifacts/${message.artifactId}`} download>Download {message.artifactFormat}</a></p>}
         {message.role === 'assistant' && message.purchaseOrders?.length
           ? <>
             {message.text && message.text.length <= 240 && !/(?:\*\*|Item Name:|Unit Price:|Quantity:)/i.test(message.text)
               && <p className="procurement-po-answer">{message.text}</p>}
-            <PurchaseOrderResults orders={message.purchaseOrders} language={message.language ?? 'en'} view={purchaseOrderView} onViewChange={setPurchaseOrderView} />
+            <PurchaseOrderResults orders={message.purchaseOrders} language={message.language ?? 'en'} view={purchaseOrderView} onViewChange={setPurchaseOrderView}
+              onDisplayedChange={(orders) => { visibleOrdersByMessage.current.set(index, orders); }} />
           </>
           : <p>{editingMessageIndex === index ? 'Editing this prompt below.' : message.text}</p>}
       </article>)}
       {busy && <p className="shopping-loading" role="status"><LoaderCircle className="spin" size={16} /> Checking GIS and preparing the next step…</p>}
       {pending && <div className="procurement-preview">
-        <div><p className="eyebrow">GIS PREVIEW · {pending.kind === 'create_purchase_order' ? 'PO · PENDING APPROVAL' : 'INVENTORY RECEIPT · PENDING APPROVAL'}</p>
-          <p>AI-generated prices, dates, quantities, and master selections are proposals. Review the GIS-verified details below; edit them by sending a correction, or confirm this exact operation to send it to GIS.</p></div>
+        <div><p className="eyebrow">GIS PREVIEW · {pending.kind === 'create_purchase_order' ? 'PO · PENDING APPROVAL' : pending.kind === 'receive_inventory' ? 'INVENTORY RECEIPT · PENDING APPROVAL' : pending.kind === 'create_voucher_type' ? 'PURCHASE ORDER VOUCHER' : 'ACTIVATE SUPPLIER'}</p>
+          <p>{pending.kind === 'create_voucher_type'
+            ? 'Review the GIS-verified voucher name, group, location, and numbering. Confirm to create this voucher type in GIS.'
+            : pending.kind === 'activate_supplier'
+                ? 'Review the existing GIS supplier and its current status. Confirm to activate it.'
+                : 'AI-generated prices, dates, quantities, and master selections are proposals. Review the GIS-verified details below; edit them by sending a correction, or confirm this exact operation to send it to GIS.'}</p></div>
         <pre>{JSON.stringify(stripIds(pending.preview), null, 2)}</pre>
-        <button className="primary-button compact" type="button" onClick={() => void confirm()} disabled={busy}><Check size={15} /> Confirm and send to GIS</button>
+        <button className="primary-button compact" type="button" onClick={() => void confirm()} disabled={busy}><Check size={15} /> {pending.kind === 'create_voucher_type' ? 'Confirm and create voucher' : pending.kind === 'activate_supplier' ? 'Confirm and activate supplier' : 'Confirm and send to GIS'}</button>
       </div>}
     </div>
     <form className="procurement-composer" onSubmit={submit}>
       <textarea ref={composerRef} value={input} onChange={(event) => setInput(event.target.value)} maxLength={1500} rows={2}
-        placeholder="เช่น ช่วยสร้าง PO แหวน ABC 5 วง / Create a PO for 5 rings, model ABC" disabled={busy || !tenantId} />
+        placeholder="เช่น ค้นหา supplier Ham / Create a supplier for… / Create a PO for 5 rings, model ABC" disabled={busy || !tenantId} />
       {editingMessageIndex !== null && <button className="secondary-button compact procurement-cancel-edit" type="button" onClick={cancelPromptEdit} disabled={busy}>Cancel edit</button>}
       <button className="primary-button compact" type="submit" disabled={busy || !tenantId || !input.trim()} aria-label={editingMessageIndex !== null ? 'Save and resend edited prompt' : 'Send procurement request'}>
         {busy ? <LoaderCircle className="spin" size={15} /> : editingMessageIndex !== null ? <Check size={15} /> : <Send size={15} />} {editingMessageIndex !== null ? 'Save & resend' : 'Send'}

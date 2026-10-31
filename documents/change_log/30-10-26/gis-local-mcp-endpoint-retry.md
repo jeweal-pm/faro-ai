@@ -1,0 +1,6 @@
+# GIS local MCP endpoint retry
+
+- Tested the configured GIS MCP credential against `http://host.docker.internal:3009/mcp` from the FaroAI API container without printing the credential. MCP initialization and `tools/list` both returned HTTP 200; 30 tools were found, including `search_suppliers`, `create_supplier`, and `activate_supplier` with the reported required fields.
+- The tenant connection saved in FaroAI still points to `eatery-overpass-scaling.ngrok-free.dev`, last synced with 27 tools. The Supplier checkboxes are rendered from the latest discovered tool list, so they cannot appear until that saved connection is retargeted and tested.
+- Added `host.docker.internal` to the local MCP host allow-list and enabled the existing development-only Docker-host HTTP switch defined by [ADR-0009](../../adr/0009-use-multiple-source-mcp.md). Kept the previous ngrok host during transition. Recreated only API and AI service containers; both health checks returned HTTP 200. No image rebuild and no GIS records were changed.
+- The authenticated Admin MCP save/test operation has not been performed because the current Backoffice browser session is signed out. The saved connection and approved tool list remain unchanged.

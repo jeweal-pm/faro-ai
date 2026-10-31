@@ -24,3 +24,6 @@ target-version = "py311"
 
 [tool.setuptools.packages.find]
 include = ["faroai*"]
+
+[tool.setuptools.package-data]
+faroai = ["base_skills/release.json", "base_skills/*/SKILL.md"]

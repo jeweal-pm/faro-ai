@@ -1,9 +1,13 @@
 import { serve } from '@hono/node-server';
 import { Hono, type Context, type MiddlewareHandler } from 'hono';
 import { randomUUID, createHash, createHmac } from 'node:crypto';
+import { constants as fsConstants } from 'node:fs';
+import { open as openFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { Pool } from 'pg';
 import { Redis } from 'ioredis';
 import { z } from 'zod';
+import { artifactActorHash, artifactSchema } from './artifact-security.js';
 import { adminRoutes, jevDecisionApiKey, mcpConnectionsForTenant, modelCandidatesForTenant, reserveModelCredit, settleModelCredit, type AdminVariables } from './admin.js';
 const env = z.object({
     PORT: z.coerce.number().int().positive().default(3000),
@@ -13,6 +17,8 @@ const env = z.object({
     FAROAI_INTERNAL_SECRET: z.string().min(32),
     API_KEY_PEPPER: z.string().min(32),
     MAX_BODY_BYTES: z.coerce.number().int().positive().default(32_768),
+    FAROAI_ARTIFACT_ENABLED: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
+    FAROAI_ARTIFACT_ROOT: z.string().default('/var/faroai/artifacts'),
     FAROAI_TENANT_MODE: z.enum(['multi', 'single']).default('multi'),
     FAROAI_SINGLE_TENANT_ID: z.string().default(''),
     FAROAI_DEPLOYMENT_MODE: z.enum(['hosted', 'self_hosted']).default('hosted'),
@@ -191,6 +197,84 @@ async function callPython(path: string, payload: Record<string, unknown>, correl
     return data;
 }
 api.use('*', authenticate, rateLimit);
+const artifactMimes = { pdf: 'application/pdf', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' } as const;
+function artifactActor(c: Context<{ Variables: Variables }>): string | null {
+    // This is an opaque server-side session token, never a tenant ID or username.
+    const actor = c.req.header('x-faroai-artifact-actor') ?? '';
+    const auth = c.get('auth');
+    return artifactActorHash(env.API_KEY_PEPPER, auth.tenant.id, auth.apiKeyId, actor);
+}
+api.get('/artifacts/context', enforceScope('chat:write'), (c) => {
+    if (!env.FAROAI_ARTIFACT_ENABLED) return fail(c, 503, 'artifacts_disabled', 'Document creation is not enabled for this deployment.');
+    return c.json({ success: true, data: { tenant_id: c.get('auth').tenant.id } });
+});
+api.post('/artifacts', enforceScope('chat:write'), async (c) => {
+    if (!env.FAROAI_ARTIFACT_ENABLED) return fail(c, 503, 'artifacts_disabled', 'Document creation is not enabled for this deployment.');
+    const actor = artifactActor(c);
+    if (!actor) return fail(c, 400, 'invalid_actor', 'A trusted artifact session is required.');
+    const raw = await c.req.text();
+    if (Buffer.byteLength(raw, 'utf8') > 512_000) return fail(c, 413, 'too_large', 'The document input is too large.');
+    let value: unknown;
+    try { value = JSON.parse(raw); } catch { return fail(c, 400, 'invalid_request', 'The document input is invalid.'); }
+    const parsed = artifactSchema.safeParse(value);
+    if (!parsed.success) return fail(c, 400, 'invalid_request', 'The document input is invalid or exceeds its limits.');
+    const auth = c.get('auth');
+    const id = randomUUID();
+    const { format, ...input } = parsed.data;
+    try {
+        await pool.query(`INSERT INTO skill_artifact_jobs(tenant_id,id,api_key_id,actor_hash,format,input_payload,expires_at)
+          VALUES($1,$2,$3,$4,$5,$6::jsonb,now()+interval '24 hours')`,
+        [auth.tenant.id, id, auth.apiKeyId, actor, format, JSON.stringify(input)]);
+        // Queue notification is only a wake-up. The committed DB job is durable.
+        void redis.lpush('platform:queue:artifacts', id).then(() => redis.ltrim('platform:queue:artifacts', 0, 999)).catch(() => undefined);
+        return c.json({ success: true, data: { id, status: 'pending', format, expires_in_seconds: 86400 } }, 202);
+    } catch { return fail(c, 503, 'artifact_unavailable', 'The document job could not be created.'); }
+});
+async function getArtifact(c: Context<{ Variables: Variables }>) {
+    const id = c.req.param('id');
+    const actor = artifactActor(c);
+    if (!actor || !z.string().uuid().safeParse(id).success) return null;
+    const auth = c.get('auth');
+    const result = await pool.query(`SELECT id,format,status,size_bytes,output_sha256,expires_at
+      FROM skill_artifact_jobs WHERE tenant_id=$1 AND id=$2 AND api_key_id=$3 AND actor_hash=$4 AND expires_at>now()`,
+    [auth.tenant.id, id, auth.apiKeyId, actor]);
+    return result.rows[0] ?? null;
+}
+api.get('/artifacts/:id', enforceScope('chat:write'), async (c) => {
+    if (!env.FAROAI_ARTIFACT_ENABLED) return fail(c, 503, 'artifacts_disabled', 'Document creation is not enabled for this deployment.');
+    const item = await getArtifact(c);
+    if (!item) return fail(c, 404, 'not_found', 'The document job was not found.');
+    return c.json({ success: true, data: { id: item.id, status: item.status, format: item.format, expires_at: item.expires_at } });
+});
+api.get('/artifacts/:id/download', enforceScope('chat:write'), async (c) => {
+    if (!env.FAROAI_ARTIFACT_ENABLED) return fail(c, 503, 'artifacts_disabled', 'Document creation is not enabled for this deployment.');
+    const item = await getArtifact(c);
+    if (!item || item.status !== 'completed' || !(item.format in artifactMimes)) return fail(c, 404, 'not_found', 'The document was not found.');
+    try {
+        const file = await openFile(join(env.FAROAI_ARTIFACT_ROOT, c.get('auth').tenant.id, `${item.id}.${item.format}`), fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW);
+        try {
+            const stat = await file.stat();
+            if (!stat.isFile() || stat.size <= 0 || stat.size > 10 * 1024 * 1024 || stat.size !== Number(item.size_bytes)) throw new Error('invalid_artifact');
+            const bytes = await file.readFile();
+            if (createHash('sha256').update(bytes).digest('hex') !== item.output_sha256) throw new Error('invalid_artifact');
+            return new Response(bytes, { headers: { 'Content-Type': artifactMimes[item.format as keyof typeof artifactMimes],
+                'Content-Disposition': `attachment; filename="faroai-report.${item.format}"`, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
+        } finally { await file.close(); }
+    } catch { return fail(c, 404, 'not_found', 'The document was not found.'); }
+});
+api.get('/skills/base', enforceScope('chat:write'), async (c) => {
+    try {
+        const catalog = await callPython('/internal/v1/skills/catalog', {
+            tenant_id: c.get('auth').tenant.id,
+        }, c.get('correlationId'), 5_000);
+        if (!Array.isArray(catalog.skills))
+            return fail(c, 503, 'base_skill_catalog_unavailable', 'The Base Skills catalog is temporarily unavailable.');
+        return c.json({ success: true, data: catalog, correlation_id: c.get('correlationId') });
+    } catch {
+        return fail(c, 503, 'base_skill_catalog_unavailable', 'The Base Skills catalog is temporarily unavailable.');
+    }
+});
 api.post('/chat', enforceScope('chat:write'), async (c) => {
     const raw = await c.req.text();
     if (Buffer.byteLength(raw, 'utf8') > 2_100_000)

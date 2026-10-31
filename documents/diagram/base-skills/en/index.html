@@ -1,0 +1,219 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FaroAI Base Skills - Diagrams</title><style>
+*{box-sizing:border-box}body{margin:0;background:#f4f7fc;color:#17324d;font-family:"Leelawadee UI",Tahoma,sans-serif}header{max-width:1500px;margin:24px auto 14px;padding:0 24px}h1{font-size:28px;margin:0 0 6px}p{margin:8px 0;line-height:1.6}.status{font-size:14px;color:#62758b}nav{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}button,a.action{border:1px solid #d9e2ec;border-radius:9px;padding:10px 16px;color:#17324d;background:white;text-decoration:none;cursor:pointer;font:inherit;font-size:14px}button[aria-selected=true]{background:#17324d;color:white}.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.panel{display:none;max-width:1550px;margin:16px auto 40px;padding:0 18px}.panel.active{display:block}.canvas{background:white;border:1px solid #d9e2ec;border-radius:16px;overflow:auto;box-shadow:0 12px 35px #17324d0a}.canvas svg{display:block;width:100%;height:auto;min-width:960px}.key{display:flex;gap:22px;font-size:14px;color:#62758b}.blue{color:#6478f4}.teal{color:#238f89}footer{max-width:1500px;margin:20px auto;padding:0 24px 30px;color:#62758b;font-size:14px}@media print{@page{size:A3 landscape;margin:8mm}header,footer{display:none}.panel{display:block!important;page-break-after:always;padding:0;margin:0}.panel:last-of-type{page-break-after:auto}.canvas{border:0;box-shadow:none;overflow:visible}.canvas svg{width:100%!important;min-width:0;max-height:275mm}}
+</style><header><h1>FaroAI: Shared Base Skills for every tenant</h1><p class="status">Proposed design under ADR-0036 / Draft SPEC, 29 October 2026. Not a verified current deployment.</p>
+<nav role="tablist"><button role="tab" aria-selected="true" data-tab="0">1. Executive overview</button><button role="tab" aria-selected="false" data-tab="1">2. Sequence: Skill selection</button><button role="tab" aria-selected="false" data-tab="2">3. Sequence: Artifact creation</button></nav>
+<div class="toolbar"><button id="fit">Fit to view</button><button id="zoom">Zoom 150%</button><a class="action" href="faroai-base-skills-diagrams.pdf">Open three-page PDF</a><a class="action" href="base-skills.drawio" download>Editable draw.io source</a></div><p class="key"><span class="blue">Blue: proposed additions</span><span class="teal">Teal: existing capabilities reused/extended</span><span>Dashed sequence arrows: responses</span></p></header><section id="panel0" class="panel active"><div class="canvas"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1040" viewBox="0 0 1600 1040" role="img" aria-label="One Base Skill release for every tenant">
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 Z" fill="#62758B"/></marker></defs>
+<rect x="0" y="0" width="1600" height="1040" rx="0" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<rect x="0" y="0" width="800" height="7" rx="0" fill="#6478F4" stroke="#6478F4" stroke-width="1.5"/>
+<rect x="800" y="0" width="800" height="7" rx="0" fill="#33AFA8" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="48" y="46" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="15" font-weight="700" fill="#62758B" text-anchor="start">FAROAI  /  PLATFORM BASE SKILLS</text>
+<text x="48" y="94" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="34" font-weight="700" fill="#17324D" text-anchor="start">One Base Skill release for every tenant</text>
+<text x="48" y="130" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="18" font-weight="400" fill="#62758B" text-anchor="start">Executive view: shared workflows with separate tenant data, permissions and budgets</text>
+<text x="48" y="1011" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="14" font-weight="400" fill="#62758B" text-anchor="start">PROPOSED TARGET DESIGN  |  ADR-0036 / Draft SPEC  |  29 October 2026</text>
+<text x="1552" y="1011" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="14" font-weight="400" fill="#62758B" text-anchor="end">01-OVERVIEW</text>
+<rect x="48" y="330" width="210" height="205" rx="14" fill="#F5F8FC" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="66" y="363" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="22" font-weight="700" fill="#17324D" text-anchor="start">All tenants</text>
+<text x="66" y="394" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Tenant A / B / C</text>
+<text x="66" y="421" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Sales / Purchasing</text>
+<text x="66" y="448" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Merchandising</text>
+<text x="66" y="475" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Product discovery</text>
+<rect x="315" y="350" width="235" height="164" rx="14" fill="#EAF8F6" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="333" y="383" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="22" font-weight="700" fill="#17324D" text-anchor="start">User prompt</text>
+<text x="333" y="414" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Describe the task</text>
+<text x="333" y="441" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">No skill names needed</text>
+<text x="333" y="468" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Use authorized data</text>
+<rect x="630" y="320" width="310" height="226" rx="14" fill="#F0F2FF" stroke="#6478F4" stroke-width="1.5"/>
+<text x="648" y="353" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="22" font-weight="700" fill="#17324D" text-anchor="start">FaroAI + Skill Runtime</text>
+<text x="648" y="384" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Validate tenant / actor / budget</text>
+<text x="648" y="411" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Jev selects skill and model</text>
+<text x="648" y="438" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Load selected instructions</text>
+<text x="648" y="465" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Executors enforce policy</text>
+<text x="925" y="532" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="12" font-weight="700" fill="#6478F4" text-anchor="end">Proposed runtime additions</text>
+<rect x="600" y="172" width="365" height="112" rx="14" fill="#F0F2FF" stroke="#6478F4" stroke-width="1.5"/>
+<text x="618" y="205" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="22" font-weight="700" fill="#17324D" text-anchor="start">Shared Base Catalog</text>
+<text x="618" y="236" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Jewelry/GIS + Analysis + Documents</text>
+<text x="618" y="263" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">One published release for all tenants</text>
+<polyline points="258,432 315,432" fill="none" stroke="#62758B" stroke-width="2" marker-end="url(#arrow)"/>
+<polyline points="550,432 630,432" fill="none" stroke="#62758B" stroke-width="2" marker-end="url(#arrow)"/>
+<polyline points="782,284 782,320" fill="none" stroke="#6478F4" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="1030" y="185" width="285" height="138" rx="14" fill="#EAF8F6" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="1048" y="218" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="22" font-weight="700" fill="#17324D" text-anchor="start">Business data via MCP</text>
+<text x="1048" y="249" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Connected GIS / GMS / ERP</text>
+<text x="1048" y="276" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Scoped read/write tools</text>
+<text x="1048" y="303" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">PO/receipt: preview + confirm</text>
+<rect x="1030" y="372" width="285" height="112" rx="14" fill="#EAF8F6" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="1048" y="405" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="22" font-weight="700" fill="#17324D" text-anchor="start">Knowledge / Model</text>
+<text x="1048" y="436" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Tenant RAG + eligible models</text>
+<text x="1048" y="463" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Existing price caps and credits</text>
+<rect x="1030" y="535" width="285" height="138" rx="14" fill="#F0F2FF" stroke="#6478F4" stroke-width="1.5"/>
+<text x="1048" y="568" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="22" font-weight="700" fill="#17324D" text-anchor="start">Analysis + Documents</text>
+<text x="1048" y="599" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Compute and build in workers</text>
+<text x="1048" y="626" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">PDF / XLSX / DOCX / PPTX</text>
+<text x="1048" y="653" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Private tenant/actor files</text>
+<polyline points="940,380 982,380 982,254 1030,254" fill="none" stroke="#62758B" stroke-width="2" marker-end="url(#arrow)"/>
+<polyline points="940,433 1030,433" fill="none" stroke="#62758B" stroke-width="2" marker-end="url(#arrow)"/>
+<polyline points="940,494 982,494 982,604 1030,604" fill="none" stroke="#6478F4" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="1360" y="266" width="192" height="317" rx="14" fill="#F5F8FC" stroke="#D9E2EC" stroke-width="1.5"/>
+<text x="1380" y="306" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="20" font-weight="700" fill="#17324D" text-anchor="start">Usable results</text>
+<text x="1380" y="354" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Answers / products</text>
+<text x="1380" y="402" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Tables / calculations</text>
+<text x="1380" y="450" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Preview to confirm</text>
+<text x="1380" y="498" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#62758B" text-anchor="start">Jobs / downloads</text>
+<polyline points="1315,254 1340,254 1340,340 1360,340" fill="none" stroke="#62758B" stroke-width="2" marker-end="url(#arrow)"/>
+<polyline points="1315,433 1360,433" fill="none" stroke="#62758B" stroke-width="2" marker-end="url(#arrow)"/>
+<polyline points="1315,604 1340,604 1340,535 1360,535" fill="none" stroke="#6478F4" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="48" y="728" width="1504" height="74" rx="10" fill="#EAF8F6" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="68" y="756" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="19" font-weight="700" fill="#33AFA8" text-anchor="start">Value to measure</text>
+<text x="68" y="783" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#17324D" text-anchor="start">Faster completed tasks  |  Less repeated prompting and rework  |  Measure cost per completed task</text>
+<rect x="48" y="820" width="1504" height="74" rx="10" fill="#FFF7E8" stroke="#BB7A16" stroke-width="1.5"/>
+<text x="68" y="848" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="19" font-weight="700" fill="#BB7A16" text-anchor="start">Key policy</text>
+<text x="68" y="875" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#17324D" text-anchor="start">Base Skills do not merge tenant data or grant additional MCP or business-approval rights.</text>
+<text x="48" y="953" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#62758B" text-anchor="start">Blue: proposed additions   •   Teal: existing capabilities reused/extended   •   Full scope delivered in phases</text>
+</svg></div></section><section id="panel1" class="panel "><div class="canvas"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1080" viewBox="0 0 1600 1080" role="img" aria-label="Sequence 1/2: Select skills and read data">
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 Z" fill="#62758B"/></marker></defs>
+<rect x="0" y="0" width="1600" height="1080" rx="0" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<rect x="0" y="0" width="800" height="7" rx="0" fill="#6478F4" stroke="#6478F4" stroke-width="1.5"/>
+<rect x="800" y="0" width="800" height="7" rx="0" fill="#33AFA8" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="48" y="46" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="15" font-weight="700" fill="#62758B" text-anchor="start">FAROAI  /  PLATFORM BASE SKILLS</text>
+<text x="48" y="94" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="34" font-weight="700" fill="#17324D" text-anchor="start">Sequence 1/2: Select skills and read data</text>
+<text x="48" y="130" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="18" font-weight="400" fill="#62758B" text-anchor="start">Composition-phase example: PO Search / Analysis / XLSX; no PO creation or approval</text>
+<text x="48" y="1051" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="14" font-weight="400" fill="#62758B" text-anchor="start">PROPOSED TARGET DESIGN  |  ADR-0036 / Draft SPEC  |  29 October 2026</text>
+<text x="1552" y="1051" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="14" font-weight="400" fill="#62758B" text-anchor="end">02-SEQUENCE-ROUTING</text>
+<rect x="22" y="178" width="216" height="63" rx="10" fill="#EAF8F6" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="130" y="216" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="20" font-weight="700" fill="#17324D" text-anchor="middle">User</text>
+<polyline points="130,241 130,922" fill="none" stroke="#D9E2EC" stroke-width="1.5" stroke-dasharray="7 5"/>
+<rect x="290" y="178" width="216" height="63" rx="10" fill="#EAF8F6" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="398" y="216" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="20" font-weight="700" fill="#17324D" text-anchor="middle">Web / Gateway</text>
+<polyline points="398,241 398,922" fill="none" stroke="#D9E2EC" stroke-width="1.5" stroke-dasharray="7 5"/>
+<rect x="558" y="178" width="216" height="63" rx="10" fill="#F0F2FF" stroke="#6478F4" stroke-width="1.5"/>
+<text x="666" y="216" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="20" font-weight="700" fill="#17324D" text-anchor="middle">Skill Runtime</text>
+<polyline points="666,241 666,922" fill="none" stroke="#D9E2EC" stroke-width="1.5" stroke-dasharray="7 5"/>
+<rect x="826" y="178" width="216" height="63" rx="10" fill="#EAF8F6" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="934" y="216" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="20" font-weight="700" fill="#17324D" text-anchor="middle">Jev</text>
+<polyline points="934,241 934,922" fill="none" stroke="#D9E2EC" stroke-width="1.5" stroke-dasharray="7 5"/>
+<rect x="1094" y="178" width="216" height="63" rx="10" fill="#EAF8F6" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="1202" y="216" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="20" font-weight="700" fill="#17324D" text-anchor="middle">Selected Model</text>
+<polyline points="1202,241 1202,922" fill="none" stroke="#D9E2EC" stroke-width="1.5" stroke-dasharray="7 5"/>
+<rect x="1362" y="178" width="216" height="63" rx="10" fill="#EAF8F6" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="1470" y="216" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="20" font-weight="700" fill="#17324D" text-anchor="middle">GIS MCP</text>
+<polyline points="1470,241 1470,922" fill="none" stroke="#D9E2EC" stroke-width="1.5" stroke-dasharray="7 5"/>
+<polyline points="130,295 398,295" fill="none" stroke="#17324D" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="132.640625" y="262" width="262.71875" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="264.0" y="285" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#17324D" text-anchor="middle">1. Summarize pending POs as Excel</text>
+<polyline points="398,320 464,320 464,338 398,338" fill="none" stroke="#17324D" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="478" y="328" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#17324D" text-anchor="start">2. Check tenant/scopes/budget</text>
+<polyline points="398,385 666,385" fill="none" stroke="#4053BF" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="415.52734375" y="352" width="232.9453125" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="532.0" y="375" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="middle">3. Request with trusted context</text>
+<polyline points="666,410 732,410 732,428 666,428" fill="none" stroke="#4053BF" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="746" y="418" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="start">4. Resolve release + metadata</text>
+<polyline points="666,475 934,475" fill="none" stroke="#4053BF" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="687.1484375" y="442" width="225.703125" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="800.0" y="465" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="middle">5. Allowed skill/model choices</text>
+<polyline points="934,520 666,520" fill="none" stroke="#4053BF" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+<rect x="689.23828125" y="487" width="221.5234375" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="800.0" y="510" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="middle">6. Selected IDs or clarification</text>
+<polyline points="666,545 732,545 732,563 666,563" fill="none" stroke="#4053BF" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="746" y="553" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="start">7. Validate IDs; load skill version</text>
+<polyline points="666,610 1470,610" fill="none" stroke="#4053BF" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="949.5625" y="577" width="236.875" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="1068.0" y="600" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="middle">8. Check tool/schema; read POs</text>
+<polyline points="1470,655 666,655" fill="none" stroke="#4053BF" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+<rect x="942.875" y="622" width="250.25" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="1068.0" y="645" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="middle">9. Verified data, rows and sources</text>
+<polyline points="666,700 1202,700" fill="none" stroke="#4053BF" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="816.65625" y="667" width="234.6875" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="934.0" y="690" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="middle">10. If prose needed: skill + data</text>
+<polyline points="1202,745 666,745" fill="none" stroke="#4053BF" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+<rect x="802.9453125" y="712" width="262.109375" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="934.0" y="735" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="middle">11. Draft for schema/fact validation</text>
+<polyline points="666,770 732,770 732,788 666,788" fill="none" stroke="#4053BF" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="746" y="778" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="start">12. Persist job, then queue</text>
+<polyline points="666,835 398,835" fill="none" stroke="#4053BF" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+<rect x="433.21484375" y="802" width="197.5703125" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="532.0" y="825" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="middle">13. Table + queued job ID</text>
+<polyline points="398,880 130,880" fill="none" stroke="#17324D" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+<rect x="151.7890625" y="847" width="224.421875" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="264.0" y="870" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#17324D" text-anchor="middle">14. Show results; track the job</text>
+<rect x="48" y="950" width="1504" height="74" rx="10" fill="#FFF7E8" stroke="#BB7A16" stroke-width="1.5"/>
+<text x="68" y="978" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="19" font-weight="700" fill="#BB7A16" text-anchor="start">Missing permission, model, tool or data</text>
+<text x="68" y="1005" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#17324D" text-anchor="start">Stop before execution and explain or clarify. The model has no independent mutation authority.</text>
+</svg></div></section><section id="panel2" class="panel "><div class="canvas"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1080" viewBox="0 0 1600 1080" role="img" aria-label="Sequence 2/2: Background jobs and private files">
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 Z" fill="#62758B"/></marker></defs>
+<rect x="0" y="0" width="1600" height="1080" rx="0" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<rect x="0" y="0" width="800" height="7" rx="0" fill="#6478F4" stroke="#6478F4" stroke-width="1.5"/>
+<rect x="800" y="0" width="800" height="7" rx="0" fill="#33AFA8" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="48" y="46" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="15" font-weight="700" fill="#62758B" text-anchor="start">FAROAI  /  PLATFORM BASE SKILLS</text>
+<text x="48" y="94" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="34" font-weight="700" fill="#17324D" text-anchor="start">Sequence 2/2: Background jobs and private files</text>
+<text x="48" y="130" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="18" font-weight="400" fill="#62758B" text-anchor="start">Continues from the queued job: PostgreSQL owns durable state; Redis coordinates delivery; Gateway serves downloads</text>
+<text x="48" y="1051" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="14" font-weight="400" fill="#62758B" text-anchor="start">PROPOSED TARGET DESIGN  |  ADR-0036 / Draft SPEC  |  29 October 2026</text>
+<text x="1552" y="1051" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="14" font-weight="400" fill="#62758B" text-anchor="end">03-SEQUENCE-ARTIFACT</text>
+<rect x="22" y="178" width="216" height="63" rx="10" fill="#EAF8F6" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="130" y="216" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="20" font-weight="700" fill="#17324D" text-anchor="middle">User / Web app</text>
+<polyline points="130,241 130,922" fill="none" stroke="#D9E2EC" stroke-width="1.5" stroke-dasharray="7 5"/>
+<rect x="290" y="178" width="216" height="63" rx="10" fill="#EAF8F6" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="398" y="216" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="20" font-weight="700" fill="#17324D" text-anchor="middle">Gateway</text>
+<polyline points="398,241 398,922" fill="none" stroke="#D9E2EC" stroke-width="1.5" stroke-dasharray="7 5"/>
+<rect x="558" y="178" width="216" height="63" rx="10" fill="#EAF8F6" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="666" y="216" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="20" font-weight="700" fill="#17324D" text-anchor="middle">PostgreSQL</text>
+<polyline points="666,241 666,922" fill="none" stroke="#D9E2EC" stroke-width="1.5" stroke-dasharray="7 5"/>
+<rect x="826" y="178" width="216" height="63" rx="10" fill="#EAF8F6" stroke="#33AFA8" stroke-width="1.5"/>
+<text x="934" y="216" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="20" font-weight="700" fill="#17324D" text-anchor="middle">Redis Queue</text>
+<polyline points="934,241 934,922" fill="none" stroke="#D9E2EC" stroke-width="1.5" stroke-dasharray="7 5"/>
+<rect x="1094" y="178" width="216" height="63" rx="10" fill="#F0F2FF" stroke="#6478F4" stroke-width="1.5"/>
+<text x="1202" y="216" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="20" font-weight="700" fill="#17324D" text-anchor="middle">Artifact Worker</text>
+<polyline points="1202,241 1202,922" fill="none" stroke="#D9E2EC" stroke-width="1.5" stroke-dasharray="7 5"/>
+<rect x="1362" y="178" width="216" height="63" rx="10" fill="#F0F2FF" stroke="#6478F4" stroke-width="1.5"/>
+<text x="1470" y="216" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="20" font-weight="700" fill="#17324D" text-anchor="middle">Private Storage</text>
+<polyline points="1470,241 1470,922" fill="none" stroke="#D9E2EC" stroke-width="1.5" stroke-dasharray="7 5"/>
+<polyline points="1202,295 934,295" fill="none" stroke="#4053BF" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="952.76953125" y="262" width="230.4609375" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="1068.0" y="285" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="middle">1. Consume job ID from queue</text>
+<polyline points="1202,340 666,340" fill="none" stroke="#4053BF" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="784.1171875" y="307" width="299.765625" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="934.0" y="330" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="middle">2. Claim job; check tenant/version/policy</text>
+<polyline points="666,385 1202,385" fill="none" stroke="#4053BF" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+<rect x="797.01953125" y="352" width="273.9609375" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="934.0" y="375" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="middle">3. Job manifest + snapshot reference</text>
+<polyline points="1202,410 1268,410 1268,428 1202,428" fill="none" stroke="#4053BF" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="1184" y="418" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="end">4. Calculate, build XLSX, validate</text>
+<polyline points="1202,475 1470,475" fill="none" stroke="#4053BF" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="1209.65234375" y="442" width="252.6953125" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="1336.0" y="465" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="middle">5. Save private file + content hash</text>
+<polyline points="1470,520 1202,520" fill="none" stroke="#4053BF" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+<rect x="1285.26171875" y="487" width="101.4765625" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="1336.0" y="510" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="middle">6. Artifact ID</text>
+<polyline points="1202,565 666,565" fill="none" stroke="#4053BF" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="795.73828125" y="532" width="276.5234375" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="934.0" y="555" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#4053BF" text-anchor="middle">7. Record completion + file metadata</text>
+<polyline points="130,610 398,610" fill="none" stroke="#17324D" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="161.36328125" y="577" width="205.2734375" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="264.0" y="600" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#17324D" text-anchor="middle">8. Web app polls job status</text>
+<polyline points="398,655 666,655" fill="none" stroke="#17324D" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="419.26171875" y="622" width="225.4765625" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="532.0" y="645" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#17324D" text-anchor="middle">9. Read status by tenant/actor</text>
+<polyline points="666,700 398,700" fill="none" stroke="#17324D" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+<rect x="438.359375" y="667" width="187.28125" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="532.0" y="690" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#17324D" text-anchor="middle">10. Authorized job result</text>
+<polyline points="398,745 130,745" fill="none" stroke="#17324D" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+<rect x="160.25" y="712" width="207.5" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="264.0" y="735" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#17324D" text-anchor="middle">11. Show downloadable file</text>
+<polyline points="130,790 398,790" fill="none" stroke="#17324D" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="161.0703125" y="757" width="205.859375" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="264.0" y="780" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#17324D" text-anchor="middle">12. Download by artifact ID</text>
+<polyline points="398,835 1470,835" fill="none" stroke="#17324D" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="811.796875" y="802" width="244.40625" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="934.0" y="825" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#17324D" text-anchor="middle">13. Check access/expiry; read file</text>
+<polyline points="1470,880 398,880" fill="none" stroke="#17324D" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+<rect x="881.4296875" y="847" width="105.140625" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="934.0" y="870" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#17324D" text-anchor="middle">14. File bytes</text>
+<polyline points="398,925 130,925" fill="none" stroke="#17324D" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)"/>
+<rect x="180.140625" y="892" width="167.71875" height="26" rx="2" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="1.5"/>
+<text x="264.0" y="915" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="16" font-weight="400" fill="#17324D" text-anchor="middle">15. Stream file to user</text>
+<rect x="48" y="950" width="1504" height="74" rx="10" fill="#FFF7E8" stroke="#BB7A16" stroke-width="1.5"/>
+<text x="68" y="978" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="19" font-weight="700" fill="#BB7A16" text-anchor="start">Read/artifact tasks and business writes have distinct policies</text>
+<text x="68" y="1005" font-family="Leelawadee UI,Noto Sans Thai,Tahoma,sans-serif" font-size="17" font-weight="400" fill="#17324D" text-anchor="start">Catalog create retains direct policy; PO/receipt require preview / confirm / re-preview. No automatic training capture.</text>
+</svg></div></section><footer>PO / Analysis / Excel illustrates the target composition phase and is read-only to GIS. Tenants inherit a shared skill release while data, permissions and files stay isolated. Jev selects allowed choices; Gateway and executors enforce policy.</footer>
+<script>document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.setAttribute('aria-selected',String(x===b)));document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i===Number(b.dataset.tab)))});document.getElementById('fit').onclick=()=>document.querySelectorAll('.canvas svg').forEach(s=>s.style.width='100%');document.getElementById('zoom').onclick=()=>document.querySelectorAll('.canvas svg').forEach(s=>s.style.width='150%');</script></html>

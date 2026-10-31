@@ -1,0 +1,803 @@
+<mxfile host="app.diagrams.net" agent="FaroAI documentation" version="24.7.17">
+  <diagram id="01-overview" name="One Base Skill release for every tenant">
+    <mxGraphModel dx="1600" dy="1040" grid="1" gridSize="10" guides="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1040">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="01-overview-5" value="FAROAI  /  PLATFORM BASE SKILLS" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=15;fontColor=#62758B;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="30.25" width="260.85498046875" height="24.0" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-6" value="One Base Skill release for every tenant" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=34;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="58.3" width="623.435546875" height="54.400000000000006" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-7" value="Executive view: shared workflows with separate tenant data, permissions and budgets" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=18;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="111.1" width="688.2041015625001" height="28.8" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-8" value="PROPOSED TARGET DESIGN  |  ADR-0036 / Draft SPEC  |  29 October 2026" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=14;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="996.3" width="468.7158203125" height="22.400000000000002" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-9" value="01-OVERVIEW" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=14;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1452.021484375" y="996.3" width="99.978515625" height="22.400000000000002" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-10" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F5F8FC;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="48" y="330" width="210" height="205" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-11" value="All tenants" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=22;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="66" y="339.9" width="123.16015625" height="35.2" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-12" value="Tenant A / B / C" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="66" y="376.15" width="131.2158203125" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-13" value="Sales / Purchasing" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="66" y="403.15" width="147.97509765625" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-14" value="Merchandising" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="66" y="430.15" width="122.89843750000001" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-15" value="Product discovery" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="66" y="457.15" width="145.61767578125" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-16" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="315" y="350" width="235" height="164" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-17" value="User prompt" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=22;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="333" y="359.9" width="142.474609375" height="35.2" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-18" value="Describe the task" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="333" y="396.15" width="140.4462890625" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-19" value="No skill names needed" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="333" y="423.15" width="181.99169921875" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-20" value="Use authorized data" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="333" y="450.15" width="162.3935546875" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-21" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F0F2FF;strokeColor=#6478F4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="630" y="320" width="310" height="226" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-22" value="FaroAI + Skill Runtime" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=22;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="648" y="329.9" width="244.7939453125" height="35.2" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-23" value="Validate tenant / actor / budget" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="648" y="366.15" width="250.00830078125003" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-24" value="Jev selects skill and model" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="648" y="393.15" width="207.5830078125" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-25" value="Load selected instructions" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="648" y="420.15" width="206.32958984375" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-26" value="Executors enforce policy" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="648" y="447.15" width="193.6376953125" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-27" value="Proposed runtime additions" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=12;fontColor=#6478F4;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="755.423828125" y="519.4" width="169.576171875" height="19.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-28" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F0F2FF;strokeColor=#6478F4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="600" y="172" width="365" height="112" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-29" value="Shared Base Catalog" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=22;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="618" y="181.9" width="222.5576171875" height="35.2" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-30" value="Jewelry/GIS + Analysis + Documents" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="618" y="218.15" width="285.71826171875" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-31" value="One published release for all tenants" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="618" y="245.15" width="286.3408203125" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-32" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#62758B;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="258" y="432" as="sourcePoint" />
+            <mxPoint x="315" y="432" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="01-overview-33" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#62758B;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="550" y="432" as="sourcePoint" />
+            <mxPoint x="630" y="432" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="01-overview-34" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#6478F4;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="782" y="284" as="sourcePoint" />
+            <mxPoint x="782" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="01-overview-35" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="185" width="285" height="138" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-36" value="Business data via MCP" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=22;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="194.9" width="242.162109375" height="35.2" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-37" value="Connected GIS / GMS / ERP" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="231.15" width="219.12939453125003" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-38" value="Scoped read/write tools" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="258.15" width="191.1142578125" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-39" value="PO/receipt: preview + confirm" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="285.15" width="237.31640625000003" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-40" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="372" width="285" height="112" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-41" value="Knowledge / Model" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=22;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="381.9" width="215.9619140625" height="35.2" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-42" value="Tenant RAG + eligible models" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="418.15" width="235.58984375000003" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-43" value="Existing price caps and credits" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="445.15" width="236.37841796875003" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-44" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F0F2FF;strokeColor=#6478F4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="535" width="285" height="138" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-45" value="Analysis + Documents" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=22;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="544.9" width="241.06640625" height="35.2" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-46" value="Compute and build in workers" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="581.15" width="238.52001953125003" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-47" value="PDF / XLSX / DOCX / PPTX" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="608.15" width="209.90722656250003" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-48" value="Private tenant/actor files" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="635.15" width="195.02392578125" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-49" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#62758B;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="940" y="380" as="sourcePoint" />
+            <mxPoint x="1030" y="254" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="982" y="380" />
+              <mxPoint x="982" y="254" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="01-overview-50" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#62758B;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="940" y="433" as="sourcePoint" />
+            <mxPoint x="1030" y="433" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="01-overview-51" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#6478F4;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="940" y="494" as="sourcePoint" />
+            <mxPoint x="1030" y="604" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="982" y="494" />
+              <mxPoint x="982" y="604" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="01-overview-52" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F5F8FC;strokeColor=#D9E2EC;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="266" width="192" height="317" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-53" value="Usable results" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="285.0" width="142.3515625" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-54" value="Answers / products" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="336.15" width="156.35888671875" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-55" value="Tables / calculations" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="384.15" width="163.240234375" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-56" value="Preview to confirm" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="432.15" width="152.216796875" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-57" value="Jobs / downloads" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="480.15" width="143.0029296875" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-58" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#62758B;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1315" y="254" as="sourcePoint" />
+            <mxPoint x="1360" y="340" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1340" y="254" />
+              <mxPoint x="1340" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="01-overview-59" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#62758B;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1315" y="433" as="sourcePoint" />
+            <mxPoint x="1360" y="433" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="01-overview-60" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#6478F4;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1315" y="604" as="sourcePoint" />
+            <mxPoint x="1360" y="535" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1340" y="604" />
+              <mxPoint x="1340" y="535" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="01-overview-61" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="48" y="728" width="1504" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-62" value="Value to measure" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=19;fontColor=#33AFA8;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="68" y="736.05" width="167.08935546875" height="30.400000000000002" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-63" value="Faster completed tasks  |  Less repeated prompting and rework  |  Measure cost per completed task" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="68" y="765.15" width="754.31396484375" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-64" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFF7E8;strokeColor=#BB7A16;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="48" y="820" width="1504" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-65" value="Key policy" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=19;fontColor=#BB7A16;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="68" y="828.05" width="103.57666015625" height="30.400000000000002" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-66" value="Base Skills do not merge tenant data or grant additional MCP or business-approval rights." style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="68" y="857.15" width="683.5498046875" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-67" value="Blue: proposed additions   •   Teal: existing capabilities reused/extended   •   Full scope delivered in phases" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="936.2" width="760.90625" height="25.6" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="02-sequence-routing" name="Sequence 1/2: Select skills and read data">
+    <mxGraphModel dx="1600" dy="1080" grid="1" gridSize="10" guides="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1080">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="02-sequence-routing-5" value="FAROAI  /  PLATFORM BASE SKILLS" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=15;fontColor=#62758B;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="30.25" width="260.85498046875" height="24.0" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-6" value="Sequence 1/2: Select skills and read data" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=34;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="58.3" width="659.0625" height="54.400000000000006" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-7" value="Composition-phase example: PO Search / Analysis / XLSX; no PO creation or approval" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=18;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="111.1" width="689.6455078125001" height="28.8" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-8" value="PROPOSED TARGET DESIGN  |  ADR-0036 / Draft SPEC  |  29 October 2026" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=14;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="1036.3" width="468.7158203125" height="22.400000000000002" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-9" value="02-SEQUENCE-ROUTING" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=14;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1386.02734375" y="1036.3" width="165.97265625" height="22.400000000000002" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-10" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="22" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-11" value="User" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="102.9794921875" y="195.0" width="54.041015625" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-12" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="130" y="241" as="sourcePoint" />
+            <mxPoint x="130" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-13" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="290" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-14" value="Web / Gateway" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="319.900390625" y="195.0" width="156.19921875" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-15" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="398" y="241" as="sourcePoint" />
+            <mxPoint x="398" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-16" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F0F2FF;strokeColor=#6478F4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="558" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-17" value="Skill Runtime" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="597.607421875" y="195.0" width="136.78515625" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-18" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="241" as="sourcePoint" />
+            <mxPoint x="666" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-19" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="826" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-20" value="Jev" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="912.716796875" y="195.0" width="42.56640625" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-21" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="934" y="241" as="sourcePoint" />
+            <mxPoint x="934" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-22" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1094" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-23" value="Selected Model" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1123.5732421875" y="195.0" width="156.853515625" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-24" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1202" y="241" as="sourcePoint" />
+            <mxPoint x="1202" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-25" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1362" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-26" value="GIS MCP" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1423.423828125" y="195.0" width="93.15234375" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-27" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1470" y="241" as="sourcePoint" />
+            <mxPoint x="1470" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-28" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="130" y="295" as="sourcePoint" />
+            <mxPoint x="398" y="295" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-29" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="132.640625" y="262" width="262.71875" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-30" value="1. Summarize pending POs as Excel" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="133.640625" y="268.2" width="260.71875" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-31" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="398" y="320" as="sourcePoint" />
+            <mxPoint x="398" y="338" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="464" y="320" />
+              <mxPoint x="464" y="338" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-32" value="2. Check tenant/scopes/budget" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="478" y="311.2" width="232.671875" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-33" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="398" y="385" as="sourcePoint" />
+            <mxPoint x="666" y="385" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-34" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="415.52734375" y="352" width="232.9453125" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-35" value="3. Request with trusted context" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="416.52734375" y="358.2" width="230.9453125" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-36" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="410" as="sourcePoint" />
+            <mxPoint x="666" y="428" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="732" y="410" />
+              <mxPoint x="732" y="428" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-37" value="4. Resolve release + metadata" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="746" y="401.2" width="222.8828125" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-38" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="475" as="sourcePoint" />
+            <mxPoint x="934" y="475" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-39" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="687.1484375" y="442" width="225.703125" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-40" value="5. Allowed skill/model choices" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="688.1484375" y="448.2" width="223.703125" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-41" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="934" y="520" as="sourcePoint" />
+            <mxPoint x="666" y="520" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-42" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="689.23828125" y="487" width="221.5234375" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-43" value="6. Selected IDs or clarification" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="690.23828125" y="493.2" width="219.5234375" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-44" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="545" as="sourcePoint" />
+            <mxPoint x="666" y="563" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="732" y="545" />
+              <mxPoint x="732" y="563" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-45" value="7. Validate IDs; load skill version" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="746" y="536.2" width="236.7890625" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-46" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="610" as="sourcePoint" />
+            <mxPoint x="1470" y="610" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-47" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="949.5625" y="577" width="236.875" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-48" value="8. Check tool/schema; read POs" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="950.5625" y="583.2" width="234.875" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-49" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1470" y="655" as="sourcePoint" />
+            <mxPoint x="666" y="655" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-50" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="942.875" y="622" width="250.25" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-51" value="9. Verified data, rows and sources" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="943.875" y="628.2" width="248.25" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-52" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="700" as="sourcePoint" />
+            <mxPoint x="1202" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-53" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="816.65625" y="667" width="234.6875" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-54" value="10. If prose needed: skill + data" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="817.65625" y="673.2" width="232.6875" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-55" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1202" y="745" as="sourcePoint" />
+            <mxPoint x="666" y="745" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-56" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="802.9453125" y="712" width="262.109375" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-57" value="11. Draft for schema/fact validation" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="803.9453125" y="718.2" width="260.109375" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-58" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="770" as="sourcePoint" />
+            <mxPoint x="666" y="788" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="732" y="770" />
+              <mxPoint x="732" y="788" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-59" value="12. Persist job, then queue" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="746" y="761.2" width="198.3046875" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-60" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="835" as="sourcePoint" />
+            <mxPoint x="398" y="835" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-61" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="433.21484375" y="802" width="197.5703125" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-62" value="13. Table + queued job ID" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="434.21484375" y="808.2" width="195.5703125" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-63" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="398" y="880" as="sourcePoint" />
+            <mxPoint x="130" y="880" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-64" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="151.7890625" y="847" width="224.421875" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-65" value="14. Show results; track the job" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="152.7890625" y="853.2" width="222.421875" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-66" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFF7E8;strokeColor=#BB7A16;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="48" y="950" width="1504" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-67" value="Missing permission, model, tool or data" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=19;fontColor=#BB7A16;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="68" y="958.05" width="366.19970703125" height="30.400000000000002" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-68" value="Stop before execution and explain or clarify. The model has no independent mutation authority." style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="68" y="987.15" width="728.96337890625" height="27.200000000000003" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="03-sequence-artifact" name="Sequence 2/2: Background jobs and private files">
+    <mxGraphModel dx="1600" dy="1080" grid="1" gridSize="10" guides="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1080">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="03-sequence-artifact-5" value="FAROAI  /  PLATFORM BASE SKILLS" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=15;fontColor=#62758B;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="30.25" width="260.85498046875" height="24.0" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-6" value="Sequence 2/2: Background jobs and private files" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=34;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="58.3" width="781.748046875" height="54.400000000000006" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-7" value="Continues from the queued job: PostgreSQL owns durable state; Redis coordinates delivery; Gateway serves downloads" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=18;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="111.1" width="955.7607421875001" height="28.8" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-8" value="PROPOSED TARGET DESIGN  |  ADR-0036 / Draft SPEC  |  29 October 2026" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=14;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="1036.3" width="468.7158203125" height="22.400000000000002" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-9" value="03-SEQUENCE-ARTIFACT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=14;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1385.3779296875" y="1036.3" width="166.6220703125" height="22.400000000000002" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-10" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="22" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-11" value="User / Web app" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="50.884765625" y="195.0" width="158.23046875" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-12" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="130" y="241" as="sourcePoint" />
+            <mxPoint x="130" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-13" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="290" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-14" value="Gateway" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="351.47265625" y="195.0" width="93.0546875" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-15" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="398" y="241" as="sourcePoint" />
+            <mxPoint x="398" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-16" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="558" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-17" value="PostgreSQL" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="605.5712890625" y="195.0" width="120.857421875" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-18" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="241" as="sourcePoint" />
+            <mxPoint x="666" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-19" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="826" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-20" value="Redis Queue" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="869.38671875" y="195.0" width="129.2265625" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-21" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="934" y="241" as="sourcePoint" />
+            <mxPoint x="934" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-22" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F0F2FF;strokeColor=#6478F4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1094" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-23" value="Artifact Worker" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1122.4892578125" y="195.0" width="159.021484375" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-24" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1202" y="241" as="sourcePoint" />
+            <mxPoint x="1202" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-25" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F0F2FF;strokeColor=#6478F4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1362" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-26" value="Private Storage" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1391.6220703125" y="195.0" width="156.755859375" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-27" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1470" y="241" as="sourcePoint" />
+            <mxPoint x="1470" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-28" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1202" y="295" as="sourcePoint" />
+            <mxPoint x="934" y="295" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-29" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="952.76953125" y="262" width="230.4609375" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-30" value="1. Consume job ID from queue" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="953.76953125" y="268.2" width="228.4609375" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-31" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1202" y="340" as="sourcePoint" />
+            <mxPoint x="666" y="340" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-32" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="784.1171875" y="307" width="299.765625" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-33" value="2. Claim job; check tenant/version/policy" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="785.1171875" y="313.2" width="297.765625" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-34" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="385" as="sourcePoint" />
+            <mxPoint x="1202" y="385" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-35" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="797.01953125" y="352" width="273.9609375" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-36" value="3. Job manifest + snapshot reference" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="798.01953125" y="358.2" width="271.9609375" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-37" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1202" y="410" as="sourcePoint" />
+            <mxPoint x="1202" y="428" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1268" y="410" />
+              <mxPoint x="1268" y="428" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-38" value="4. Calculate, build XLSX, validate" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="945.8203125" y="401.2" width="238.1796875" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-39" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1202" y="475" as="sourcePoint" />
+            <mxPoint x="1470" y="475" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-40" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1209.65234375" y="442" width="252.6953125" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-41" value="5. Save private file + content hash" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1210.65234375" y="448.2" width="250.6953125" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-42" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1470" y="520" as="sourcePoint" />
+            <mxPoint x="1202" y="520" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-43" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1285.26171875" y="487" width="101.4765625" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-44" value="6. Artifact ID" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1286.26171875" y="493.2" width="99.4765625" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-45" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1202" y="565" as="sourcePoint" />
+            <mxPoint x="666" y="565" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-46" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="795.73828125" y="532" width="276.5234375" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-47" value="7. Record completion + file metadata" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="796.73828125" y="538.2" width="274.5234375" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-48" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="130" y="610" as="sourcePoint" />
+            <mxPoint x="398" y="610" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-49" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="161.36328125" y="577" width="205.2734375" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-50" value="8. Web app polls job status" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="162.36328125" y="583.2" width="203.2734375" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-51" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="398" y="655" as="sourcePoint" />
+            <mxPoint x="666" y="655" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-52" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="419.26171875" y="622" width="225.4765625" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-53" value="9. Read status by tenant/actor" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="420.26171875" y="628.2" width="223.4765625" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-54" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="700" as="sourcePoint" />
+            <mxPoint x="398" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-55" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="438.359375" y="667" width="187.28125" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-56" value="10. Authorized job result" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="439.359375" y="673.2" width="185.28125" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-57" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="398" y="745" as="sourcePoint" />
+            <mxPoint x="130" y="745" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-58" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="160.25" y="712" width="207.5" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-59" value="11. Show downloadable file" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="161.25" y="718.2" width="205.5" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-60" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="130" y="790" as="sourcePoint" />
+            <mxPoint x="398" y="790" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-61" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="161.0703125" y="757" width="205.859375" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-62" value="12. Download by artifact ID" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="162.0703125" y="763.2" width="203.859375" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-63" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="398" y="835" as="sourcePoint" />
+            <mxPoint x="1470" y="835" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-64" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="811.796875" y="802" width="244.40625" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-65" value="13. Check access/expiry; read file" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="812.796875" y="808.2" width="242.40625" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-66" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1470" y="880" as="sourcePoint" />
+            <mxPoint x="398" y="880" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-67" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="881.4296875" y="847" width="105.140625" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-68" value="14. File bytes" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="882.4296875" y="853.2" width="103.140625" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-69" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="398" y="925" as="sourcePoint" />
+            <mxPoint x="130" y="925" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-70" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="180.140625" y="892" width="167.71875" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-71" value="15. Stream file to user" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="181.140625" y="898.2" width="165.71875" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-72" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFF7E8;strokeColor=#BB7A16;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="48" y="950" width="1504" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-73" value="Read/artifact tasks and business writes have distinct policies" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=19;fontColor=#BB7A16;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="68" y="958.05" width="550.15087890625" height="30.400000000000002" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-74" value="Catalog create retains direct policy; PO/receipt require preview / confirm / re-preview. No automatic training capture." style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="68" y="987.15" width="888.1391601562501" height="27.200000000000003" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

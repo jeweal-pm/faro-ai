@@ -16,6 +16,7 @@ from mcp.client.streamable_http import streamable_http_client
 from psycopg.rows import dict_row
 
 from .mcp_products import parse_mcp_product_result
+from .base_skills import SkillRegistryError, get_base_skills
 from .settings import settings
 
 logger = logging.getLogger("faroai.routing")
@@ -216,6 +217,19 @@ def _route_from_jev(
             "criteria": candidate_criteria,
         },
     }
+    # Only published read-only skills enter this decision. The choice cannot
+    # authorize a source, tool, model, tenant, or mutation.
+    try:
+        skill_choices = get_base_skills().choices("discovery.")
+    except (OSError, SkillRegistryError):
+        logger.warning(json.dumps({"event": "base_skill_catalog_unavailable"}))
+        skill_choices = {}
+    if skill_choices:
+        questions["base_skill"] = {
+            "type": "choice",
+            "instructions": "Choose the matching read-only skill, or none when no skill is appropriate.",
+            "criteria": {"none": "No base skill applies.", **skill_choices},
+        }
     if _is_product_discovery_query(message) and source_by_route:
         for question, instructions in (
             ("product_type", "What jewelry product type is requested?"),
@@ -270,6 +284,12 @@ def _route_from_jev(
         candidate_id = candidate_answer.get("choice") if isinstance(candidate_answer, dict) else None
         if not isinstance(candidate_id, str) or candidate_id not in candidate_ids:
             candidate_id = None
+        skill_answer = answers.get("base_skill", {})
+        skill_id = skill_answer.get("choice") if isinstance(skill_answer, dict) else None
+        if skill_id in (None, "none"):
+            skill_id = None
+        elif not isinstance(skill_id, str) or skill_id not in skill_choices:
+            skill_id = "__invalid__"
 
         if intent == "product" and selected_route and selected_route[1] == "search_products":
             exclusion_answer = answers.get("excluded_stone_shape", {})
@@ -288,6 +308,7 @@ def _route_from_jev(
                 "intent": "live", "source_id": selected_route[0], "tool": selected_route[1],
                 "candidate_id": candidate_id, "search_query": ", ".join(phrases),
                 "search_filters": {"stone_shape_exclude": excluded_shapes}, "decision_used": True,
+                "skill_id": skill_id,
             }
         if intent == "product":
             eligible = [source for source in sources if "search_products" in (source.get("allowed_tools") or [])]
@@ -297,12 +318,13 @@ def _route_from_jev(
                 return {"intent": "live", "source_id": source_id, "tool": "search_products",
                         "candidate_id": candidate_id,
                         "search_query": _remove_excluded_shape_phrases(message, excluded_shapes),
-                        "search_filters": {"stone_shape_exclude": excluded_shapes}, "decision_used": True}
+                    "search_filters": {"stone_shape_exclude": excluded_shapes}, "decision_used": True,
+                    "skill_id": skill_id}
         if intent == "live" and selected_route:
             return {"intent": "live", "source_id": selected_route[0], "tool": selected_route[1],
-                    "candidate_id": candidate_id, "decision_used": True}
+                    "candidate_id": candidate_id, "decision_used": True, "skill_id": skill_id}
         return {"intent": intent, "source_id": None, "tool": None, "candidate_id": candidate_id,
-                "decision_used": True}
+                "decision_used": True, "skill_id": skill_id}
     except Exception as error:
         logger.warning(json.dumps({"event": "decision_model_failed", "tenant_id": tenant_id,
                                    "error_type": type(error).__name__}))
@@ -456,6 +478,10 @@ def call_live_tool(tenant_id: str, source: dict[str, Any], tool: str, message: s
         products, products_valid = parse_mcp_product_result(result) if tool == "search_products" else ([], False)
         texts = [item.text for item in getattr(result, "content", [])
                  if getattr(item, "type", None) == "text" and isinstance(getattr(item, "text", None), str)]
+        logger.info(json.dumps({"event": "mcp_tool_result_validated", "tenant_id": tenant_id,
+                                "source_id": str(source.get("id") or source.get("source_id") or ""),
+                                "tool": tool, "products_valid": products_valid,
+                                "product_count": len(products), "has_text": bool(texts)}))
         return {"success": True, "text": _clean_text("\n".join(texts), 4000),
                 "products": products, "products_valid": products_valid}
     except Exception as error:
@@ -588,6 +614,10 @@ async def _call_streamable_mcp(url: str, api_key: str, auth_method: str, tool: s
                         "event": "mcp_search_filter_schema",
                         "tool": tool,
                         "supports_shape_filter": supports_shape_filter,
+                        "input_fields": sorted(properties.keys())[:30] if isinstance(properties, dict) else [],
+                        "required_fields": (input_schema.get("required", [])[:30]
+                                            if isinstance(input_schema, dict) and isinstance(input_schema.get("required"), list)
+                                            else []),
                     }))
                     if supports_shape_filter:
                         arguments["filters"] = filters
@@ -616,7 +646,8 @@ def call_product_mcp_tool(tenant_id: str, connection: dict[str, Any], tool: str,
     """Execute an allow-listed GIS product tool without exposing endpoint or key to a model."""
     return call_approved_mcp_tool(tenant_id, connection, tool, arguments,
                                   {"get_product_master_data", "preview_product", "create_product",
-                                   "create_products_bulk", "get_mcp_bulk_job_status"})
+                                   "create_products_bulk", "get_mcp_bulk_job_status",
+                                   "create_product_master", "create_product_masters_bulk"})
 
 
 def call_approved_mcp_tool(tenant_id: str, connection: dict[str, Any], tool: str,

@@ -1,0 +1,803 @@
+<mxfile host="app.diagrams.net" agent="FaroAI documentation" version="24.7.17">
+  <diagram id="01-overview" name="Base Skills ชุดเดียว ใช้ร่วมกันได้ทุก tenant">
+    <mxGraphModel dx="1600" dy="1040" grid="1" gridSize="10" guides="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1040">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="01-overview-5" value="FAROAI  /  PLATFORM BASE SKILLS" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=15;fontColor=#62758B;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="30.25" width="260.85498046875" height="24.0" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-6" value="Base Skills ชุดเดียว ใช้ร่วมกันได้ทุก tenant" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=34;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="58.3" width="654.61328125" height="54.400000000000006" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-7" value="ภาพรวมสำหรับผู้บริหาร: วิธีทำงานร่วมกัน แต่ข้อมูล สิทธิ์ และงบของแต่ละ tenant ยังแยกกัน" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=18;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="111.1" width="623.0156250000001" height="28.8" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-8" value="PROPOSED TARGET DESIGN  |  ADR-0036 / Draft SPEC  |  29 October 2026" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=14;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="996.3" width="468.7158203125" height="22.400000000000002" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-9" value="01-OVERVIEW" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=14;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1452.021484375" y="996.3" width="99.978515625" height="22.400000000000002" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-10" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F5F8FC;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="48" y="330" width="210" height="205" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-11" value="ผู้ใช้ทุก tenant" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=22;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="66" y="339.9" width="156.8046875" height="35.2" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-12" value="Tenant A / B / C" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="66" y="376.15" width="131.2158203125" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-13" value="ฝ่ายขาย / จัดซื้อ" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="66" y="403.15" width="119.38720703125001" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-14" value="Merchandising" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="66" y="430.15" width="122.89843750000001" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-15" value="ผู้ใช้ค้นสินค้า" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="66" y="457.15" width="95.66357421875" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-16" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="315" y="350" width="235" height="164" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-17" value="Prompt ของผู้ใช้" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=22;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="333" y="359.9" width="177.236328125" height="35.2" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-18" value="พิมพ์งานตามปกติ" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="333" y="396.15" width="124.89892578125001" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-19" value="ไม่ต้องเลือกชื่อ skill" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="333" y="423.15" width="137.9560546875" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-20" value="รับข้อมูลที่มีสิทธิ์ใช้" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="333" y="450.15" width="131.19091796875" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-21" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F0F2FF;strokeColor=#6478F4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="630" y="320" width="310" height="226" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-22" value="FaroAI + Skill Runtime" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=22;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="648" y="329.9" width="244.7939453125" height="35.2" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-23" value="ตรวจ tenant / actor / budget" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="648" y="366.15" width="222.70703125000003" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-24" value="Jev เลือก skill และ model" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="648" y="393.15" width="184.96337890625" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-25" value="โหลดเฉพาะคำแนะนำที่ใช้" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="648" y="420.15" width="174.1806640625" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-26" value="Executor บังคับกติกาจริง" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="648" y="447.15" width="176.322265625" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-27" value="เสนอเพิ่มและเชื่อมของเดิม" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=12;fontColor=#6478F4;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="778.31640625" y="519.4" width="146.68359375" height="19.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-28" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F0F2FF;strokeColor=#6478F4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="600" y="172" width="365" height="112" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-29" value="Base Skill Catalog กลาง" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=22;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="618" y="181.9" width="249.3701171875" height="35.2" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-30" value="Jewelry/GIS + Analysis + Documents" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="618" y="218.15" width="285.71826171875" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-31" value="ทุก tenant อ้างอิง published release เดียว" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="618" y="245.15" width="299.33154296875" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-32" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#62758B;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="258" y="432" as="sourcePoint" />
+            <mxPoint x="315" y="432" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="01-overview-33" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#62758B;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="550" y="432" as="sourcePoint" />
+            <mxPoint x="630" y="432" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="01-overview-34" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#6478F4;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="782" y="284" as="sourcePoint" />
+            <mxPoint x="782" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="01-overview-35" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="185" width="285" height="138" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-36" value="ข้อมูลธุรกิจผ่าน MCP" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=22;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="194.9" width="215.5859375" height="35.2" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-37" value="GIS / GMS / ERP ตามที่เชื่อม" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="231.15" width="208.32177734375" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-38" value="อ่าน/เขียนตาม scope และ tools" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="258.15" width="224.32568359375003" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-39" value="PO/receipt ใช้ preview + confirm" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="285.15" width="255.15478515625003" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-40" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="372" width="285" height="112" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-41" value="ความรู้ / Model" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=22;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="381.9" width="163.25" height="35.2" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-42" value="RAG ของ tenant + model ที่อนุญาต" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="418.15" width="262.09423828125" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-43" value="ใช้เพดานราคาและเครดิตเดิม" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="445.15" width="192.99853515625" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-44" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F0F2FF;strokeColor=#6478F4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="535" width="285" height="138" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-45" value="Analysis + Documents" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=22;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="544.9" width="241.06640625" height="35.2" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-46" value="คำนวณและสร้างไฟล์ใน worker" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="581.15" width="216.57275390625003" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-47" value="PDF / XLSX / DOCX / PPTX" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="608.15" width="209.90722656250003" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-48" value="ไฟล์ส่วนตัวตาม tenant/actor" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1048" y="635.15" width="208.55419921875" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-49" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#62758B;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="940" y="380" as="sourcePoint" />
+            <mxPoint x="1030" y="254" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="982" y="380" />
+              <mxPoint x="982" y="254" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="01-overview-50" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#62758B;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="940" y="433" as="sourcePoint" />
+            <mxPoint x="1030" y="433" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="01-overview-51" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#6478F4;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="940" y="494" as="sourcePoint" />
+            <mxPoint x="1030" y="604" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="982" y="494" />
+              <mxPoint x="982" y="604" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="01-overview-52" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F5F8FC;strokeColor=#D9E2EC;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="266" width="192" height="317" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-53" value="ผลลัพธ์ที่ใช้งานได้" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="285.0" width="172.361328125" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-54" value="คำตอบ / สินค้า" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="336.15" width="110.6298828125" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-55" value="ตาราง / ผลคำนวณ" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="384.15" width="136.90185546875" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-56" value="Preview ที่ต้องยืนยัน" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="432.15" width="147.79248046875" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-57" value="สถานะงาน / ดาวน์โหลด" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="480.15" width="166.17041015625" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-58" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#62758B;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1315" y="254" as="sourcePoint" />
+            <mxPoint x="1360" y="340" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1340" y="254" />
+              <mxPoint x="1340" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="01-overview-59" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#62758B;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1315" y="433" as="sourcePoint" />
+            <mxPoint x="1360" y="433" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="01-overview-60" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#6478F4;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1315" y="604" as="sourcePoint" />
+            <mxPoint x="1360" y="535" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1340" y="604" />
+              <mxPoint x="1340" y="535" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="01-overview-61" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="48" y="728" width="1504" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-62" value="คุณค่าที่ต้องวัด" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=19;fontColor=#33AFA8;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="68" y="736.05" width="132.8466796875" height="30.400000000000002" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-63" value="ทำงานสำเร็จเร็วขึ้น  |  ลด prompt ซ้ำและงานแก้  |  วัดต้นทุนต่อ task ที่สำเร็จ ไม่วัดแค่จำนวน skills" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="68" y="765.15" width="648.67822265625" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-64" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFF7E8;strokeColor=#BB7A16;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="48" y="820" width="1504" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-65" value="กติกาสำคัญ" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=19;fontColor=#BB7A16;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="68" y="828.05" width="108.80908203125" height="30.400000000000002" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-66" value="Base Skills ไม่รวมข้อมูล tenant เข้าด้วยกัน และไม่เพิ่มสิทธิ์ MCP หรือสิทธิ์อนุมัติธุรกิจ" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="68" y="857.15" width="567.0068359375" height="27.200000000000003" as="geometry" />
+        </mxCell>
+        <mxCell id="01-overview-67" value="สีฟ้า: ส่วนที่เสนอเพิ่ม   •   สีเขียว: ความสามารถเดิมที่นำมาเชื่อม/ปรับ   •   เป้าหมายครบทุกหมวด ส่งมอบเป็นระยะ" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="936.2" width="684.25" height="25.6" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="02-sequence-routing" name="Sequence 1/2: เลือก skill และอ่านข้อมูล">
+    <mxGraphModel dx="1600" dy="1080" grid="1" gridSize="10" guides="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1080">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="02-sequence-routing-5" value="FAROAI  /  PLATFORM BASE SKILLS" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=15;fontColor=#62758B;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="30.25" width="260.85498046875" height="24.0" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-6" value="Sequence 1/2: เลือก skill และอ่านข้อมูล" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=34;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="58.3" width="605.0078125" height="54.400000000000006" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-7" value="ตัวอย่างเป้าหมายระยะ composition: PO Search  /  Analysis  /  XLSX; ไม่สร้างหรืออนุมัติ PO" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=18;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="111.1" width="661.7666015625001" height="28.8" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-8" value="PROPOSED TARGET DESIGN  |  ADR-0036 / Draft SPEC  |  29 October 2026" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=14;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="1036.3" width="468.7158203125" height="22.400000000000002" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-9" value="02-SEQUENCE-ROUTING" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=14;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1386.02734375" y="1036.3" width="165.97265625" height="22.400000000000002" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-10" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="22" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-11" value="ผู้ใช้" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="104.7763671875" y="195.0" width="50.447265625" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-12" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="130" y="241" as="sourcePoint" />
+            <mxPoint x="130" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-13" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="290" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-14" value="Web / Gateway" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="319.900390625" y="195.0" width="156.19921875" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-15" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="398" y="241" as="sourcePoint" />
+            <mxPoint x="398" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-16" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F0F2FF;strokeColor=#6478F4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="558" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-17" value="Skill Runtime" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="597.607421875" y="195.0" width="136.78515625" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-18" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="241" as="sourcePoint" />
+            <mxPoint x="666" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-19" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="826" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-20" value="Jev" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="912.716796875" y="195.0" width="42.56640625" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-21" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="934" y="241" as="sourcePoint" />
+            <mxPoint x="934" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-22" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1094" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-23" value="Selected Model" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1123.5732421875" y="195.0" width="156.853515625" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-24" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1202" y="241" as="sourcePoint" />
+            <mxPoint x="1202" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-25" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1362" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-26" value="GIS MCP" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1423.423828125" y="195.0" width="93.15234375" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-27" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1470" y="241" as="sourcePoint" />
+            <mxPoint x="1470" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-28" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="130" y="295" as="sourcePoint" />
+            <mxPoint x="398" y="295" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-29" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="153.75390625" y="262" width="220.4921875" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-30" value="1. สรุป PO รออนุมัติ แล้วทำ Excel" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="154.75390625" y="268.2" width="218.4921875" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-31" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="398" y="320" as="sourcePoint" />
+            <mxPoint x="398" y="338" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="464" y="320" />
+              <mxPoint x="464" y="338" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-32" value="2. ตรวจ tenant / scopes / budget" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="478" y="311.2" width="239.015625" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-33" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="398" y="385" as="sourcePoint" />
+            <mxPoint x="666" y="385" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-34" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="418.9765625" y="352" width="226.046875" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-35" value="3. ส่งคำขอพร้อม trusted context" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="419.9765625" y="358.2" width="224.046875" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-36" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="410" as="sourcePoint" />
+            <mxPoint x="666" y="428" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="732" y="410" />
+              <mxPoint x="732" y="428" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-37" value="4. resolve release และ metadata" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="746" y="401.2" width="229.75" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-38" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="475" as="sourcePoint" />
+            <mxPoint x="934" y="475" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-39" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="666.8671875" y="442" width="266.265625" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-40" value="5. ให้เลือกเฉพาะ skill / model ที่อนุญาต" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="667.8671875" y="448.2" width="264.265625" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-41" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="934" y="520" as="sourcePoint" />
+            <mxPoint x="666" y="520" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-42" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="688.43359375" y="487" width="223.1328125" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-43" value="6. ส่ง IDs ที่เลือก หรือขอข้อมูลเพิ่ม" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="689.43359375" y="493.2" width="221.1328125" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-44" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="545" as="sourcePoint" />
+            <mxPoint x="666" y="563" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="732" y="545" />
+              <mxPoint x="732" y="563" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-45" value="7. ตรวจ IDs และโหลด skill version" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="746" y="536.2" width="232.4296875" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-46" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="610" as="sourcePoint" />
+            <mxPoint x="1470" y="610" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-47" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="901.0625" y="577" width="333.875" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-48" value="8. ตรวจ tools/schema และค้น PO แบบ read-only" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="902.0625" y="583.2" width="331.875" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-49" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1470" y="655" as="sourcePoint" />
+            <mxPoint x="666" y="655" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-50" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="937.87109375" y="622" width="260.2578125" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-51" value="9. คืนข้อมูลจริง จำนวนแถว และแหล่งที่มา" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="938.87109375" y="628.2" width="258.2578125" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-52" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="700" as="sourcePoint" />
+            <mxPoint x="1202" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-53" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="792.25390625" y="667" width="283.4921875" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-54" value="10. เฉพาะต้องอธิบาย: skill + verified data" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="793.25390625" y="673.2" width="281.4921875" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-55" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1202" y="745" as="sourcePoint" />
+            <mxPoint x="666" y="745" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-56" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="790.48828125" y="712" width="287.0234375" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-57" value="11. คำอธิบายที่ต้องตรวจ schema/ข้อเท็จจริง" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="791.48828125" y="718.2" width="285.0234375" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-58" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="770" as="sourcePoint" />
+            <mxPoint x="666" y="788" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="732" y="770" />
+              <mxPoint x="732" y="788" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-59" value="12. บันทึก durable job ก่อนเข้าคิว" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="746" y="761.2" width="228.7421875" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-60" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="835" as="sourcePoint" />
+            <mxPoint x="398" y="835" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-61" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="406.35546875" y="802" width="251.2890625" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-62" value="13. ตาราง + job ID / สถานะ queued" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="407.35546875" y="808.2" width="249.2890625" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-63" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="398" y="880" as="sourcePoint" />
+            <mxPoint x="130" y="880" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="02-sequence-routing-64" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="140.38671875" y="847" width="247.2265625" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-65" value="14. แสดงผลและติดตามงานต่ออัตโนมัติ" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="141.38671875" y="853.2" width="245.2265625" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-66" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFF7E8;strokeColor=#BB7A16;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="48" y="950" width="1504" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-67" value="ถ้าขาดสิทธิ์ / model / tool / ข้อมูล" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=19;fontColor=#BB7A16;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="68" y="958.05" width="303.8095703125" height="30.400000000000002" as="geometry" />
+        </mxCell>
+        <mxCell id="02-sequence-routing-68" value="หยุดก่อน execute และแจ้งเหตุผลหรือถามสิ่งที่จำเป็น; model ไม่ได้รับอำนาจเรียก mutation เอง" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="68" y="987.15" width="628.27490234375" height="27.200000000000003" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="03-sequence-artifact" name="Sequence 2/2: งานเบื้องหลังและไฟล์ส่วนตัว">
+    <mxGraphModel dx="1600" dy="1080" grid="1" gridSize="10" guides="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1080">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="03-sequence-artifact-5" value="FAROAI  /  PLATFORM BASE SKILLS" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=15;fontColor=#62758B;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="30.25" width="260.85498046875" height="24.0" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-6" value="Sequence 2/2: งานเบื้องหลังและไฟล์ส่วนตัว" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=34;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="58.3" width="651.3095703125" height="54.400000000000006" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-7" value="ต่อจาก job ID ในภาพก่อน: PostgreSQL เก็บสถานะถาวร; Redis ช่วยส่งงาน; ไฟล์ดาวน์โหลดผ่าน Gateway" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=18;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="111.1" width="750.4746093750001" height="28.8" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-8" value="PROPOSED TARGET DESIGN  |  ADR-0036 / Draft SPEC  |  29 October 2026" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=14;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="48" y="1036.3" width="468.7158203125" height="22.400000000000002" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-9" value="03-SEQUENCE-ARTIFACT" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=14;fontColor=#62758B;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1385.3779296875" y="1036.3" width="166.6220703125" height="22.400000000000002" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-10" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="22" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-11" value="ผู้ใช้ / หน้าเว็บ" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="61.2802734375" y="195.0" width="137.439453125" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-12" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="130" y="241" as="sourcePoint" />
+            <mxPoint x="130" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-13" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="290" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-14" value="Gateway" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="351.47265625" y="195.0" width="93.0546875" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-15" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="398" y="241" as="sourcePoint" />
+            <mxPoint x="398" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-16" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="558" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-17" value="PostgreSQL" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="605.5712890625" y="195.0" width="120.857421875" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-18" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="241" as="sourcePoint" />
+            <mxPoint x="666" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-19" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#EAF8F6;strokeColor=#33AFA8;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="826" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-20" value="Redis Queue" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="869.38671875" y="195.0" width="129.2265625" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-21" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="934" y="241" as="sourcePoint" />
+            <mxPoint x="934" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-22" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F0F2FF;strokeColor=#6478F4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1094" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-23" value="Artifact Worker" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1122.4892578125" y="195.0" width="159.021484375" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-24" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1202" y="241" as="sourcePoint" />
+            <mxPoint x="1202" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-25" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#F0F2FF;strokeColor=#6478F4;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1362" y="178" width="216" height="63" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-26" value="Private Storage" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=20;fontColor=#17324D;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1391.6220703125" y="195.0" width="156.755859375" height="32.0" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-27" value="" style="edgeStyle=none;rounded=0;endArrow=none;endFill=1;strokeColor=#D9E2EC;strokeWidth=1.5;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1470" y="241" as="sourcePoint" />
+            <mxPoint x="1470" y="922" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-28" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1202" y="295" as="sourcePoint" />
+            <mxPoint x="934" y="295" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-29" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="982.51171875" y="262" width="170.9765625" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-30" value="1. รับ job ID จาก queue" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="983.51171875" y="268.2" width="168.9765625" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-31" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1202" y="340" as="sourcePoint" />
+            <mxPoint x="666" y="340" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-32" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="773.79296875" y="307" width="320.4140625" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-33" value="2. claim งานและตรวจ tenant / version / policy" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="774.79296875" y="313.2" width="318.4140625" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-34" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="385" as="sourcePoint" />
+            <mxPoint x="1202" y="385" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-35" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="780.9609375" y="352" width="306.078125" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-36" value="3. คืน job manifest และ snapshot reference" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="781.9609375" y="358.2" width="304.078125" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-37" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1202" y="410" as="sourcePoint" />
+            <mxPoint x="1202" y="428" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1268" y="410" />
+              <mxPoint x="1268" y="428" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-38" value="4. คำนวณ สร้าง XLSX และตรวจผล" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="959.4609375" y="401.2" width="224.5390625" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-39" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1202" y="475" as="sourcePoint" />
+            <mxPoint x="1470" y="475" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-40" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1212.7578125" y="442" width="246.484375" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-41" value="5. บันทึกไฟล์ส่วนตัว + content hash" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1213.7578125" y="448.2" width="244.484375" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-42" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1470" y="520" as="sourcePoint" />
+            <mxPoint x="1202" y="520" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-43" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="1274.8125" y="487" width="122.375" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-44" value="6. คืน artifact ID" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1275.8125" y="493.2" width="120.375" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-45" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#4053BF;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1202" y="565" as="sourcePoint" />
+            <mxPoint x="666" y="565" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-46" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="798.79296875" y="532" width="270.4140625" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-47" value="7. บันทึก completed และ file metadata" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#4053BF;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="799.79296875" y="538.2" width="268.4140625" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-48" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="130" y="610" as="sourcePoint" />
+            <mxPoint x="398" y="610" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-49" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="166.8984375" y="577" width="194.203125" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-50" value="8. หน้าเว็บติดตาม job status" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="167.8984375" y="583.2" width="192.203125" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-51" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="398" y="655" as="sourcePoint" />
+            <mxPoint x="666" y="655" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-52" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="421.0234375" y="622" width="221.953125" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-53" value="9. อ่านสถานะตาม tenant / actor" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="422.0234375" y="628.2" width="219.953125" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-54" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="666" y="700" as="sourcePoint" />
+            <mxPoint x="398" y="700" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-55" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="434.88671875" y="667" width="194.2265625" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-56" value="10. คืนผลลัพธ์ที่ตรวจสิทธิ์แล้ว" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="435.88671875" y="673.2" width="192.2265625" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-57" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="398" y="745" as="sourcePoint" />
+            <mxPoint x="130" y="745" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-58" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="164.7109375" y="712" width="198.578125" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-59" value="11. แสดงไฟล์พร้อมดาวน์โหลด" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="165.7109375" y="718.2" width="196.578125" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-60" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="130" y="790" as="sourcePoint" />
+            <mxPoint x="398" y="790" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-61" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="165.26953125" y="757" width="197.4609375" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-62" value="12. ขอดาวน์โหลด artifact ID" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="166.26953125" y="763.2" width="195.4609375" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-63" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="398" y="835" as="sourcePoint" />
+            <mxPoint x="1470" y="835" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-64" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="808.76171875" y="802" width="250.4765625" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-65" value="13. ตรวจสิทธิ์/วันหมดอายุ แล้วอ่านไฟล์" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="809.76171875" y="808.2" width="248.4765625" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-66" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1470" y="880" as="sourcePoint" />
+            <mxPoint x="398" y="880" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-67" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="871.29296875" y="847" width="125.4140625" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-68" value="14. คืน file bytes" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="872.29296875" y="853.2" width="123.4140625" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-69" value="" style="edgeStyle=none;rounded=0;endArrow=block;endFill=1;strokeColor=#17324D;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="398" y="925" as="sourcePoint" />
+            <mxPoint x="130" y="925" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="03-sequence-artifact-70" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#FFFFFF;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="184.81640625" y="892" width="158.3671875" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-71" value="15. stream ไฟล์ให้ผู้ใช้" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=16;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="185.81640625" y="898.2" width="156.3671875" height="25.6" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-72" value="" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFF7E8;strokeColor=#BB7A16;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="48" y="950" width="1504" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-73" value="งานอ่าน/สร้างไฟล์กับงานเขียนธุรกิจใช้กติกาต่างกัน" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=19;fontColor=#BB7A16;fontStyle=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="68" y="958.05" width="431.5029296875" height="30.400000000000002" as="geometry" />
+        </mxCell>
+        <mxCell id="03-sequence-artifact-74" value="Catalog create ใช้ direct policy เดิม; PO/receipt ต้อง preview  /  confirm  /  re-preview; ไฟล์/ข้อมูลไม่เข้า training อัตโนมัติ" style="text;html=0;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Leelawadee UI;fontSize=17;fontColor=#17324D;fontStyle=0;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="68" y="987.15" width="877.0244140625001" height="27.200000000000003" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
