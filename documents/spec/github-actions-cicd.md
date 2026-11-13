@@ -66,7 +66,7 @@ AWS APIs may require `Resource: "*"` for selected list/token/status actions. Kee
 ### EC2 instance profile
 
 - Attach an instance role limited to SSM managed-node connectivity, pull access to the five ECR repositories, and `s3:GetObject` for `faroai/releases/*`. Do not put AWS credentials on disk.
-- Require SSM online status, supported Docker Engine/Compose plugin and AWS CLI, encrypted EBS volumes, security-group ingress restricted to the intended application access path, and no public database/vector-store ports.
+- Require SSM online status, supported Docker Engine/Compose plugin and AWS CLI v2, encrypted EBS volumes, security-group ingress restricted to the intended application access path, and no public database/vector-store ports. AWS-RunShellScript invokes the release bootstrap through `/bin/sh`; that bootstrap must stay POSIX-compatible. The checked-in `ec2-compose-deploy.sh` is invoked explicitly with Bash.
 - Create `/opt/faroai/.env` through a separate secret-provisioning process. Enforce root ownership and mode `0600`; it must not be inside the release directory or image.
 - Before first deployment, confirm free disk space and staging-only DB/Qdrant/Redis volumes. Do not reuse production data.
 - CI/CD uses SSM Run Command and does not require inbound SSH or application ports. The current Compose binding keeps FaroAI on host loopback port `3001`; Nginx/TLS, DNS mapping, and inbound `80`/`443` are separate web-ingress setup and are not installed or changed by this workflow. Keep `3001` closed to the internet.
@@ -80,6 +80,20 @@ AWS APIs may require `Resource: "*"` for selected list/token/status actions. Kee
 4. The workflow reuses any already-published immutable commit-SHA images, builds and publishes missing images, uploads the minimal checksummed source bundle, then invokes SSM on the configured staging instance.
 5. Confirm the workflow's readiness result and inspect service health through the approved staging operations path. If it fails, inspect host/service status without copying `.env` or secrets into logs.
 6. For a failed release after migrations, stop and assess migration compatibility. Do not restore/reset the database or perform an automatic code rollback without the separately reviewed recovery plan.
+
+### First-time EC2 prerequisite: AWS CLI v2
+
+The instance profile provides AWS permissions, but it does not install the AWS CLI executable. Before the first deployment, install AWS CLI v2 on the Ubuntu EC2 instance using Systems Manager Run Command (`AWS-RunShellScript`, targeting only the staging instance). Run as root:
+
+```sh
+set -eu
+apt-get update
+apt-get install -y curl
+curl -fsSL https://awscli.amazonaws.com/v2/install.sh | bash -s -- --system
+/usr/local/bin/aws --version
+```
+
+AWS documents this signed install script as its recommended Linux installation method. Do not add static AWS access keys to the instance; the installed CLI uses the EC2 instance profile. After the output shows `aws-cli/2...`, rerun **FaroAI CI/CD** from `dev` with `deploy_staging=true`. The workflow now checks for the CLI and reports this prerequisite explicitly if it is missing.
 
 ## Security and production gates
 

@@ -196,13 +196,17 @@ jobs:
           if len(archive_sha256) != 64 or any(c not in "0123456789abcdef" for c in archive_sha256):
               raise SystemExit("Invalid release archive checksum")
           command = "\n".join([
-              "set -euo pipefail",
+              # AWS-RunShellScript executes commands with /bin/sh on the managed
+              # node. Keep this bootstrap POSIX-compatible; the deploy script
+              # itself is explicitly launched with Bash below.
+              "set -eu",
               f"release=/opt/faroai/releases/{sha}",
               f"stage=/opt/faroai/releases/.{sha}.tmp",
               f"archive=/tmp/faroai-{sha}.tar.gz",
               "install -d -o root -g root -m 0750 /opt/faroai/releases",
-              f"trap 'rm -f -- \"$archive\"; rm -rf -- \"$stage\"' EXIT",
-              f"if [[ -e \"$release\" ]]; then test -f \"$release/.bundle.sha256\" && test \"$(cat \"$release/.bundle.sha256\")\" = '{archive_sha256}'; else",
+              "command -v aws >/dev/null 2>&1 || { echo 'AWS CLI is missing on this EC2 instance; install AWS CLI v2, then rerun deployment.' >&2; exit 127; }",
+              f"trap 'rm -f -- \"$archive\"; rm -rf -- \"$stage\"' 0",
+              f"if [ -e \"$release\" ]; then test -f \"$release/.bundle.sha256\" && test \"$(cat \"$release/.bundle.sha256\")\" = '{archive_sha256}'; else",
               f"  aws s3 cp s3://{bucket}/faroai/releases/{sha}.tar.gz \"$archive\" --only-show-errors",
               f"  printf '%s  %s\\n' '{archive_sha256}' \"$archive\" | sha256sum --check --status",
               "  rm -rf -- \"$stage\"",
