@@ -2,6 +2,7 @@ name: faroai
 
 services:
   api:
+    image: ${FAROAI_API_IMAGE:-faroai-api:local}
     build:
       context: ./gateway
     environment:
@@ -87,6 +88,7 @@ services:
     restart: unless-stopped
 
   ai-service:
+    image: ${FAROAI_AI_SERVICE_IMAGE:-faroai-ai-service:local}
     build:
       context: ./ai-service
       args:
@@ -153,6 +155,7 @@ services:
     restart: unless-stopped
 
   worker:
+    image: ${FAROAI_AI_SERVICE_IMAGE:-faroai-ai-service:local}
     build:
       context: ./ai-service
       args:
@@ -197,6 +200,7 @@ services:
 
   artifact-worker:
     profiles: ["artifacts"]
+    image: ${FAROAI_ARTIFACT_WORKER_IMAGE:-faroai-artifact-worker:local}
     build:
       context: ./artifact-worker
     environment:
@@ -253,6 +257,7 @@ services:
 
   document-import-worker:
     profiles: ["document-import"]
+    image: ${FAROAI_DOCUMENT_IMPORT_WORKER_IMAGE:-faroai-document-import-worker:local}
     build:
       context: ./document-import-worker
     environment:
@@ -338,6 +343,7 @@ services:
     restart: "no"
 
   backoffice:
+    image: ${FAROAI_BACKOFFICE_IMAGE:-faroai-backoffice:local}
     build:
       context: ./backoffice
       args:
