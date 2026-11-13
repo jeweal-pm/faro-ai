@@ -104,14 +104,54 @@ def _normalize_record(value: Any) -> dict[str, Any] | None:
         if isinstance(availability_value, str)
         else ("Available" if availability_value is True else "Unavailable" if availability_value is False else None)
     )
+    attributes = value.get("verified_attributes", value.get("verifiedAttributes"))
+    attributes = attributes if isinstance(attributes, dict) else {}
+
+    def attribute_ref(raw: Any) -> dict[str, str] | None:
+        if not isinstance(raw, dict):
+            return None
+        attribute_id = _text(raw.get("id"), 120)
+        attribute_name = _text(raw.get("name"), 100)
+        return {"id": attribute_id, "name": attribute_name} if attribute_id and attribute_name else None
+
+    gemstones_raw = attributes.get("gemstone")
+    gemstones = []
+    if isinstance(gemstones_raw, list):
+        for item in gemstones_raw[:12]:
+            ref = attribute_ref(item)
+            if ref:
+                gemstones.append(ref)
+
+    price_rows_raw = value.get("prices_by_location", value.get("pricesByLocation"))
+    price_rows = []
+    if isinstance(price_rows_raw, list):
+        for row in price_rows_raw[:20]:
+            if not isinstance(row, dict):
+                continue
+            row_currency = row.get("currency")
+            if not isinstance(row_currency, str) or not re.fullmatch(r"[A-Za-z]{3}", row_currency):
+                continue
+            row_price = _price(row.get("price"))
+            if row_price is None:
+                continue
+            price_rows.append({"price": row_price, "currency": row_currency.upper()})
+
     return {
         "id": product_id,
         "name": name,
         "sku": _text(value.get("sku"), 120),
         "productType": _text(value.get("product_type", value.get("productType")), 80),
         "stoneShape": _text(value.get("stone_shape", value.get("stoneShape")), 80),
+        "verifiedAttributes": {
+            "item": attribute_ref(attributes.get("item")),
+            "metal": attribute_ref(attributes.get("metal")),
+            "color": attribute_ref(attributes.get("color")),
+            "style": attribute_ref(attributes.get("style")),
+            "gemstone": gemstones,
+        },
         "price": price,
         "currency": currency,
+        "pricesByLocation": price_rows,
         "availability": availability,
         "image": _public_https_url(value.get("image_url", value.get("image"))),
         "url": _public_https_url(value.get("product_url", value.get("url"))),
@@ -162,14 +202,11 @@ def remove_excluded_stone_shapes(
     return kept
 
 
-def parse_mcp_product_result(result: Any) -> tuple[list[dict[str, Any]], bool]:
-    """Return validated products and whether a recognized product envelope was present."""
+def _mcp_product_payloads(result: Any) -> list[Any]:
+    payloads = []
     structured = getattr(result, "structuredContent", None)
     if structured is not None and _within_payload_limit(structured):
-        products = normalize_product_records(structured)
-        recognized = isinstance(structured, dict) and isinstance(structured.get("products"), list)
-        if recognized:
-            return products, True
+        payloads.append(structured)
 
     contents = getattr(result, "content", [])
     for item in contents:
@@ -182,9 +219,35 @@ def parse_mcp_product_result(result: Any) -> tuple[list[dict[str, Any]], bool]:
             decoded = json.loads(text)
         except (ValueError, TypeError):
             continue
-        products = normalize_product_records(decoded)
-        recognized = isinstance(decoded, dict) and isinstance(decoded.get("products"), list)
+        payloads.append(decoded)
+    return payloads
+
+
+def parse_mcp_product_result_details(result: Any) -> tuple[list[dict[str, Any]], bool, dict[str, Any]]:
+    """Return validated products, envelope validity, and bounded filter evidence."""
+    for payload in _mcp_product_payloads(result):
+        products = normalize_product_records(payload)
+        recognized = isinstance(payload, dict) and isinstance(payload.get("products"), list)
         if recognized:
-            return products, True
-    return [], False
+            applied = payload.get("applied_filters")
+            applied = applied if isinstance(applied, dict) else {}
+            allowed_applied = {
+                key: applied[key] for key in ("item", "metal", "gemstone", "color", "style", "price", "exclude_terms", "stone_shape_exclude")
+                if key in applied
+            }
+            unmatched = payload.get("unmatched_filters")
+            unmatched_fields = []
+            if isinstance(unmatched, list):
+                for item in unmatched[:12]:
+                    field = item.get("facet") if isinstance(item, dict) else item
+                    if isinstance(field, str) and field[:100] not in unmatched_fields:
+                        unmatched_fields.append(field[:100])
+            return products, True, {"applied_filters": allowed_applied, "unmatched_filters": unmatched_fields}
+    return [], False, {"applied_filters": {}, "unmatched_filters": []}
+
+
+def parse_mcp_product_result(result: Any) -> tuple[list[dict[str, Any]], bool]:
+    """Return validated products and whether a recognized product envelope was present."""
+    products, valid, _metadata = parse_mcp_product_result_details(result)
+    return products, valid
 

@@ -1,0 +1,9 @@
+# Inventory receipt prompt dispatch
+
+- Request: continue receiving the user-approved GIS purchase order `PO-CW-2026-0001` through the FAROAI prompt flow.
+- Finding: FAROAI returned prose claiming that the receipt preview was valid, but AI-service logs showed no corresponding GIS preview tool call. The user-facing claim was therefore not verified and no receipt was created.
+- Changed procurement routing so an inventory-receipt request requires the GIS read, preview, and receive tools to be approved for the tenant. FAROAI now resolves an explicitly named PO, verifies its live approval state, voucher and remaining lines from GIS, then calls the actual read-only receipt preview and stages a confirmation only if GIS returns `valid: true`.
+- Retried in FAROAI after reloading the AI service. GIS search and PO detail reads succeeded and reported one approved PO; the assistant then returned “The tenant has no available AI credits for this procurement request.” No `preview_inventory_receipt` call or GIS receipt was made.
+- A follow-up retry exposed an intent-classification overlap: “receive the approved PO” was also treated as a read-only PO search, and stale history let the model add an unrelated supplier filter. Receipt requests now bypass that classification and use only the current request plus GIS-returned IDs.
+- After the routing correction, the current prompt performed a live PO search and detail read (status 3), then called GIS `preview_inventory_receipt`. GIS returned `valid: false` with its generic error: “Receipt preview failed. Check the GIS purchase order and reference IDs.” No receipt was created.
+- The code compiles in the AI-service container and the service is healthy. The MCP preview endpoint must expose or resolve the underlying validation failure before a valid preview can be presented for confirmation.

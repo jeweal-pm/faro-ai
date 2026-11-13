@@ -12,6 +12,7 @@ class Settings:
     qdrant_url: str = os.environ.get("QDRANT_URL", "http://qdrant:6333")
     qdrant_api_key: str = os.environ["QDRANT_API_KEY"]
     internal_secret: str = os.environ.get("FAROAI_INTERNAL_SECRET", "")
+    gis_mcp_context_secret: str = os.environ.get("FAROAI_GIS_MCP_CONTEXT_SECRET", "")
     embedding_model: str = os.environ.get("EMBEDDING_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
     embedding_dimension: int = int(os.environ.get("EMBEDDING_DIMENSION", "384"))
     embedding_cache_dir: str = os.environ.get("EMBEDDING_CACHE_DIR", "/tmp/fastembed")

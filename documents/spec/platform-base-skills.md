@@ -1,13 +1,13 @@
 # SPEC: FaroAI Platform Base Skills
 
-- **Status:** Accepted target contract; implementation in progress. Six of eleven skills are registered ready: jewelry search, approved knowledge answers, PO search/create, catalog draft creation through the existing confirmed GIS workflow, and inventory receipt preparation. The test-specific PO shortcut has been disabled and PO creation uses the generic master lookup and preview/confirmation path. Data analysis and artifact downloads are not released.
+- **Status:** Accepted target contract; implementation updated 2026-11-02. Ten of eleven skills are registered ready. In addition to the existing six, deterministic analysis of displayed PO results and private PDF/XLSX/DOCX export are enabled. `base.pptx` remains planned by user direction. Scope limits below describe the shipped executor; broader capabilities in the skill table remain target scope.
 - **Date:** 2026-10-29
 - **Decision:** [ADR-0036](../adr/0036-platform-base-skills.md)
 - **Plan:** [BD/PO development plan](../product/discovery/2026-10-29-platform-base-skills.md)
 
 รายละเอียดการทำงาน 30-10-2026: การค้น PO ใช้สิทธิ์อ่านที่อนุมัติแยกจากการสร้าง PO และรับสินค้า ซึ่งต้องตรวจสิทธิ์ preview และเขียนของงานนั้นอีกครั้งตอนยืนยัน หาก Jev ไม่เลือก skill ให้ route อ่านที่ตรวจสิทธิ์แล้วเลือก skill ที่ตรงกันได้ แต่ปฏิเสธตัวเลือกที่ผิดหรือขัดแย้ง ผลค้น vector ไม่ใช่คำตอบที่ยืนยันแล้ว และ fallback ที่ไม่มีโมเดลต้องไม่แสดงข้อความเอกสารดิบที่อาจไม่เกี่ยวข้องแทนคำตอบ
 
-สถานะ implementation 30-10-2026: registry มี skill สถานะ ready 6 จาก 11 รายการ โดย catalog-create ครอบคลุมขั้น draft ใน workflow สร้างสินค้าเดิม, po-create ใช้ master lookup และ preview/confirmation แบบทั่วไป, inventory-receive ใช้ executor เตรียม preview เดิม ทั้งหมดอยู่ใต้ permission และ confirmation เดิม; PO ที่สร้างยังรออนุมัติใน GIS. ปิด shortcut PO สำหรับข้อมูลทดสอบเฉพาะรายแล้ว ส่วน data-analysis กับ PDF/XLSX/DOCX/PPTX ยังไม่เปิดใช้
+สถานะ implementation 02-11-2026: registry release `2026.11.02.1` มี ready 10 จาก 11 skills. `base.data-analysis` ใช้การคำนวณ deterministic กับ PO lines ที่โหลดและแสดงอยู่แล้วเท่านั้น (สูงสุด 10 PO/500 lines) รองรับ count, sum, average, minimum และ maximum สำหรับ quantity, unit price และ line amount; ไม่อ่านไฟล์ upload หรือดึง GIS เพิ่ม. `base.pdf`, `base.xlsx`, `base.docx` สร้างไฟล์ private จาก PO lines ที่แสดงอยู่เท่านั้น (สูงสุด 500 rows), มีอายุ 24 ชั่วโมง และไม่เขียน Qdrant. `base.pptx` ยังเป็น planned. Artifact worker เปิดแยก profile โดยใช้ PostgreSQL role สิทธิ์จำกัด; ไม่มี Redis dependency ใน worker
 
 ## 1. Product contract
 
@@ -34,6 +34,8 @@ Base catalog ครอบคลุมทั้ง generic document/data tasks �
 | `base.pptx` | สร้าง presentation จากเนื้อหา/ผลวิเคราะห์ | presentation adapter + slide/render validation | downloadable PPTX |
 
 แต่ละหมวดต้องมี executor จริงก่อนแสดงพร้อมใช้ ระยะแรกของเอกสารเน้นสร้าง/export จาก structured data และ approved text; การอ่าน แก้ไข หรือแปลงไฟล์อัปโหลดเพิ่มตาม input-format conformance ทีละประเภท รวมทั้ง PDF/CSV/XLSX ที่อนุมัติให้รองรับ ไม่อ้างว่าทุกไฟล์เปิด/แก้ได้จากการมีชื่อ skill
+
+**สถานะที่ deploy แล้ว:** readiness ของ `base.data-analysis` และ `base.pdf`/`base.xlsx`/`base.docx` จำกัดเฉพาะข้อมูล PO ที่โหลดและแสดงใน conversation เดียวกัน ไม่ใช่ generic file analysis หรือ arbitrary document composition. PPTX ไม่ advertise และยังไม่มี executor ที่เปิดใช้ผ่าน catalog.
 
 ## 3. สิ่งที่แยกจากกัน
 
@@ -147,9 +149,13 @@ Artifact phase เสนอ worker แยกจาก AI/embedding service เ�
 
 แยก worker profile และใช้ shared image/layers ตามความจำเป็น ตรวจขนาด image และพื้นที่ก่อน build; ไม่บังคับติดตั้ง browser/office suite ขนาดใหญ่กับทุก deployment เลือก renderer/adapters และ libraries ตอน implementation จากผล quality/resource spike
 
-Postgres บันทึก job ก่อนตอบ accepted; Redis เป็นตัวส่งงาน/lease เท่านั้น Worker ต้อง idempotent งานที่ยังไม่รู้ผล GIS ห้าม retry mutation อัตโนมัติ งานสร้างไฟล์ retry ได้ด้วย job identity เดิมและผลลัพธ์ที่มี digest ตรวจได้
+Postgres บันทึก artifact job และเป็น durable queue/lease source; worker poll ฐานข้อมูลโดยตรง จึงไม่ต้องใช้ Redis. Worker ตรวจ tenant และ API key ซ้ำก่อน publish ไฟล์ ใช้ operation/renderers ที่ลงทะเบียนตายตัว และตรวจ digest ของผลลัพธ์
 
-Artifacts อยู่ private storage adapter (private volume หรือ object store ตาม deployment) ไม่วางใน `backoffice/public` หรือ Qdrant ใช้ server-generated IDs/paths ตรวจ tenant และสิทธิ์ทุก preview/download มี TTL/delete; ค่าเริ่มต้นเสนอ 24 ชั่วโมงและ platform-configurable ต้องยืนยันก่อน release ไม่ใช้ retention ของ training candidates มาปะปน
+Artifacts อยู่ private storage (private volume หรือ object store ตาม deployment) ไม่วางใน `backoffice/public` หรือ Qdrant ใช้ server-generated IDs/paths ตรวจ tenant และสิทธิ์ทุก preview/download มี TTL/delete; executor ที่ deploy แล้วใช้ TTL 24 ชั่วโมงและยังไม่เปิด platform-configurable retention. ไม่ใช้ retention ของ training candidates มาปะปน.
+
+การแปลความหมาย prompt ใช้ flow model/skill decision ของ Jev ที่มีอยู่แล้วหนึ่งรอบ แล้วส่ง prompt ต้นฉบับให้ task model ที่เลือกตีความ ไม่เพิ่ม LLM classifier แยก. Backoffice มี intent hints กลางขนาดเล็กเพื่อเข้า procurement chat และจับชนิดไฟล์/คำขอ export ที่ชัดเจน; hints ไม่แทนการเข้าใจภาษาของโมเดล ไม่กำหนด GIS tool หรือสิทธิ์ และไม่เก็บใน Qdrant. ดู [ADR-0045](../adr/0045-natural-language-intent-routing.md).
+
+สำหรับ executor ที่ deploy แล้ว artifact ถูกเก็บใน private Docker volume; route ตรวจ tenant/API key/actor และสิทธิ์ `chat:write`. ไม่ต้องมี checkbox สร้างไฟล์แยก: Backoffice รับคำขอภาษาธรรมชาติที่ระบุชนิดไฟล์กับเจตนาสร้าง/ส่งออก เช่น “give me a PDF”, “I need a PDF” หรือ “PDF please” แล้วส่ง `x-faroai-export-requested: true` ให้ API เฉพาะตอนสร้าง job. API บังคับ intent นี้ที่ `POST /artifacts`; status/download จำกัดด้วย tenant, API key, actor และ artifact ID ของผู้สร้าง. Job บันทึก tenant/key/actor/format และหมดอายุใน 24 ชั่วโมง. คำสั่ง export เป็นการยืนยันเจตนาของผู้ใช้แอปสำหรับงานนั้น **ไม่ใช่ GDPR/PDPA consent ของ data subject และไม่ใช่ lawful basis**. Data controller ของ tenant ต้องกำหนดวัตถุประสงค์/ฐานกฎหมายและแจ้ง privacy notice ให้ครอบคลุมการประมวลผลและ retention; หากอาศัย consent ต้องจัดเก็บ consent ที่ถูกต้องแยกตามกฎหมายและวัตถุประสงค์. งาน export ต้องใช้ได้ในแชทตั้งแต่ prompt แรก โดย prompt เดียวระบุทั้งขอบเขต PO (supplier/status/เลข PO) และชนิดไฟล์ จึงทำงานได้แม้ปิดการส่งต่อบริบท; ระบบไม่พึ่งประวัติแชทที่ซ่อนอยู่. ถ้าระบุเพียงชนิดไฟล์แต่ไม่บอกขอบเขต ระบบถามหา supplier/status/เลข PO ในแชทก่อนเรียก GIS. เมื่อค้นและส่งออกใน prompt เดียว ใช้เฉพาะ PO rows ที่ผลค้น GIS รอบนั้นคืนมาและแสดงในแชท; follow-up export ใช้ได้เฉพาะ rows ที่โหลดในแชทปัจจุบัน. ห้าม fetch ข้อมูลเพิ่มตอนสร้างไฟล์ และต้องมีอย่างน้อยหนึ่งบรรทัดก่อนสร้างไฟล์; ถ้าไม่พบข้อมูลจะไม่สร้าง PDF เปล่า. Migration `018_base_skill_artifact_binding` ผูก format กับ skill ID. เปิดใช้ด้วย `FAROAI_ARTIFACT_ENABLED=true` และ Compose profile `artifacts`; worker ใช้ dedicated PostgreSQL login ที่สืบสิทธิ์จาก role แบบ `NOLOGIN` จำกัดสิทธิ์ตาราง และ poll PostgreSQL โดยตรง. ดู [ADR-0044](../adr/0044-explicit-export-intent.md).
 
 คำขอ/file/output ไม่ถูกเก็บเข้า shared skill, RAG หรือ training อัตโนมัติ การใช้ข้อมูลเพื่อปรับปรุงยังอยู่ใต้ ADR-0012 และ consent/review เดิม
 
@@ -172,6 +178,8 @@ Proposed endpoints (ต้อง review security และ API convention ก่
 - `GET /v1/artifacts/:id/download`: authorized streaming; ไม่ส่ง filesystem path ให้ browser
 
 Business confirmation ใช้/ปรับ existing typed confirmation contract ไม่สร้าง mutation endpoint ที่หลบ gateway เดิม
+
+**Endpoints ที่ใช้งานจริงสำหรับ scope ปัจจุบัน:** `GET /v1/skills/base`, `POST /v1/skills/analyze`, `GET /v1/artifacts/context`, `POST /v1/artifacts`, `GET /v1/artifacts/:id`, และ `GET /v1/artifacts/:id/download`. Data analysis รับ typed operation + PO rows ที่โหลดมาแล้ว; artifact creation รับคอลัมน์/แถวที่แสดงใน Backoffice ไม่รับ code, URL, file path หรือ arbitrary model-generated document instructions.
 
 ## 10. Release, observability และต้นทุน
 

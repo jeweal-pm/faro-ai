@@ -14,7 +14,7 @@ const pool = new Pool({ connectionString: databaseUrl, max: 1 });
 try {
   const result = await pool.query(
     `INSERT INTO api_keys(tenant_id,key_hash,label,scopes)
-     SELECT id,$2,'FaroAI prompt GIS operations',ARRAY['gis:product:write','gis:procurement:write']::text[]
+     SELECT id,$2,'FaroAI prompt GIS operations',ARRAY['gis:product:write','gis:procurement:read','gis:procurement:write']::text[]
        FROM tenants WHERE id=$1 AND status='active'
      RETURNING id`,
     [tenantId, keyHash],

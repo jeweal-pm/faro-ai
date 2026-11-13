@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
-import { Activity, Boxes, BrainCircuit, Building2, Check, ChevronRight, CircleDollarSign, Database, KeyRound, LoaderCircle, LogOut, Plus, Settings2, ShieldCheck, Sparkles, Workflow } from 'lucide-react';
+import { Activity, Boxes, BrainCircuit, Building2, Check, ChevronRight, CircleDollarSign, Database, KeyRound, LoaderCircle, LogIn, LogOut, Plus, Settings2, ShieldCheck, Sparkles, Workflow } from 'lucide-react';
 
 type ApiResult<T> = { success: boolean; data?: T; error?: string; message?: string };
 type Tenant = { id: string; name: string; status: string; available_credits: number; used_credits: number };
+type TenantMcpAdminUser = { id: string; email: string; status: 'active' | 'disabled'; created_at: string; updated_at: string; last_login_at: string | null };
 type Provider = { id: string; provider: string; name: string; endpoint_url: string; enabled: boolean; secret_hint: string | null; max_input_usd_per_million_tokens: number; max_output_usd_per_million_tokens: number; max_image_usd_per_image: number; discovered_model_count: number; eligible_model_count: number; models_synced_at: string | null; jev_eligible: boolean };
 type Job = { id: string; status: string; total_documents: number; completed_documents: number; collection_name: string; embedding_model: string; job_kind?: string; error_code: string | null };
 type AuditEvent = { id: string; actor_email: string | null; action: string; resource_type: string; created_at: string; tenant_id: string | null };
@@ -15,17 +16,22 @@ type McpConnection = {
   connection_status: 'untested' | 'connected' | 'error'; discovered_tools: string[]; allowed_tools: string[];
   secret_hint: string | null; last_checked_at: string | null; last_error_code: string | null;
 };
-export type Section = 'overview' | 'tenants' | 'providers' | 'routing' | 'skills' | 'knowledge' | 'mcp' | 'learning' | 'audit' | 'settings';
+export type Section = 'overview' | 'tenants' | 'providers' | 'routing' | 'skills' | 'knowledge' | 'mcp' | 'learning' | 'audit' | 'settings' | 'debug';
 
 async function adminApi<T>(path: string, init?: RequestInit): Promise<ApiResult<T>> {
+  return await requestApi<T>('/api/admin', path, init);
+}
+
+export async function requestApi<T>(apiBase: '/api/admin' | '/api/tenant', path: string, init?: RequestInit): Promise<ApiResult<T>> {
   const method = (init?.method ?? 'GET').toUpperCase();
   const headers = new Headers(init?.headers);
   if (init?.body) headers.set('content-type', 'application/json');
   if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && typeof document !== 'undefined') {
-    const csrf = document.cookie.split('; ').find((part) => part.startsWith('__Host-faroai_admin_csrf=') || part.startsWith('faroai_admin_csrf='))?.split('=').slice(1).join('=');
+    const csrfNames = apiBase === '/api/admin' ? ['__Host-faroai_admin_csrf=', 'faroai_admin_csrf='] : ['__Host-faroai_tenant_csrf=', 'faroai_tenant_csrf='];
+    const csrf = document.cookie.split('; ').find((part) => csrfNames.some((name) => part.startsWith(name)))?.split('=').slice(1).join('=');
     if (csrf) headers.set('x-csrf-token', decodeURIComponent(csrf));
   }
-  const response = await fetch(`/api/admin${path}`, { ...init, method, headers, credentials: 'same-origin', cache: 'no-store' });
+  const response = await fetch(`${apiBase}${path}`, { ...init, method, headers, credentials: 'same-origin', cache: 'no-store' });
   return await response.json() as ApiResult<T>;
 }
 
@@ -48,6 +54,13 @@ export default function AdminConsole({ section }: { section: Section }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [audit, setAudit] = useState<AuditEvent[]>([]);
   const [tenantName, setTenantName] = useState('');
+  const [managedTenantId, setManagedTenantId] = useState('');
+  const [tenantEditName, setTenantEditName] = useState('');
+  const [tenantEditStatus, setTenantEditStatus] = useState<'active' | 'suspended'>('active');
+  const [tenantAdminUsers, setTenantAdminUsers] = useState<TenantMcpAdminUser[]>([]);
+  const [tenantLoginEmail, setTenantLoginEmail] = useState('');
+  const [tenantLoginPassword, setTenantLoginPassword] = useState('');
+  const [tenantUsersLoading, setTenantUsersLoading] = useState(false);
   const [creditAmounts, setCreditAmounts] = useState<Record<string, string>>({});
   const [providerDraft, setProviderDraft] = useState({ provider: 'openrouter', name: '', endpoint_url: 'https://openrouter.ai/api/v1', secret: '', max_input_usd_per_million_tokens: '', max_output_usd_per_million_tokens: '', max_image_usd_per_image: '0' });
   const [saving, setSaving] = useState(false);
@@ -118,7 +131,53 @@ export default function AdminConsole({ section }: { section: Section }) {
     const result = await adminApi<Tenant>('/tenants', { method: 'POST', body: JSON.stringify({ name: tenantName }) });
     setSaving(false);
     if (!result.success) { setError(result.message ?? 'Tenant could not be created.'); return; }
-    setTenantName(''); await load();
+    setTenantName(''); setManagedTenantId(result.data?.id ?? ''); await load();
+  }
+
+  async function manageTenant(tenant: Tenant) {
+    setManagedTenantId(tenant.id); setTenantEditName(tenant.name); setTenantEditStatus(tenant.status as 'active' | 'suspended');
+    setTenantUsersLoading(true); setTenantAdminUsers([]); setError('');
+    const result = await adminApi<{ items: TenantMcpAdminUser[] }>(`/tenants/${tenant.id}/mcp-admin-users`);
+    setTenantUsersLoading(false);
+    if (!result.success) { setError(result.message ?? 'Tenant login accounts could not be loaded.'); return; }
+    setTenantAdminUsers(result.data?.items ?? []);
+  }
+
+  async function saveTenantDetails(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!managedTenantId) return;
+    setSaving(true);
+    const result = await adminApi<Tenant>(`/tenants/${managedTenantId}`, { method: 'PATCH', body: JSON.stringify({ name: tenantEditName, status: tenantEditStatus }) });
+    setSaving(false);
+    if (!result.success) { setError(result.message ?? 'Tenant settings could not be saved.'); return; }
+    setNotice('Tenant settings saved.'); await load();
+  }
+
+  async function saveTenantLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!managedTenantId) return;
+    setSaving(true);
+    const result = await adminApi<TenantMcpAdminUser>(`/tenants/${managedTenantId}/mcp-admin-users`, {
+      method: 'POST', body: JSON.stringify({ email: tenantLoginEmail, password: tenantLoginPassword }),
+    });
+    setSaving(false);
+    if (!result.success || !result.data) { setError(result.message ?? 'Tenant login could not be saved.'); return; }
+    setTenantLoginPassword(''); setTenantAdminUsers((current) => {
+      const rest = current.filter((user) => user.id !== result.data!.id);
+      return [...rest, result.data!].sort((a, b) => a.email.localeCompare(b.email));
+    });
+    setNotice('Tenant login saved. Share the password securely; FaroAI will not show it again.');
+  }
+
+  async function setTenantUserStatus(user: TenantMcpAdminUser, status: 'active' | 'disabled') {
+    if (!managedTenantId) return;
+    setSaving(true);
+    const result = await adminApi<TenantMcpAdminUser>(`/tenants/${managedTenantId}/mcp-admin-users/${user.id}`, {
+      method: 'PATCH', body: JSON.stringify({ status }),
+    });
+    setSaving(false);
+    if (!result.success || !result.data) { setError(result.message ?? 'Tenant login status could not be updated.'); return; }
+    setTenantAdminUsers((current) => current.map((item) => item.id === result.data!.id ? result.data! : item));
   }
 
   async function grantCredits(event: FormEvent<HTMLFormElement>, tenantId: string) {
@@ -200,6 +259,7 @@ export default function AdminConsole({ section }: { section: Section }) {
     { id: 'skills', label: 'Base Skills', icon: Sparkles },
     { id: 'knowledge', label: 'Knowledge & jobs', icon: Database },
     { id: 'mcp', label: 'MCP connections', icon: Boxes },
+    { id: 'debug', label: 'Tenant Debug', icon: KeyRound },
     { id: 'learning', label: 'Learning & training', icon: Sparkles },
     { id: 'audit', label: 'Audit trail', icon: ShieldCheck },
     { id: 'settings', label: 'Deployment', icon: Settings2 },
@@ -223,10 +283,24 @@ export default function AdminConsole({ section }: { section: Section }) {
           <div className="content-grid"><section className="panel"><PanelTitle title="Tenant activity" action="Manage tenants" href="/admin/tenants" />{tenants.slice(0, 5).map((tenant) => <div className="tenant-row" key={tenant.id}><span className="tenant-avatar">{tenant.name.slice(0, 1).toUpperCase()}</span><div className="tenant-name"><b>{tenant.name}</b><small>{tenant.id.slice(0, 8)}â€¦</small></div><span className={`status-pill ${tenant.status}`}>{tenant.status}</span><strong className="credit-value">{Number(tenant.available_credits).toLocaleString()} <small>credits</small></strong></div>)}{tenants.length === 0 && <Empty text="No tenants yet. Create the first tenant to get started." />}</section>
             <section className="panel"><PanelTitle title="Recent platform changes" action="View audit" href="/admin/audit" />{audit.slice(0, 6).map((event) => <div className="audit-row" key={event.id}><span className="audit-icon"><Check size={13} /></span><div><b>{event.action.replaceAll('.', ' ')}</b><small>{event.actor_email ?? 'System'} Â· {new Date(event.created_at).toLocaleString()}</small></div></div>)}{audit.length === 0 && <Empty text="Platform actions will appear here." />}</section></div>
         </>}
-        {section === 'tenants' && <><PageTitle eyebrow="CUSTOMER ACCOUNTS" title="Tenants & credits" description="Manage tenant access and model request allowances." />
+        {section === 'tenants' && <><PageTitle eyebrow="CUSTOMER ACCOUNTS" title="Tenant management" description="Manage tenant status, credits, tenant MCP logins, and configuration access." />
           <section className="panel"><PanelTitle title="Tenant accounts" /><form className="inline-create" onSubmit={createTenant}><input value={tenantName} onChange={(event) => setTenantName(event.target.value)} placeholder="New tenant name" aria-label="New tenant name" required /><button className="primary-button compact" disabled={saving}><Plus size={15} /> Add tenant</button></form>
-            <div className="table-wrap"><table><thead><tr><th>Tenant</th><th>Status</th><th>Available</th><th>Used</th><th>Grant / adjust credits</th></tr></thead><tbody>{tenants.map((tenant) => <tr key={tenant.id}><td><b>{tenant.name}</b><small>{tenant.id}</small></td><td><span className={`status-pill ${tenant.status}`}>{tenant.status}</span></td><td>{Number(tenant.available_credits).toLocaleString()}</td><td>{Number(tenant.used_credits).toLocaleString()}</td><td><form className="credit-form" onSubmit={(event) => grantCredits(event, tenant.id)}><input type="number" aria-label={`Credits for ${tenant.name}`} value={creditAmounts[tenant.id] ?? ''} onChange={(event) => setCreditAmounts({ ...creditAmounts, [tenant.id]: event.target.value })} placeholder="+500 / -50" required /><button className="soft-button" disabled={saving}>Apply</button></form></td></tr>)}</tbody></table></div>
-          </section></>}
+            <div className="table-wrap"><table><thead><tr><th>Tenant</th><th>Status</th><th>Available</th><th>Used</th><th>Grant / adjust credits</th><th>Access</th></tr></thead><tbody>{tenants.map((tenant) => <tr key={tenant.id}><td><b>{tenant.name}</b><small>{tenant.id}</small></td><td><span className={`status-pill ${tenant.status}`}>{tenant.status}</span></td><td>{Number(tenant.available_credits).toLocaleString()}</td><td>{Number(tenant.used_credits).toLocaleString()}</td><td><form className="credit-form" onSubmit={(event) => grantCredits(event, tenant.id)}><input type="number" aria-label={`Credits for ${tenant.name}`} value={creditAmounts[tenant.id] ?? ''} onChange={(event) => setCreditAmounts({ ...creditAmounts, [tenant.id]: event.target.value })} placeholder="+500 / -50" required /><button className="soft-button" disabled={saving}>Apply</button></form></td><td><button className="soft-button" type="button" onClick={() => void manageTenant(tenant)}>Manage</button></td></tr>)}</tbody></table></div>
+          </section>
+          {managedTenantId && tenants.find((tenant) => tenant.id === managedTenantId) && <section className="panel tenant-access-panel">
+            <PanelTitle title={`Manage ${tenants.find((tenant) => tenant.id === managedTenantId)?.name}`} />
+            <form className="provider-form" onSubmit={saveTenantDetails}>
+              <label>Tenant name<input value={tenantEditName} onChange={(event) => setTenantEditName(event.target.value)} required maxLength={120} /></label>
+              <label>Tenant status<select value={tenantEditStatus} onChange={(event) => setTenantEditStatus(event.target.value as 'active' | 'suspended')}><option value="active">Active</option><option value="suspended">Suspended</option></select></label>
+              <button className="primary-button compact" disabled={saving}>Save tenant</button>
+            </form>
+            <p className="form-footnote">Suspending a tenant blocks tenant MCP logins and FaroAI requests for the tenant. Re-activating it restores access; it does not change saved MCP tools.</p>
+            <div className="tenant-admin-user-list"><h3>Tenant MCP login accounts</h3>{tenantUsersLoading ? <p role="status">Loading accounts…</p> : tenantAdminUsers.length === 0 ? <p className="form-footnote">No tenant login accounts yet.</p> : tenantAdminUsers.map((user) => <div className="tenant-admin-user-row" key={user.id}><div><b>{user.email}</b><small>{user.last_login_at ? `Last login ${new Date(user.last_login_at).toLocaleString()}` : 'Never signed in'}</small></div><span className={`status-pill ${user.status}`}>{user.status}</span><button className="soft-button" type="button" disabled={saving} onClick={() => void setTenantUserStatus(user, user.status === 'active' ? 'disabled' : 'active')}>{user.status === 'active' ? 'Disable' : 'Enable'}</button></div>)}
+              <form className="tenant-admin-create" onSubmit={saveTenantLogin}><label>Login email<input type="email" value={tenantLoginEmail} onChange={(event) => setTenantLoginEmail(event.target.value)} required /></label><label>{tenantAdminUsers.some((user) => user.email === tenantLoginEmail.toLowerCase()) ? 'New password (resets this account)' : 'Initial password'}<input type="password" minLength={12} autoComplete="new-password" value={tenantLoginPassword} onChange={(event) => setTenantLoginPassword(event.target.value)} required /></label><button className="primary-button compact" disabled={saving}>{tenantAdminUsers.some((user) => user.email === tenantLoginEmail.toLowerCase()) ? 'Create / reset login' : 'Save tenant login'}</button></form>
+              <p className="form-footnote">Use at least 12 characters. Passwords are stored as one-way hashes and are never shown again. The tenant signs in at <code>/tenant</code>.</p>
+            </div>
+          </section>}
+        </>}
         {section === 'providers' && <><PageTitle eyebrow="MODEL ACCESS" title="AI providers" description="Set price limits per connection. FaroAI syncs model prices and filters eligible models before Jev selects one." />
           <div className="provider-grid">{providers.map((provider) => <article className="provider-card" key={provider.id}><div className="provider-head"><span className="provider-icon"><BrainCircuit size={18} /></span><span className={`status-pill ${provider.enabled ? 'active' : 'suspended'}`}>{provider.enabled ? 'enabled' : 'disabled'}</span></div><h3>{provider.name}</h3><p className="provider-kind">{provider.provider}</p><p className="provider-endpoint">{provider.endpoint_url}</p><ProviderPriceLimits provider={provider} onSaved={load} onError={setError} onNotice={setNotice} /><p className="secret-status"><ShieldCheck size={14} /> {provider.secret_hint ? `Credential ${provider.secret_hint}` : 'No credential stored'}</p></article>)}{providers.length === 0 && <Empty text="No provider connections configured yet." />}</div>
           <section className="panel provider-form-panel"><PanelTitle title="Add provider connection" /><form className="provider-form" onSubmit={addProvider}><label>Provider<select value={providerDraft.provider} onChange={(event) => setProviderDraft({ ...providerDraft, provider: event.target.value, endpoint_url: event.target.value === 'openrouter' ? 'https://openrouter.ai/api/v1' : '' })}><option value="openrouter">OpenRouter</option><option value="ollama">Ollama</option><option value="lmstudio">LM Studio</option></select></label><label>Connection name<input value={providerDraft.name} onChange={(event) => setProviderDraft({ ...providerDraft, name: event.target.value })} required /></label><label className="wide-field">API endpoint<input type="url" value={providerDraft.endpoint_url} onChange={(event) => setProviderDraft({ ...providerDraft, endpoint_url: event.target.value })} placeholder="https:// or allowed local model host" required /></label><label className="wide-field">Provider API key<input type="password" value={providerDraft.secret} onChange={(event) => setProviderDraft({ ...providerDraft, secret: event.target.value })} autoComplete="new-password" placeholder="Stored encrypted; never shown again" required={providerDraft.provider === 'openrouter'} /></label><label>Maximum input price (USD / 1M tokens)<input type="number" min="0" max="10" step="any" value={providerDraft.max_input_usd_per_million_tokens} onChange={(event) => setProviderDraft({ ...providerDraft, max_input_usd_per_million_tokens: event.target.value })} required /></label><label>Maximum output price (USD / 1M tokens)<input type="number" min="0" max="10" step="any" value={providerDraft.max_output_usd_per_million_tokens} onChange={(event) => setProviderDraft({ ...providerDraft, max_output_usd_per_million_tokens: event.target.value })} required /></label><label>Maximum image price (USD / image)<input type="number" min="0" max="10" step="any" value={providerDraft.max_image_usd_per_image} onChange={(event) => setProviderDraft({ ...providerDraft, max_image_usd_per_image: event.target.value })} required /></label><button className="primary-button compact" disabled={saving}>{saving ? 'Savingâ€¦' : 'Save provider'}</button></form><p className="form-footnote">Each input and output limit must be $10 per 1M tokens or less. Image limits must be $10 per image or less. Models and token rates are discovered automatically. FaroAI enforces these limits; free or unknown-price models are excluded. Credentials are encrypted before storage.</p></section>
@@ -258,9 +332,10 @@ export default function AdminConsole({ section }: { section: Section }) {
           <section className="panel"><PanelTitle title="Tenant MCP connections" />{tenants.length ? <McpConnections tenants={tenants} /> : <Empty text="Create a tenant before configuring MCP connections." />}</section>
           <section className="panel"><PanelTitle title="Existing tenant MCP sources" />{tenants[0] ? <McpSources tenantId={tenants[0].id} /> : <Empty text="No tenant is available." />}</section>
         </>}
+        {section === 'debug' && <><PageTitle eyebrow="TENANT-SCOPED DEBUG" title="Tenant Debug" description="Select a tenant, then sign in with that tenant's own administrator account to inspect its MCP configuration." /><TenantDebug tenants={tenants} /></>}
         {section === 'learning' && <><PageTitle eyebrow="CONSENTED IMPROVEMENT" title="Learning & training" description="Review opted-in AI interactions, add approved answers to tenant search, and prepare supervised fine-tuning datasets." /><LearningOperations tenants={tenants} /></>}
         {section === 'audit' && <><PageTitle eyebrow="ACCOUNTABILITY" title="Audit trail" description="Review platform changes and tenant operations." /><section className="panel">{audit.map((event) => <div className="audit-row roomy" key={event.id}><span className="audit-icon"><ShieldCheck size={13} /></span><div><b>{event.action.replaceAll('.', ' ')}</b><small>{event.actor_email ?? 'System'} Â· {event.resource_type} Â· {event.tenant_id ? `tenant ${event.tenant_id.slice(0, 8)}â€¦` : 'platform'} Â· {new Date(event.created_at).toLocaleString()}</small></div></div>)}</section></>}
-        {section === 'settings' && <><PageTitle eyebrow="DEPLOYMENT CONFIGURATION" title="Runtime settings" description="Deployment values are read-only. Procurement conversation history can be changed here and applies immediately." /><RuntimeSettings /></>}
+        {section === 'settings' && <><PageTitle eyebrow="DEPLOYMENT CONFIGURATION" title="Runtime settings" description="Deployment values are read-only. Root-controlled runtime policies apply to all tenants." /><McpToolDefaults /><RuntimeSettings /></>}
       </div>
     </main>
   </div>;
@@ -351,7 +426,7 @@ function ProviderPriceLimits({ provider, onSaved, onError, onNotice }: { provide
   </div>;
 }
 
-function McpConnections({ tenants }: { tenants: Tenant[] }) {
+export function McpConnections({ tenants, apiBase = '/api/admin' }: { tenants: Tenant[]; apiBase?: '/api/admin' | '/api/tenant' }) {
   const [tenantId, setTenantId] = useState(tenants[0]?.id ?? '');
   const [connections, setConnections] = useState<Partial<Record<McpIntegration, McpConnection>>>({});
   const [loadingConnections, setLoadingConnections] = useState(false);
@@ -362,7 +437,8 @@ function McpConnections({ tenants }: { tenants: Tenant[] }) {
     let active = true;
     setLoadingConnections(true);
     setError('');
-    void adminApi<{ items: McpConnection[] }>(`/tenants/${tenantId}/mcp/connections`)
+    const path = apiBase === '/api/tenant' ? '/mcp/connections' : `/tenants/${tenantId}/mcp/connections`;
+    void requestApi<{ items: McpConnection[] }>(apiBase, path)
       .then((result) => {
         if (!active) return;
         if (!result.success) { setError(result.message ?? 'MCP connections could not be loaded.'); return; }
@@ -371,21 +447,142 @@ function McpConnections({ tenants }: { tenants: Tenant[] }) {
       .catch(() => { if (active) setError('MCP connections could not be loaded.'); })
       .finally(() => { if (active) setLoadingConnections(false); });
     return () => { active = false; };
-  }, [tenantId]);
+  }, [tenantId, apiBase]);
   const integrations: Array<{ key: McpIntegration; title: string }> = [
     { key: 'gis', title: 'GIS MCP' }, { key: 'gms', title: 'GMS MCP' },
     { key: 'erp', title: 'ERP MCP' }, { key: 'custom', title: 'Other MCP' },
   ];
   return <div className="mcp-connections">
-    {tenants.length > 1 && <label className="routing-tenant">Tenant<select value={tenantId} onChange={(event) => setTenantId(event.target.value)}>{tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.name}</option>)}</select></label>}
-    <p className="form-footnote">Each tenant has separate MCP credentials. Endpoints must use HTTPS and a host approved by the deployment operator. In Docker, localhost points to the AI service container itself, not the Windows host or another container. Testing discovers tools; it does not approve them for Jev.</p>
+    {apiBase === '/api/admin' && tenants.length > 1 && <label className="routing-tenant">Tenant<select value={tenantId} onChange={(event) => setTenantId(event.target.value)}>{tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.name}</option>)}</select></label>}
+    <p className="form-footnote">Each tenant has separate MCP credentials. Endpoints must use HTTPS and a host approved by the deployment operator. In Docker, localhost points to the AI service container itself, not the Windows host or another container. Testing discovers tools and applies the root default; review the selected tools afterward.</p>
     {error && <p className="admin-alert" role="alert">{error}</p>}
-    {loadingConnections ? <div className="empty-state"><LoaderCircle className="spin" size={20} /><p>Loading MCP connectionsâ€¦</p></div> : <div className="mcp-connection-grid">{integrations.map((item) => <McpConnectionCard key={`${tenantId}-${item.key}`} tenantId={tenantId} integration={item.key} title={item.title} connection={connections[item.key]} onChange={(connection) => setConnections((current) => ({ ...current, [item.key]: connection }))} />)}</div>}
+    {loadingConnections ? <div className="empty-state"><LoaderCircle className="spin" size={20} /><p>Loading MCP connectionsâ€¦</p></div> : <div className="mcp-connection-grid">{integrations.map((item) => <McpConnectionCard key={`${tenantId}-${item.key}`} tenantId={tenantId} integration={item.key} title={item.title} connection={connections[item.key]} apiBase={apiBase} onChange={(connection) => setConnections((current) => ({ ...current, [item.key]: connection }))} />)}</div>}
   </div>;
 }
 
-function McpConnectionCard({ tenantId, integration, title, connection, onChange }: {
-  tenantId: string; integration: McpIntegration; title: string; connection?: McpConnection;
+type TenantWorkspaceSession = { email: string; tenant: { id: string; name: string; status: string }; expires_in_seconds: number };
+
+function TenantDebug({ tenants }: { tenants: Tenant[] }) {
+  const [tenantId, setTenantId] = useState('');
+  const [session, setSession] = useState<TenantWorkspaceSession | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const selectedTenant = tenants.find((tenant) => tenant.id === tenantId) ?? null;
+
+  useEffect(() => {
+    let active = true;
+    void Promise.all([
+      adminApi<{ tenant_id: string | null }>('/system/debug-tenant'),
+      requestApi<TenantWorkspaceSession>('/api/tenant', '/auth/session'),
+    ]).then(async ([context, tenantSession]) => {
+      if (!active) return;
+      const contextTenantId = context.data?.tenant_id ?? tenants.find((tenant) => tenant.status === 'active')?.id ?? tenants[0]?.id ?? '';
+      setTenantId(contextTenantId);
+      if (!tenantSession.success || !tenantSession.data) {
+        setLoginOpen(true);
+      } else if (tenantSession.data.tenant.id === contextTenantId) {
+        setSession(tenantSession.data);
+      } else {
+        await requestApi('/api/tenant', '/auth/logout', { method: 'POST', body: '{}' });
+        if (active) {
+          setNotice('Signed out of the previous tenant workspace because it did not match the selected tenant.');
+          setLoginOpen(true);
+        }
+      }
+    }).catch(() => { if (active) setError('The tenant debug workspace could not be loaded.'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [tenants]);
+
+  async function selectTenant(nextTenantId: string) {
+    if (!nextTenantId || nextTenantId === tenantId) return;
+    setSaving(true); setError(''); setNotice('');
+    const result = await adminApi<{ tenant_id: string }>('/system/debug-tenant', {
+      method: 'PUT', body: JSON.stringify({ tenant_id: nextTenantId }),
+    });
+    if (!result.success || !result.data) {
+      setSaving(false); setError(result.message ?? 'The debug tenant could not be saved.'); return;
+    }
+    if (session && session.tenant.id !== nextTenantId) {
+      const logout = await requestApi('/api/tenant', '/auth/logout', { method: 'POST', body: '{}' });
+      if (!logout.success) {
+        setSaving(false); setError(logout.message ?? 'Sign out of the previous tenant before switching.'); return;
+      }
+      setSession(null);
+    }
+    setTenantId(nextTenantId); setSaving(false); setNotice('Debug tenant saved. Sign in with that tenant’s own administrator account to continue.');
+  }
+
+  async function signIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedTenant) return;
+    setSaving(true); setError(''); setNotice('');
+    const result = await requestApi<TenantWorkspaceSession>('/api/tenant', '/auth/login', {
+      method: 'POST', body: JSON.stringify({ email, password }),
+    });
+    setSaving(false);
+    setPassword('');
+    if (!result.success || !result.data) { setError(result.message ?? 'Tenant sign-in failed.'); return; }
+    if (result.data.tenant.id !== selectedTenant.id) {
+      await requestApi('/api/tenant', '/auth/logout', { method: 'POST', body: '{}' });
+      setSession(null); setError('These credentials belong to a different tenant. Sign in with an administrator account for the selected tenant.'); return;
+    }
+    setSession(result.data); setLoginOpen(false); setEmail('');
+    setNotice(`Signed in to ${selectedTenant.name} as ${result.data.email}.`);
+  }
+
+  async function signOut() {
+    setSaving(true); setError('');
+    const result = await requestApi('/api/tenant', '/auth/logout', { method: 'POST', body: '{}' });
+    setSaving(false);
+    if (!result.success) { setError(result.message ?? 'Tenant sign-out failed.'); return; }
+    setSession(null); setNotice('Signed out of the tenant workspace.');
+  }
+
+  return <>
+    <section className="panel tenant-debug-panel">
+      <div className="panel-title"><h2>Debug tenant</h2><span className="status-pill pending">Root selected</span></div>
+      <p className="form-footnote">This page keeps public discovery unchanged. Select a tenant, then authenticate with its real tenant-admin account. FaroAI checks that the login belongs to the selected tenant before showing its MCP settings.</p>
+      <div className="tenant-debug-controls">
+        <label>Tenant<select value={tenantId} onChange={(event) => void selectTenant(event.target.value)} disabled={loading || saving || tenants.length === 0}>
+          {tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.name}{tenant.status !== 'active' ? ` (${tenant.status})` : ''}</option>)}
+        </select></label>
+        <div className="tenant-debug-id"><small>Tenant ID</small><code>{selectedTenant?.id ?? 'No tenant selected'}</code></div>
+        {session
+          ? <button className="secondary-button" type="button" onClick={() => void signOut()} disabled={saving}><LogOut size={14} /> Sign out {session.tenant.name}</button>
+          : <button className="primary-button compact" type="button" onClick={() => { setError(''); setLoginOpen(true); }} disabled={!selectedTenant || selectedTenant.status !== 'active' || loading || saving}><LogIn size={14} /> Sign in to tenant</button>}
+      </div>
+      {loading && <p role="status">Loading tenant debug context…</p>}
+      {selectedTenant?.status !== 'active' && selectedTenant && <p className="form-footnote">This tenant is {selectedTenant.status}; tenant sign-in is unavailable until it is active.</p>}
+      {error && <p className="form-error" role="alert">{error}</p>}
+      {notice && <p className="admin-notice" role="status">{notice}</p>}
+    </section>
+    {session && selectedTenant && <section className="panel">
+      <div className="panel-title"><h2>{session.tenant.name} MCP connections</h2><span className="status-pill active">Tenant session verified</span></div>
+      <McpConnections tenants={[selectedTenant]} apiBase="/api/tenant" />
+    </section>}
+    {loginOpen && <div className="tenant-login-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) setLoginOpen(false); }}>
+      <section className="tenant-login-dialog" role="dialog" aria-modal="true" aria-labelledby="tenant-debug-login-title">
+        <div className="panel-title"><h2 id="tenant-debug-login-title">Sign in to {selectedTenant?.name}</h2><button className="secondary-button" type="button" onClick={() => setLoginOpen(false)} disabled={saving}>Close</button></div>
+        <p className="form-footnote">Use a tenant administrator account provisioned for this tenant. The credentials are checked by the tenant login endpoint; the root session does not impersonate the tenant.</p>
+        <form className="admin-form" onSubmit={(event) => void signIn(event)}>
+          <label>Email address<input type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
+          <label>Password<input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
+          <div className="tenant-login-actions"><button className="primary-button compact" disabled={saving}>{saving ? 'Signing in…' : `Sign in to ${selectedTenant?.name ?? 'tenant'}`}</button></div>
+        </form>
+        {error && <p className="form-error" role="alert">{error}</p>}
+      </section>
+    </div>}
+  </>;
+}
+
+function McpConnectionCard({ tenantId, integration, title, connection, apiBase, onChange }: {
+  tenantId: string; integration: McpIntegration; title: string; connection?: McpConnection; apiBase: '/api/admin' | '/api/tenant';
   onChange: (connection: McpConnection) => void;
 }) {
   const [displayName, setDisplayName] = useState(connection?.display_name ?? title);
@@ -419,7 +616,8 @@ function McpConnectionCard({ tenantId, integration, title, connection, onChange 
     event?.preventDefault();
     setBusy(true); setError(''); setNotice('');
     try {
-      const result = await adminApi<McpConnection>(`/tenants/${tenantId}/mcp/connections/${integration}`, {
+      const path = apiBase === '/api/tenant' ? `/mcp/connections/${integration}` : `/tenants/${tenantId}/mcp/connections/${integration}`;
+      const result = await requestApi<McpConnection>(apiBase, path, {
         method: 'PUT', body: JSON.stringify({ display_name: displayName, endpoint_url: endpointUrl, auth_method: authMethod, api_key: apiKey || undefined, enabled, allowed_tools: allowedTools }),
       });
       if (!result.success || !result.data) { setError(result.message ?? 'MCP connection could not be saved.'); return; }
@@ -435,12 +633,13 @@ function McpConnectionCard({ tenantId, integration, title, connection, onChange 
   async function testConnection() {
     setBusy(true); setError(''); setNotice('');
     try {
-      const result = await adminApi<{ connection_status: 'connected'; discovered_tools: string[]; allowed_tools: string[] }>(`/tenants/${tenantId}/mcp/connections/${integration}/test`, { method: 'POST', body: '{}' });
+      const path = apiBase === '/api/tenant' ? `/mcp/connections/${integration}/test` : `/tenants/${tenantId}/mcp/connections/${integration}/test`;
+      const result = await requestApi<{ connection_status: 'connected'; discovered_tools: string[]; allowed_tools: string[] }>(apiBase, path, { method: 'POST', body: '{}' });
       if (!result.success || !result.data) { setStatus('error'); setError(result.message ?? 'MCP server could not be verified.'); return; }
       setStatus('connected'); setDiscoveredTools(result.data.discovered_tools); setAllowedTools(result.data.allowed_tools);
       setCheckedAt(new Date().toISOString());
       if (connection) onChange({ ...connection, connection_status: 'connected', discovered_tools: result.data.discovered_tools, allowed_tools: result.data.allowed_tools, last_checked_at: new Date().toISOString() });
-      setNotice(`Connected. Found ${result.data.discovered_tools.length} tools; choose which ones Jev may use, then save.`);
+      setNotice(`Connected. Found ${result.data.discovered_tools.length} tools. The root default selected the initial permissions; review the checkboxes and save any changes.`);
     } catch { setError('MCP server could not be verified.'); }
     finally { setBusy(false); }
   }
@@ -550,6 +749,39 @@ function KnowledgeDocuments({ tenants }: { tenants: Tenant[] }) {
       </div>}
     </section>
   </>;
+}
+
+function McpToolDefaults() {
+  const [policy, setPolicy] = useState<'all_discovered' | 'none_selected'>('all_discovered');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  useEffect(() => {
+    void adminApi<{ new_tool_policy: 'all_discovered' | 'none_selected' }>('/system/mcp-settings')
+      .then((result) => {
+        if (!result.success || !result.data) { setError(result.message ?? 'MCP defaults could not be loaded.'); return; }
+        setPolicy(result.data.new_tool_policy);
+      }).catch(() => setError('MCP defaults could not be loaded.')).finally(() => setLoading(false));
+  }, []);
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setSaving(true); setError(''); setNotice('');
+    const result = await adminApi<{ new_tool_policy: 'all_discovered' | 'none_selected' }>('/system/mcp-settings', {
+      method: 'PUT', body: JSON.stringify({ policy }),
+    });
+    setSaving(false);
+    if (!result.success) { setError(result.message ?? 'MCP defaults could not be saved.'); return; }
+    setNotice('Default tool selection policy saved. Existing tenant tool choices were not changed.');
+  }
+  return <section className="panel"><PanelTitle title="Default MCP tool permissions" />
+    <p className="form-footnote">This root policy applies only when a connection is first tested or when GIS reports a new tool. Re-testing never restores a tool a tenant administrator has unchecked.</p>
+    {loading ? <p role="status">Loading MCP defaults…</p> : <form className="mcp-default-policy" onSubmit={save}>
+      <label><input type="radio" name="mcp-new-tool-policy" value="all_discovered" checked={policy === 'all_discovered'} onChange={() => setPolicy('all_discovered')} /> Select all newly discovered tools <small>Current default. Includes read and write tools; tenant administrators can uncheck any tool.</small></label>
+      <label><input type="radio" name="mcp-new-tool-policy" value="none_selected" checked={policy === 'none_selected'} onChange={() => setPolicy('none_selected')} /> Select none <small>Tenant administrators must explicitly enable each tool.</small></label>
+      <button className="primary-button compact" disabled={saving || loading}>{saving ? 'Saving…' : 'Save root policy'}</button>
+    </form>}
+    {error && <p className="form-error" role="alert">{error}</p>}{notice && <p className="admin-notice" role="status">{notice}</p>}
+  </section>;
 }
 
 function RuntimeSettings() {

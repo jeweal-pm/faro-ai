@@ -25,6 +25,10 @@ _EXECUTORS = {
     "base.catalog-create": "catalog.create",
     "base.po-create": "procurement.create",
     "base.inventory-receive": "procurement.receive",
+    "base.data-analysis": "artifact.analysis",
+    "base.pdf": "artifact.pdf",
+    "base.xlsx": "artifact.xlsx",
+    "base.docx": "artifact.docx",
 }
 
 
@@ -123,6 +127,13 @@ class BaseSkillRegistry:
         if not body:
             raise SkillRegistryError("empty_skill_instructions")
         return skill, body
+
+    def load_selected(self, skill_id: str) -> tuple[Skill, str]:
+        """Load a Jev-selected published skill using its catalog executor metadata."""
+        skill = self.skills.get(skill_id)
+        if not skill:
+            raise SkillRegistryError("skill_not_available")
+        return self.load(skill_id, skill.executor)
 
 
 @lru_cache(maxsize=1)

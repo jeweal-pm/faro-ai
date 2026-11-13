@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="ข้อเสนอการนำเข้าเอกสารฝั่ง Purchase เช่น PO และเอกสารซื้ออื่น ๆ ด้วย AI ใน FaroAI อย่างปลอดภัย พร้อมตรวจทานก่อนเขียน GIS">
+<title>แผนนำเข้าเอกสารด้วย AI | FaroAI</title>
+<style>
+:root{color-scheme:light;--ink:#182b46;--muted:#60738b;--line:#dbe5ef;--paper:#fff;--bg:#f3f7fa;--blue:#4f72e8;--teal:#32bdb7;--gold:#d9aa48;--red:#b84c55;--green:#187f72;--soft:#edf4fb;--shadow:0 16px 44px rgba(29,54,86,.08)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.72 system-ui,-apple-system,"Segoe UI",sans-serif}.wrap{width:min(1240px,calc(100% - 36px));margin:auto}.top{padding:16px 0;color:var(--muted);font-size:14px;letter-spacing:.08em;text-transform:uppercase}.hero{margin:10px auto 24px;padding:54px clamp(24px,6vw,76px);border-radius:28px;background:linear-gradient(120deg,#edf0ff 0%,#eafafa 58%,#fff8e9 100%);box-shadow:var(--shadow);position:relative;overflow:hidden}.hero:after{content:"AI";position:absolute;right:5%;top:5%;font-size:clamp(100px,20vw,230px);line-height:1;color:rgba(78,111,210,.08);font-weight:800}.eyebrow{font-size:14px;font-weight:750;letter-spacing:.13em;color:#4967b4;text-transform:uppercase}h1{font-size:clamp(34px,5vw,58px);line-height:1.12;max-width:850px;margin:10px 0 18px;letter-spacing:-.035em}.hero p{font-size:21px;max-width:900px;color:#415873;margin:0}.chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}.chip{background:#fff;border:1px solid #dce4ed;border-radius:999px;padding:7px 15px;font-size:15px;font-weight:650}.chip.status{color:#16756e;background:#e6faf6;border-color:#b7e7dc}.layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:24px;align-items:start;margin-bottom:60px}.nav{position:sticky;top:16px;background:#fff;padding:20px;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}.nav strong{display:block;margin-bottom:10px}.nav a{display:block;padding:7px 4px;color:#48617b;text-decoration:none;font-size:16px}.nav a:hover,.nav a:focus{color:var(--blue);text-decoration:underline}.content{min-width:0}.card{background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:clamp(22px,4vw,38px);margin-bottom:20px;box-shadow:0 8px 28px rgba(29,54,86,.04);scroll-margin-top:18px}.card h2{font-size:clamp(25px,3vw,34px);line-height:1.2;margin:0 0 14px;letter-spacing:-.02em}.card h3{font-size:21px;margin:24px 0 8px}.lead{font-size:21px;color:#354e68}.muted{color:var(--muted)}.callout{border-left:5px solid var(--teal);padding:16px 20px;background:#effbf9;border-radius:8px;margin:18px 0}.warning{border-left-color:var(--gold);background:#fff9eb}.danger{border-left-color:var(--red);background:#fff3f3}.grid2,.grid3{display:grid;gap:14px;grid-template-columns:repeat(2,minmax(0,1fr));margin:18px 0}.grid3{grid-template-columns:repeat(3,minmax(0,1fr))}.tile{border:1px solid var(--line);border-radius:14px;padding:18px;background:#fff}.tile h3{margin:0 0 5px;font-size:18px}.tile p{margin:0;color:var(--muted);font-size:16px}.flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;counter-reset:flow}.step{position:relative;padding:18px 16px 18px 58px;background:var(--soft);border:1px solid #d7e4f2;border-radius:15px;min-height:118px}.step:before{counter-increment:flow;content:counter(flow);position:absolute;left:15px;top:16px;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--blue),var(--teal));color:white;font-weight:800}.step strong{display:block;line-height:1.3;margin:2px 0 6px}.step span{font-size:15px;color:#526a82;line-height:1.45;display:block}.arrow{display:none}table{border-collapse:collapse;width:100%;margin:16px 0;font-size:16px}th,td{text-align:left;padding:13px 14px;border-bottom:1px solid var(--line);vertical-align:top}th{background:#eff4fa;color:#243a58;font-weight:750}td:first-child{font-weight:700;min-width:145px}.mono{white-space:pre-wrap;background:#111d30;color:#d9e8ff;border-radius:14px;padding:22px;font:14px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;overflow:auto}.phase{border-left:3px solid #ccd9ed;padding:2px 0 2px 20px;margin:20px 0}.phase .label{font-size:13px;color:#4664bb;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.phase h3{margin:2px 0 6px}.check{padding-left:0;list-style:none}.check li{padding-left:32px;position:relative;margin:8px 0}.check li:before{content:"✓";color:var(--green);font-weight:900;position:absolute;left:2px}.todo li:before{content:"?";color:#aa7b13}.tag{font-size:14px;padding:3px 9px;border-radius:99px;background:#eef2fb;color:#4664bb;font-weight:700}.small{font-size:15px;color:var(--muted)}.footer{padding:30px 0 55px;color:var(--muted);font-size:14px}.footer a{color:#4567c7}.cta{display:inline-block;color:white!important;background:linear-gradient(100deg,var(--blue),var(--teal));text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700}.bar{height:10px;background:#e8eef5;border-radius:99px;margin:12px 0}.bar i{display:block;width:72%;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--blue),var(--teal))}.metric{font-size:14px;color:var(--muted);margin-top:8px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.nav{position:relative;top:auto}.nav div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 10px}.grid3{grid-template-columns:repeat(2,minmax(0,1fr))}.flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:580px){body{font-size:17px}.wrap{width:min(100% - 22px,1240px)}.hero{padding:34px 22px;border-radius:20px}.hero p,.lead{font-size:18px}.nav div,.grid2,.grid3,.flow{grid-template-columns:1fr}.card{padding:21px 18px}table{display:block;overflow-x:auto;white-space:normal}th,td{min-width:130px;padding:11px}.step{min-height:0}}
+@media print{body{background:white;font-size:12pt}.wrap{width:100%}.top,.nav,.cta{display:none!important}.layout{display:block}.hero,.card{box-shadow:none;break-inside:avoid;border-color:#bbb}.hero{padding:25px}.card{margin-bottom:12px;padding:20px}.flow{grid-template-columns:repeat(3,1fr)}a{color:inherit}.footer{padding:10px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">FAROAI · PRODUCT DISCOVERY · 10 NOV 2026</div>
+  <header class="hero">
+    <div class="eyebrow">AI Document Intake & Verified Import</div>
+    <h1>ให้ AI อ่านเอกสารหลายรูปแบบ<br>แต่ให้ข้อมูลจริงตรวจสอบได้</h1>
+    <p>แนวทางรับเอกสารฝั่ง Purchase เช่น PO และเอกสารซื้ออื่น ๆ รวมถึง quotation แม้ layout ไม่เหมือนกัน ให้ระบบจำแนกประเภท ดึงข้อมูลพร้อมหลักฐาน ตรวจเทียบ GIS และให้คนตรวจ ก่อนสร้างรายการจริง</p>
+    <div class="chips"><span class="chip status">ข้อเสนอ: validate first</span><span class="chip">ไม่เขียน GIS อัตโนมัติ</span><span class="chip">ข้อมูลอยู่แยก tenant</span><span class="chip">มีที่มาของทุก field</span></div>
+  </header>
+  <div class="layout">
+    <nav class="nav" aria-label="สารบัญ"><strong>อ่านตามหัวข้อ</strong><div>
+      <a href="#summary">สรุปแนวทาง</a><a href="#today">ระบบมีอะไรแล้ว</a><a href="#business">คุณค่าธุรกิจ</a><a href="#flow">Flow การทำงาน</a><a href="#document-types">ชนิดเอกสารและการเรียนรู้</a><a href="#ai">AI ทำอะไร</a><a href="#file-routing">PDF และภาพ</a><a href="#cost-queue">ต้นทุนและคิว</a><a href="#learning">การเรียนรู้ที่ปลอดภัย</a><a href="#review">หน้า Review</a><a href="#safety">ความปลอดภัย</a><a href="#phases">แผนเป็นระยะ</a><a href="#metrics">วัดผล</a><a href="#decisions">เรื่องที่ต้องนิยาม</a><a href="#owners">ผู้รับผิดชอบ</a>
+    </div></nav>
+    <main class="content">
+      <section class="card" id="summary">
+        <h2>ข้อเสนอหลัก</h2>
+        <p class="lead"><b>อย่าให้ AI อ่านแล้วเขียน ERP ทันที</b> ให้ AI สร้าง “ร่างข้อมูลที่มีหลักฐาน” จากเอกสารก่อน แล้วใช้ GIS ตรวจ master และ preview ตาม flow ที่มีอยู่ ก่อนผู้ใช้ยืนยันการเขียน</p>
+        <div class="callout"><b>ยังไม่เลือกเอกสารนำร่อง:</b> ระบบควรมี staged-import architecture กลางก่อน; Supplier quotation → PO preview เป็นเพียงตัวเลือกเชิงเทคนิค ไม่ใช่ประเภทที่พิสูจน์แล้วว่าคุ้มค่าที่สุด</div>
+        <div class="callout"><b>ศัพท์ที่ยืนยันแล้ว:</b> PU หมายถึง Purchase; ยังต้องเลือกชนิดเอกสาร Purchase และทิศทางที่จะนำเข้าให้ชัดก่อนกำหนด schema และ GIS operation</div>
+        <p>แม้ layout จะเปลี่ยน ระบบไม่ควรพึ่งตำแหน่งตายตัว แต่ใช้เนื้อหา + OCR/layout + schema ตามชนิดเอกสาร และเก็บหน้า/ตำแหน่งที่พบข้อมูลทุกช่อง</p>
+      </section>
+
+      <section class="card" id="today">
+        <h2>ระบบ FaroAI ที่มีในวันนี้</h2>
+        <div class="grid2">
+          <div class="tile"><h3>สร้างรายงาน</h3><p>สร้าง PDF/DOCX/XLSX จาก PO ที่โหลดในแชท และแก้ layout ของเอกสารที่ FaroAI สร้าง</p></div>
+          <div class="tile"><h3>นำเข้า Knowledge</h3><p>มี flow รับข้อความเอกสารเพื่อ review/อนุมัติเข้า RAG ไม่ใช่ parser สำหรับ PO หรือเอกสารธุรกรรม</p></div>
+          <div class="tile"><h3>PO ผ่าน GIS</h3><p>ค้น master และ preview ได้; การเขียนมี permission และ explicit confirmation; FaroAI ไม่อนุมัติ PO</p></div>
+          <div class="tile"><h3>ช่องว่าง</h3><p>ยังไม่มี flow รับไฟล์ธุรกรรมจากภายนอกเพื่อ classify, extract, reconcile และทำ GIS draft</p></div>
+        </div>
+        <p class="small">แหล่งอ้างอิง: ADR-0036, ADR-0026, ADR-0047, Base Skills spec และ Tenant-scoped RAG Learning spec</p>
+      </section>
+
+      <section class="card" id="business">
+        <h2>คุณค่าธุรกิจที่เป็นสมมติฐาน</h2>
+        <p class="lead">คาดว่าจะลดเวลาคีย์ข้อมูลซ้ำและลดความผิดพลาดตอนเทียบเอกสารกับ GIS แต่ยังไม่มี baseline หรือหลักฐาน willingness-to-pay จึงยังไม่ควรสรุป ROI หรือราคา</p>
+        <div class="grid2">
+          <div class="tile"><h3>ลูกค้า/ผู้จ่ายที่คาดหมาย</h3><p>ธุรกิจ jewelry ที่เป็น FaroAI tenant และใช้งาน GIS/ERP; ผู้ใช้ประจำคือจัดซื้อ/บัญชี/คลัง (เป็นสมมติฐานที่ BD ต้องยืนยัน)</p></div>
+          <div class="tile"><h3>วิธีพิสูจน์</h3><p>เก็บงานปัจจุบันและเอกสารที่ได้รับอนุญาต แล้วเทียบเวลาและ correction rate ระหว่างวิธีเดิมกับ AI-assisted review</p></div>
+          <div class="tile"><h3>ต้นทุนต่อเอกสาร</h3><p>OCR ต่อหน้า, model inference, storage/retention, GIS calls, human review, support และ exception handling</p></div>
+          <div class="tile"><h3>ราคา</h3><p>ยังไม่กำหนด; พิจารณา bundled tier หรือคิดตามเอกสาร/หน้า หลังรู้ cost-to-serve และ willingness-to-pay</p></div>
+        </div>
+      </section>
+
+      <section class="card" id="flow">
+        <h2>Flow ที่ผู้ใช้จะเห็น</h2>
+        <p class="muted">จากไฟล์ต้นฉบับ → draft ที่ตรวจสอบได้ → GIS preview → ยืนยันรายการเดียวอย่างชัดเจน</p>
+        <div class="flow">
+          <div class="step"><strong>1. แนบเอกสาร</strong><span>ใช้ปุ่ม attachment ในแชท เลือก PDF หรือภาพ; ระบบผูก actor, tenant และ hash ของไฟล์</span></div>
+          <div class="step"><strong>2. ตรวจไฟล์</strong><span>ตรวจ file signature, malware, ขนาด, หน้า, corruption และ active content</span></div>
+          <div class="step"><strong>3. จำแนกเอกสาร</strong><span>PO, quotation, invoice, receipt หรือ unknown พร้อมภาษาและความมั่นใจ</span></div>
+          <div class="step"><strong>4. ดึงข้อมูล</strong><span>แยก header และ line items ตาม schema พร้อมข้อความและตำแหน่งต้นทาง</span></div>
+          <div class="step"><strong>5. ตรวจเงื่อนไข</strong><span>คำนวณยอด, ตรวจซ้ำ, หาค่าขาด/ขัดแย้ง และถาม GIS แบบ read-only</span></div>
+          <div class="step"><strong>6. ตรวจทาน</strong><span>ดูต้นฉบับคู่กับตาราง แก้ไขค่าความมั่นใจต่ำ เลือก GIS master ที่ถูกต้อง</span></div>
+          <div class="step"><strong>7. GIS preview</strong><span>ส่งเฉพาะ schema/operation ที่ tenant มีสิทธิ์ แล้วแสดง preview ล่าสุด</span></div>
+          <div class="step"><strong>8. ยืนยันและติดตาม</strong><span>ผู้ใช้ยืนยัน; gateway ตรวจซ้ำและเขียนครั้งเดียว แสดงสถานะ/เลขอ้างอิง</span></div>
+        </div>
+      </section>
+
+      <section class="card" id="document-types">
+        <h2>รองรับเอกสารหลายประเภท และเพิ่มความรู้ได้เป็นระบบ</h2>
+        <p class="lead">ทำ pipeline นำเข้าเป็นแกนกลาง แล้วใช้ทะเบียนชนิดเอกสาร (Document Type Registry) กำหนด schema และกฎของแต่ละชนิด จึงเพิ่มชนิดใหม่ได้โดยไม่ต้องเขียน upload/OCR/review ใหม่ทุกครั้ง</p>
+        <table><thead><tr><th>กลุ่มเอกสาร</th><th>ตัวอย่างชนิดที่ควรลงทะเบียน</th><th>หมายเหตุ</th></tr></thead><tbody>
+          <tr><td>Purchase</td><td>Purchase Requisition, Supplier Quotation, Purchase Order, Purchase Invoice/Tax Invoice, Supplier Credit/Debit Note</td><td>PU คือ Purchase; ต้องเลือกชนิดเอกสารและทิศทางของ pilot</td></tr>
+          <tr><td>รับและเคลื่อนย้ายสินค้า</td><td>Delivery Note, Packing List, Goods Received Note, Inventory Receipt, Stock Transfer, Stock Count/Adjustment, Goods Return</td><td>เอกสารรับสินค้าไม่ใช่ Receipt ใบรับเงิน</td></tr>
+          <tr><td>Sales</td><td>Sales Quotation, Sales Order, Sales Invoice/Tax Invoice, Receipt/Payment Receipt, Credit/Debit Note, Delivery Order</td><td>ชื่อคล้ายกันอาจเป็นคนละเอกสารและคนละ GIS operation</td></tr>
+          <tr><td>การเงินและชำระเงิน</td><td>Payment Request, Payment Advice, Remittance Advice, Bank Statement</td><td>การรู้จัก/ดึงข้อมูลไม่แปลว่าระบบจะสั่งจ่ายหรือบันทึกบัญชีได้</td></tr>
+        </tbody></table>
+        <p class="small">ตัวอย่างเหล่านี้เป็น taxonomy สำหรับออกแบบ ไม่ได้ยืนยันว่า GIS รองรับการสร้างทุกชนิด</p>
+        <h3>ข้อมูลที่ทะเบียนเก็บต่อหนึ่งชนิด</h3>
+        <p>รหัสชนิดและชื่อเรียกหลายภาษา · family/direction · schema version และ required/optional fields · extraction guidance · deterministic validations · evidence requirements · duplicate keys · format ที่ผ่านการทดสอบ · GIS read/preview/write mapping และ permission · evaluation fixtures · owner และ support status</p>
+        <div class="grid3">
+          <div class="tile"><h3>1 · รู้จักชนิด</h3><p>จำแนกได้ พร้อมรองรับ alias และ `unknown`; ยังไม่ถือว่าดึงครบหรือทำรายการได้</p></div>
+          <div class="tile"><h3>2 · ดึงและตรวจได้</h3><p>มี schema, evidence, validation และตัวอย่างประเมิน; แสดง draft ให้คนตรวจ</p></div>
+          <div class="tile"><h3>3 · GIS operation พร้อม</h3><p>เปิด preview/write แยกตาม tool, tenant permission และการยืนยันของผู้ใช้</p></div>
+        </div>
+        <div class="callout warning"><b>“เรียนรู้” แบบควบคุม:</b> เมื่อผู้ใช้แก้และยืนยัน ระบบบันทึก alias/layout hint ในขอบเขต tenant เพื่อช่วยงานถัดไปได้; การเพิ่มชนิดหรือเลื่อนสถานะรองรับต้องผ่านการ review schema, GIS mapping และ evaluation ก่อน ไม่เปลี่ยนความสามารถหรือฝึก model อัตโนมัติจากไฟล์ดิบ</div>
+      </section>
+
+      <section class="card" id="ai">
+        <h2>แบ่งงานให้เหมาะกับ AI และโค้ด</h2>
+        <table><thead><tr><th>ส่วน</th><th>ทำหน้าที่</th><th>ข้อจำกัดสำคัญ</th></tr></thead><tbody>
+          <tr><td>Classifier</td><td>เลือก document type/direction จากเนื้อหาและรูปแบบ</td><td>ต้องมี unknown/manual choice; อย่าบังคับเลือกชนิดที่ confidence ต่ำ</td></tr>
+          <tr><td>Extractor</td><td>คืน field ตาม typed schema และชี้หลักฐานหน้า/ตำแหน่ง</td><td>ห้ามเติมค่าที่ไม่มีในเอกสาร; เก็บ raw และ normalized แยกกัน</td></tr>
+          <tr><td>Validator code</td><td>ตรวจ type, required fields, ผลรวม, สกุลเงิน, duplicates, bounds</td><td>ตัวเลข/กฎต้องคำนวณ deterministic ไม่ให้ LLM สรุปเอง</td></tr>
+          <tr><td>GIS MCP</td><td>ยืนยัน supplier, item/SKU, location, voucher, price/status และ preview</td><td>GIS เป็นแหล่งจริงสำหรับ ID/master/สถานะ ไม่ใช่ OCR หรือ AI</td></tr>
+          <tr><td>มนุษย์</td><td>แก้ข้อผิดพลาด เลือก mapping และยืนยัน preview</td><td>การยืนยันต้องตรงกับ preview และ tenant ที่กำลังใช้งาน</td></tr>
+        </tbody></table>
+        <div class="callout danger"><b>ห้ามเดา:</b> GIS ID, SKU, จำนวน, ราคา, tax, stock, currency, สถานะอนุมัติ หรือ supplier/product match ถ้าอ่านหรือยืนยันไม่ได้ ให้ระบุว่าขาดและหยุดก่อน preview</div>
+      </section>
+
+      <section class="card" id="file-routing">
+        <h2>จัดเส้นทาง PDF และภาพให้จ่ายเท่าที่จำเป็น</h2>
+        <div class="grid3">
+          <div class="tile"><h3>PDF มี text layer</h3><p>ลองดึงข้อความจาก PDF ก่อน ถ้าข้อความครบและอ่านได้ ให้ข้าม OCR แล้วส่งต่อเข้า classifier/extractor</p></div>
+          <div class="tile"><h3>PDF สแกนหรือผสม</h3><p>ตรวจเป็นรายหน้า: OCR เฉพาะหน้าที่ไม่มี text layer หรือข้อความใช้ไม่ได้ ไม่ต้อง OCR ทั้งไฟล์ซ้ำ</p></div>
+          <div class="tile"><h3>ภาพที่แนบ</h3><p>เริ่มจากตรวจว่าเป็นเอกสารธุรกิจหรือภาพสินค้า ถ้าแยกไม่ชัด ให้ถามผู้ใช้ว่า import เอกสารหรือค้นหาสินค้า</p></div>
+        </div>
+        <div class="callout"><b>จำแนกแบบประหยัด:</b> ใช้สัญญาณจาก PDF/text/OCR และรูปแบบหน้าเป็นด่านแรก แล้วให้ model ที่ Jev เลือกช่วยเฉพาะกรณีไม่ชัดหรือจำเป็นต้องเข้าใจภาพ อย่าเรียก AI แยกหลายรอบเพื่อทำงานที่รวมเป็นรอบเดียวได้</div>
+        <p>OCR แปลงภาพตัวอักษรเป็นข้อความ แต่ไม่ได้ตัดสินความหมายของเอกสารหรือยืนยันข้อมูล GIS การอ่าน PDF แบบผสมต้องเก็บ page evidence เพื่อให้ผู้ใช้ย้อนดูแต่ละค่าที่ระบบดึงออกมาได้</p>
+      </section>
+
+      <section class="card" id="cost-queue">
+        <h2>ลดต้นทุนโดยไม่ทำให้ tenant หนึ่งรอกันทั้งระบบ</h2>
+        <div class="grid2">
+          <div class="tile"><h3>ต้นทุนต่อไฟล์</h3><p>ใช้ text extraction ก่อน; OCR เฉพาะหน้าที่ต้องใช้; ใช้ model ตามความยากและ price policy; ส่งเฉพาะข้อความ/ภาพที่จำเป็น; escalate เฉพาะ field ที่ยังไม่มั่นใจ</p></div>
+          <div class="tile"><h3>OCR กับ embedding</h3><p>เป็นคนละงาน: OCR อ่านตัวอักษรจากภาพ ส่วน embedding ช่วยค้นความคล้าย ไม่ได้ดึง field จากเอกสาร การนำเข้าธุรกรรมไม่จำเป็นต้อง embed เอกสารทุกใบ</p></div>
+        </div>
+        <div class="callout warning"><b>OCR container:</b> แยกเป็น service/container เพื่อจำกัด CPU, RAM และเวลาได้ แต่ไม่จำเป็นต้องมีเครื่องจริงแยกในระยะแรก เริ่มบน Docker host เดียวแบบ resource-bounded; pilot ตั้งต้นราว 2 vCPU/4 GB RAM และ concurrency 1 งานเป็นสมมติฐานสำหรับวัดผล ไม่ใช่ sizing ที่รับประกัน</div>
+        <h3>คิวงานหลาย tenant</h3>
+        <p>เอกสาร 1,000 ไฟล์จาก 100 tenants ไม่ควรถูกประมวลผลพร้อมกันทั้งหมด ใช้คิวกลางที่แยก tenant, จำกัดงานพร้อมกันต่อ tenant (เริ่ม 1–2), จำกัดจำนวน worker รวม และใช้ fair scheduling/priority พร้อม aging เพื่อไม่ให้งานรอนานไม่สิ้นสุด</p>
+        <p>แสดงสถานะ queued / processing / needs review / completed / failed ให้ผู้ใช้เห็น; เพิ่ม worker ตาม queue wait, throughput, memory และต้นทุนที่วัดได้ ไม่เพิ่มเครื่อง OCR เพียงเพราะจำนวนงานที่เข้าคิวสูงชั่วคราว</p>
+      </section>
+
+      <section class="card" id="learning">
+        <h2>ใช้การแก้ของผู้ใช้ให้รอบหน้าดีขึ้น โดยไม่เผยความลับ</h2>
+        <table><thead><tr><th>ขอบเขต</th><th>เก็บอะไรได้</th><th>ข้อห้าม/การควบคุม</th></tr></thead><tbody>
+          <tr><td>ความจำของ tenant</td><td>ชื่อหัวคอลัมน์ที่ tenant ใช้, alias ของ field, รูปแบบเอกสารหรือ mapping ที่ผู้ใช้แก้และยืนยันแล้ว</td><td>แยก tenant ชัด; ห้ามนำราคา, จำนวน, SKU, วันที่ หรือค่าธุรกรรมจากเอกสารเก่ามาเติมเอกสารใหม่</td></tr>
+          <tr><td>ความรู้กลางของแพลตฟอร์ม</td><td>เฉพาะ pattern ที่ทำให้ไม่ระบุตัว tenant/คู่ค้าและผ่านการตรวจ เช่น synonym ทั่วไปของชื่อ field</td><td>ปิดเป็นค่าเริ่มต้น; ต้อง opt-in ชัดเจน; ไม่เก็บต้นฉบับ ชื่อลูกค้า/ผู้ขาย SKU ราคา หรือข้อมูลระบุตัวบุคคล</td></tr>
+        </tbody></table>
+        <p>เก็บ mapping ที่ยืนยันแล้วในฐานข้อมูลเชิงสัมพันธ์ได้ก่อน เพราะค้นตรงตาม tenant และอธิบาย audit ง่าย; ใช้ Qdrant เฉพาะเมื่อมีโจทย์ค้น pattern แบบ semantic จริง และเฉพาะข้อมูลที่ได้รับอนุญาต ไม่ใช่การ fine-tune model</p>
+        <p>การแก้ข้อมูลต้องเก็บแหล่งที่มา/ผู้ยืนยัน/เวลาและรองรับถอน consent กับลบข้อมูล เมื่อยกเลิกการแชร์กลาง ให้หยุด ingest ใหม่และลบหรือทำให้ข้อมูลที่แชร์ไปแล้วไม่สามารถย้อนระบุตัว tenantได้ตามนโยบาย</p>
+      </section>
+
+      <section class="card" id="review">
+        <h2>หน้า Review ที่ควรออกแบบ</h2>
+        <div class="grid2">
+          <div class="tile"><h3>ซ้าย: เอกสาร</h3><p>PDF/image viewer, page navigation, rotate/zoom, highlight ตำแหน่งของ field และค้นข้อความ</p></div>
+          <div class="tile"><h3>ขวา: ข้อมูลร่าง</h3><p>Document type, supplier, วันที่, currency, location, voucher, line item, quantity, price, tax, subtotal/total</p></div>
+          <div class="tile"><h3>สถานะราย field</h3><p>มีหลักฐาน / confidence ต่ำ / อ่านไม่ออก / ขัดกับ GIS / ผู้ใช้แก้แล้ว พร้อม link กลับหน้าเอกสาร</p></div>
+          <div class="tile"><h3>ตัวตนข้อมูล</h3><p>แยกชัด “ค่าที่อ่านจากเอกสาร” กับ “ค่าที่ GIS ยืนยัน”; user override ต้องมี audit trail</p></div>
+        </div>
+        <p>Master mapping ควรแสดง candidate ที่ GIS ส่งมา พร้อมเหตุผลและความกำกวม ให้ผู้ใช้เลือก; ห้ามสร้าง ID ด้วย AI หรือเอาชื่อที่คล้ายกันไปแทนโดยไม่เปิดเผย</p>
+      </section>
+
+      <section class="card" id="data">
+        <h2>โครงสร้างข้อมูลของ draft</h2>
+        <div class="mono">DocumentImportJob
+  tenant / actor / file hash / detected type / status / retention
+
+ExtractedField
+  field path / raw text / normalized value / confidence
+  source page / bounding box / validation state / user override
+
+LineItem
+  description / source SKU / qty / unit / unit price / currency / tax / total
+  evidence[] / GIS match candidates[] / selected GIS master ID
+
+ValidationIssue
+  code / severity / related fields / message / resolution state
+
+GISDraft
+  target operation / verified master IDs / preview hash / confirmation actor
+  idempotency key / final GIS outcome</div>
+        <p class="small">confidence ใช้จัดลำดับสิ่งที่ต้องตรวจ ไม่ได้พิสูจน์ว่าค่าถูก ต้อง calibrate บน gold set ต่อชนิดเอกสาร</p>
+      </section>
+
+      <section class="card" id="safety">
+        <h2>ความปลอดภัยและการจัดการข้อมูล</h2>
+        <ul class="check">
+          <li>แยก tenant/actor ตั้งแต่ upload, object storage, OCR job, extracted data, logs และ download</li>
+          <li>รับเฉพาะชนิดไฟล์ที่กำหนด และตรวจ MIME จริงกับ file signature; ปฏิเสธไฟล์ปลอม/ไม่ตรงชนิด, PDF เสียหาย, เข้ารหัส หรือมีรูปแบบไม่รองรับ; จำกัด bytes/pages/pixels/time/memory และ decompression</li>
+          <li>สแกน malware เป็นชั้นหนึ่งเท่านั้น; ประมวลผลด้วย parser ที่อัปเดตใน isolated, non-root worker, read-only filesystem, ไม่มี network egress และจำกัด CPU/RAM/time; ห้าม worker เปิด URL หรือเรียก GIS/provider เอง</li>
+          <li>PDF: ตรวจและตัด JavaScript, launch/action, embedded files, forms และ external references; สร้าง preview ที่ปลอดภัย (เช่น render เป็นภาพ) ไม่เปิดไฟล์ต้นฉบับที่ยังไม่ผ่านการทำให้ปลอดภัยใน browser</li>
+          <li>ภาพ: decode แล้ว encode ใหม่เป็น PNG/JPEG ที่อนุญาต ลบ metadata และปฏิเสธ SVG/ไฟล์ polyglot ใน pilot; คุมจำนวน pixel เพื่อกัน decompression bomb</li>
+          <li>ข้อความหรือภาพในเอกสารเป็น untrusted data รวมถึง prompt injection ที่สั่งให้เปิดเผยข้อมูลหรือเรียก tool; แยกเนื้อหาเอกสารออกจาก system instruction, model ไม่มี GIS credential/tool โดยตรง และ output ต้องผ่าน schema/code validation</li>
+          <li>หยุดและส่งให้ผู้ใช้ตรวจเมื่อพบ active content, parser error, ประเภทไม่แน่ใจ หรือข้อมูลขัดแย้ง; antivirus อย่างเดียวไม่ใช่หลักประกันว่าไฟล์ปลอดภัย</li>
+          <li>ส่งข้อมูลไป provider ได้เฉพาะที่ deployment/tenant policy อนุญาต; ไม่ log file content หรือ PII</li>
+          <li>ระบุ retention และลบไฟล์ต้นฉบับ/OCR/extraction ตามอายุข้อมูลและคำขอลบ</li>
+          <li>ไม่ส่งเอกสารเข้า Qdrant, RAG, training หรือ shared dataset อัตโนมัติ; ต้องมี authorization flow แยก</li>
+          <li>ใช้ duplicate detection + idempotency + single-use confirmation; ผลเขียนไม่ชัดให้หยุดเป็น unknown ไม่ retry เอง</li>
+        </ul>
+      </section>
+
+      <section class="card" id="phases">
+        <h2>ทำทีละระยะ เพื่อลดความเสี่ยง</h2>
+        <div class="phase"><div class="label">Phase 0 · Discovery</div><h3>เลือกเอกสาร Purchase และเก็บตัวอย่าง</h3><p>เลือกชนิดเอกสาร/ทิศทางของ Purchase ที่จะเริ่ม, transaction flow, format, ภาษา, retention และ provider policy; สร้างชุดเอกสาร anonymized ที่มี expected values/evidence</p></div>
+        <div class="phase"><div class="label">Phase 1 · Sponsor chooses</div><h3>เลือกหนึ่ง document family และทิศทาง</h3><p>BD/PO ยังไม่เลือก pilot; Supplier quotation → PO preview เป็นเพียงทางเลือกเชิงเทคนิคที่ต่อกับระบบปัจจุบันได้ ไม่ใช่การยืนยันมูลค่าธุรกิจสูงสุด</p></div>
+        <div class="phase"><div class="label">Phase 2 · Expand</div><h3>ขยายทะเบียนชนิดเอกสาร</h3><p>เพิ่มแต่ละ document type ผ่าน registry: schema, aliases, validation, evidence, evaluation fixtures, owner และ GIS mapping; แยกสถานะรู้จัก/ดึงข้อมูล/preview/write; เพิ่ม XLSX/DOCX parser เมื่อผ่าน security/quality checks</p></div>
+        <div class="phase"><div class="label">Phase 3 · Operations</div><h3>Batch และการจัดการข้อยกเว้น</h3><p>queue/progress, idempotent retry, bulk review, dashboard, retention automation และ cost/quality monitoring</p></div>
+        <div class="callout warning"><b>ไม่ควรเริ่มด้วย “รองรับทุกเอกสาร”</b> เพราะชนิดเอกสารแต่ละแบบมีความหมาย, required fields และ GIS actions ไม่เหมือนกัน</div>
+      </section>
+
+      <section class="card" id="metrics">
+        <h2>วัดอะไร ก่อนจะขยาย</h2>
+        <p>ตอนนี้ยังไม่มี baseline จากชุดเอกสารธุรกิจจริง จึงควรเก็บค่าพื้นฐานก่อนตั้ง target</p>
+        <div class="grid3">
+          <div class="tile"><h3>Classification</h3><p>ชนิดเอกสารถูกต้อง, unknown rate, อัตราผู้ใช้เปลี่ยนประเภท</p></div>
+          <div class="tile"><h3>Extraction</h3><p>critical field exact match, line item precision/recall, evidence coverage</p></div>
+          <div class="tile"><h3>Operator</h3><p>อัตราแก้ข้อมูล, เวลาถึง preview, preview rejected/duplicate</p></div>
+          <div class="tile"><h3>Operations</h3><p>cost/document/page, p50/p95 latency, retry/failure/manual fallback</p></div>
+          <div class="tile"><h3>Safety gates</h3><p>ข้าม tenant = 0; เขียนก่อนยืนยัน = 0; invented GIS values = 0</p></div>
+          <div class="tile"><h3>Test set</h3><p>หลาย layout, scan, ภาษา, currency/date, missing/conflict, duplicate, malformed, malicious file</p></div>
+        </div>
+      </section>
+
+      <section class="card" id="decisions">
+        <h2>เรื่องที่ต้องนิยามก่อนเริ่มทำ</h2>
+        <ol class="check todo">
+          <li><b>เอกสาร Purchase ชนิดไหนและทิศทางใด?</b> PU หมายถึง Purchase แล้ว แต่ยังต้องระบุว่าเป็นเอกสารใด เช่น supplier quotation, PO หรือเอกสารซื้อชนิดอื่น และนำเข้าจากฝั่งไหน</li>
+          <li><b>เริ่มจาก flow ใด?</b> BD/PO ยังไม่เลือก pilot; Supplier quotation ขาเข้า → PO preview เป็นเพียงทางเลือกเชิงเทคนิค</li>
+          <li><b>ไฟล์ pilot:</b> PDF + PNG/JPEG ก่อน หรือรวม Excel/Word ตั้งแต่รอบแรก</li>
+          <li><b>Data policy:</b> retention เท่าไร และส่งไฟล์/ข้อความให้ external AI provider ได้หรือบังคับ local</li>
+          <li><b>Evaluation:</b> เตรียมเอกสารตัวอย่างที่ anonymize แล้วพร้อมคำตอบจริงเพื่อสร้าง gold set</li>
+        </ol>
+        <div class="callout"><b>สถานะ BD/PO:</b> เห็นตรงกันที่ `validate_first`; PO ปรับข้อเสนอหลัง BD review และไม่เลือก PO/quotation เป็น pilot โดยไม่มีหลักฐาน จึงยังไม่ตั้งราคา/ROI/target</div>
+      </section>
+
+      <section class="card" id="owners">
+        <h2>ใครรับผิดชอบส่วนไหน</h2>
+        <table><thead><tr><th>เจ้าของ</th><th>ความรับผิดชอบ</th></tr></thead><tbody>
+          <tr><td>Sponsor</td><td>เลือกชนิดเอกสาร Purchase/flow แรก อนุมัติ data policy, investment และข้อผูกพันภายนอก</td></tr>
+          <tr><td>BD</td><td>หลักฐาน segment/demand, payer, cost-to-serve และ commercial experiment</td></tr>
+          <tr><td>Product Owner</td><td>งานผู้ใช้, scope, review UX, acceptance, backlog และ product metrics</td></tr>
+          <tr><td>FaroAI Engineering</td><td>Upload/job orchestration, schemas, extraction, validation, security, UI และ observability</td></tr>
+          <tr><td>GIS MCP team</td><td>GIS read/preview/write contract, master mapping และ permissions; ไม่ทำ OCR/classification</td></tr>
+          <tr><td>Security/Infra</td><td>Quarantine storage, scan, worker isolation, encryption, retention, monitoring</td></tr>
+          <tr><td>Tenant operator</td><td>ตรวจ field/mapping และยืนยัน preview ของ GIS ทีละ operation</td></tr>
+        </tbody></table>
+      </section>
+      <div class="footer">ไฟล์แผนนี้เป็นข้อเสนอสำหรับ discovery ไม่ใช่ ADR ที่ยอมรับแล้วหรือคำสั่งให้เขียนข้อมูล GIS · <a href="2026-11-10-ai-business-document-import.md">เปิดบันทึกฉบับ Markdown</a></div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

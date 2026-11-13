@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import hmac
 import json
 import logging
 import re
+import time
+import uuid
 from contextlib import closing
 from datetime import timedelta
 from typing import Any
@@ -15,11 +19,15 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 from psycopg.rows import dict_row
 
-from .mcp_products import parse_mcp_product_result
+from .mcp_products import parse_mcp_product_result_details
 from .base_skills import SkillRegistryError, get_base_skills
 from .settings import settings
 
 logger = logging.getLogger("faroai.routing")
+
+
+class McpToolReturnedError(RuntimeError):
+    """An MCP tool returned isError=true (distinct from a transport failure)."""
 
 _PRODUCT_TERMS = re.compile(
     r"\b(ring|rings|necklace|necklaces|earring|earrings|pendant|bracelet|jewelry|jewellery|"
@@ -101,11 +109,18 @@ def _requires_product_recommendation(message: str) -> bool:
     meaningful_preference = re.search(
         r"\b(girlfriend|boyfriend|wife|husband|fianc[ée]|fianc[eé]|mother|father|daughter|son|"
         r"bride|groom|black|white|red|blue|green|pink|classic|modern|minimal|vintage|"
-        r"avoid|without|except|instead of|not|under \$?\d+)\b",
+        r"avoid|without|except|instead of|not|under \$?\d+|birthday|anniversary|engagement|"
+        r"wedding|graduation|everyday|nature|heart|floral|geometric|statement|small|medium|large|"
+        r"formal|work|travel|myself|client|friend|daughter|son)\b",
         message,
         re.IGNORECASE,
     )
-    return bool(explicit_recommendation or meaningful_preference)
+    selected_soft_facet = re.search(
+        r"Selected shopping preferences:[^\n]{0,700}\b(?:Who is it for\?|Occasion|Theme|Size|Wear/Lifestyle):",
+        message,
+        re.IGNORECASE,
+    )
+    return bool(explicit_recommendation or meaningful_preference or selected_soft_facet)
 
 
 def _deterministic_shape_exclusions(message: str) -> list[str]:
@@ -337,6 +352,8 @@ def choose_product_generation_model(tenant_id: str, prompt: str, count: int,
     """Ask Jev to choose only among server-approved eligible paid model IDs."""
     if not decision_api_key or not model_candidates:
         return None
+
+
     choices: dict[str, str] = {}
     for candidate in model_candidates:
         candidate_id = str(candidate.get("candidate_id") or "")
@@ -375,25 +392,68 @@ def choose_product_generation_model(tenant_id: str, prompt: str, count: int,
         return None
 
 
-def choose_procurement_model(tenant_id: str, prompt: str,
-                             model_candidates: list[dict[str, Any]],
-                             decision_api_key: str) -> str | None:
-    """Ask Jev for an eligible paid model that supports grounded MCP workflows."""
+def choose_document_model(tenant_id: str, prompt: str, model_candidates: list[dict[str, Any]],
+                          decision_api_key: str, format_name: str) -> str | None:
+    """Use Jev to select an eligible model for a bounded document-layout patch."""
+    if not decision_api_key or not model_candidates or format_name not in {"pdf", "docx", "xlsx"}:
+        return None
+    choices = {
+        str(candidate.get("candidate_id")): (
+            f"Eligible paid {candidate.get('provider')} model {_clean_text(str(candidate.get('model') or ''), 120)}. "
+            "Interpret Thai/English document-editing instructions and return a small, exact JSON patch. "
+            f"Maximum output {int(candidate.get('max_tokens') or 0)} tokens."
+        )
+        for candidate in model_candidates if candidate.get("candidate_id")
+    }
+    try:
+        with httpx.Client(timeout=httpx.Timeout(12, connect=3), follow_redirects=False, trust_env=False) as client:
+            response = client.post(settings.decision_api_url,
+                headers={"authorization": f"Bearer {decision_api_key}", "content-type": "application/json"},
+                json={"model": settings.decision_model,
+                      "state": {"request": _clean_text(prompt, 1000), "task": "edit_generated_document_layout",
+                                "format": format_name},
+                      "questions": {
+                          "base_skill": {"type": "choice",
+                              "instructions": "Select the published document skill matching the requested file format.",
+                              "criteria": {f"base.{format_name}": f"Create or revise a {format_name.upper()} document."}},
+                          "candidate": {"type": "choice",
+                              "instructions": "Choose an eligible paid model that reliably follows a strict JSON schema for a document layout patch. Prefer the lower-cost capable model; choose only from these candidates.",
+                              "criteria": choices}}})
+            response.raise_for_status()
+            answers = response.json().get("answers")
+        answer = answers.get("candidate") if isinstance(answers, dict) else None
+        selected = answer.get("choice") if isinstance(answer, dict) else None
+        skill_answer = answers.get("base_skill") if isinstance(answers, dict) else None
+        skill = skill_answer.get("choice") if isinstance(skill_answer, dict) else None
+        return selected if isinstance(selected, str) and selected in choices and skill == f"base.{format_name}" else None
+    except Exception as error:
+        logger.warning(json.dumps({"event": "document_model_decision_failed", "tenant_id": tenant_id,
+                                   "error_type": type(error).__name__}))
+        return None
+
+
+def choose_procurement_plan(tenant_id: str, prompt: str,
+                            model_candidates: list[dict[str, Any]],
+                            decision_api_key: str,
+                            skill_choices: dict[str, str]) -> dict[str, str] | None:
+    """Ask Jev once to select an eligible paid model and an applicable published skill."""
     if not decision_api_key or not model_candidates:
         return None
-    choices: dict[str, str] = {}
+    model_choices: dict[str, str] = {}
     for candidate in model_candidates:
         candidate_id = str(candidate.get("candidate_id") or "")
         if candidate_id:
-            choices[candidate_id] = (
+            model_choices[candidate_id] = (
                 f"Use the eligible paid {candidate.get('provider')} model "
                 f"{_clean_text(str(candidate.get('model') or ''), 120)} for a Thai/English GIS purchase-order and inventory assistant. "
                 "It must follow detailed instructions, use OpenAI-compatible function/tool calling reliably, "
                 "track all missing required fields, reply in the user's language, and never invent GIS data. "
                 "Avoid micro, instant, or lightweight models if they are likely to miss constraints in a multi-step ERP workflow."
             )
-    if not choices:
+    if not model_choices:
         return None
+    skill_criteria = {"none": "No published base skill applies to this task."}
+    skill_criteria.update(skill_choices)
     try:
         with httpx.Client(timeout=httpx.Timeout(12, connect=3), follow_redirects=False, trust_env=False) as client:
             response = client.post(
@@ -401,23 +461,39 @@ def choose_procurement_model(tenant_id: str, prompt: str,
                 headers={"authorization": f"Bearer {decision_api_key}", "content-type": "application/json"},
                 json={
                     "model": settings.decision_model,
-                    "state": {"request": _clean_text(prompt, 1000), "task": "gis_purchase_order_and_inventory_mcp_assistant"},
-                    "questions": {"candidate": {
-                        "type": "choice",
-                        "instructions": "First choose a model capable of accurate multi-step tool use, strict instruction following, and natural Thai/English responses for ERP procurement. "
-                        "Do not choose a micro/lightweight model just because it is cheapest if it is likely to omit required fields. "
-                        "Among candidates that meet the task-quality bar, prefer the lower-cost one. Choose only from these paid, price-eligible candidates.",
-                        "criteria": choices,
-                    }},
+                    "state": {"request": _clean_text(prompt, 1000), "task": "gis_purchase_order_and_inventory_mcp_assistant",
+                              "available_base_skills": list(skill_choices)},
+                    "questions": {
+                        "base_skill": {
+                            "type": "choice",
+                            "instructions": "Select the single published base skill whose instructions best fit the user's current procurement task. Select none only when no listed skill applies. FAROAI validates the published scope and permissions before execution.",
+                            "criteria": skill_criteria,
+                        },
+                        "candidate": {
+                            "type": "choice",
+                            "instructions": "Choose a model capable of accurate multi-step tool use, strict instruction following, and natural Thai/English responses for this ERP task. Do not choose a micro/lightweight model just because it is cheapest if it is likely to omit required fields. Among candidates that meet the task-quality bar, prefer the lower-cost one. Choose only from these paid, price-eligible candidates.",
+                            "criteria": model_choices,
+                        },
+                    },
                 },
             )
             response.raise_for_status()
             answers = response.json().get("answers")
-        answer = answers.get("candidate") if isinstance(answers, dict) else None
-        selected = answer.get("choice") if isinstance(answer, dict) else None
-        return selected if isinstance(selected, str) and selected in choices else None
+        if not isinstance(answers, dict):
+            return None
+        model_answer = answers.get("candidate", {})
+        skill_answer = answers.get("base_skill", {})
+        selected_model = model_answer.get("choice") if isinstance(model_answer, dict) else None
+        selected_skill = skill_answer.get("choice") if isinstance(skill_answer, dict) else None
+        if not isinstance(selected_model, str) or selected_model not in model_choices:
+            return None
+        if selected_skill == "none":
+            selected_skill = ""
+        if not isinstance(selected_skill, str) or (selected_skill and selected_skill not in skill_choices):
+            return None
+        return {"candidate_id": selected_model, "skill_id": selected_skill}
     except Exception as error:
-        logger.warning(json.dumps({"event": "procurement_model_decision_failed", "tenant_id": tenant_id,
+        logger.warning(json.dumps({"event": "procurement_plan_decision_failed", "tenant_id": tenant_id,
                                    "error_type": type(error).__name__}))
         return None
 
@@ -462,33 +538,69 @@ def choose_route(
 
 
 def call_live_tool(tenant_id: str, source: dict[str, Any], tool: str, message: str, lang: str,
-                   filters: dict[str, Any] | None = None) -> dict[str, Any]:
+                   filters: dict[str, Any] | None = None,
+                   legacy_message: str | None = None) -> dict[str, Any]:
     if not source:
-        return {"success": False, "text": "", "products": [], "products_valid": False}
+        return {"success": False, "text": "", "products": [], "products_valid": False,
+                "supported_filter_fields": [], "applied_filters": {}, "unmatched_filters": []}
     url = str(source.get("endpoint_url") or "")
     api_key = str(source.get("api_key") or source.get("bearer_token") or "")
     auth_method = str(source.get("auth_method") or "bearer")
     if tool not in (source.get("allowed_tools") or []):
-        return {"success": False, "text": "", "products": [], "products_valid": False}
+        return {"success": False, "text": "", "products": [], "products_valid": False,
+                "supported_filter_fields": [], "applied_filters": {}, "unmatched_filters": []}
     try:
         validate_mcp_endpoint(url)
-        result = asyncio.run(_call_streamable_mcp(url, api_key, auth_method, tool, message, lang, filters or {}))
-        if getattr(result, "isError", False):
-            raise RuntimeError("mcp_tool_error")
-        products, products_valid = parse_mcp_product_result(result) if tool == "search_products" else ([], False)
+        attempts = 2 if tool == "search_products" else 1
+        for attempt in range(attempts):
+            try:
+                result, supported_filter_fields = asyncio.run(
+                    _call_streamable_mcp(
+                        url, api_key, auth_method, tool, message, lang, filters or {}, legacy_message,
+                        tenant_id if source.get("integration_key") == "gis" else None,
+                    )
+                )
+                if getattr(result, "isError", False):
+                    raise McpToolReturnedError("mcp_tool_error")
+                break
+            except Exception as error:
+                error_code = mcp_test_error_code(error)
+                retryable = error_code in {"mcp_timeout", "mcp_connection_failed", "mcp_transport_error"}
+                if attempt + 1 >= attempts or not retryable:
+                    raise
+                logger.warning(json.dumps({
+                    "event": "mcp_read_retry",
+                    "tenant_id": tenant_id,
+                    "source_id": str(source.get("id") or source.get("source_id") or ""),
+                    "tool": tool,
+                    "attempt": attempt + 2,
+                    "error_code": error_code,
+                }))
+                time.sleep(0.2)
+        products, products_valid, filter_metadata = (
+            parse_mcp_product_result_details(result) if tool == "search_products"
+            else ([], False, {"applied_filters": {}, "unmatched_filters": []})
+        )
         texts = [item.text for item in getattr(result, "content", [])
                  if getattr(item, "type", None) == "text" and isinstance(getattr(item, "text", None), str)]
         logger.info(json.dumps({"event": "mcp_tool_result_validated", "tenant_id": tenant_id,
                                 "source_id": str(source.get("id") or source.get("source_id") or ""),
                                 "tool": tool, "products_valid": products_valid,
-                                "product_count": len(products), "has_text": bool(texts)}))
+                                "product_count": len(products), "has_text": bool(texts),
+                                "requested_filter_fields": sorted((filters or {}).keys())[:20],
+                                "supported_filter_fields": sorted(supported_filter_fields)[:20],
+                                "unmatched_filter_count": len(filter_metadata["unmatched_filters"])}))
         return {"success": True, "text": _clean_text("\n".join(texts), 4000),
-                "products": products, "products_valid": products_valid}
+                "products": products, "products_valid": products_valid,
+                "supported_filter_fields": sorted(supported_filter_fields),
+                **filter_metadata}
     except Exception as error:
         logger.warning(json.dumps({"event": "mcp_tool_failed", "tenant_id": tenant_id,
                                    "source_id": str(source.get("id") or source.get("source_id") or ""),
-                                   "error_type": type(error).__name__}))
-        return {"success": False, "text": "", "products": [], "products_valid": False}
+                                   "error_type": type(error).__name__,
+                                   "error_code": mcp_test_error_code(error)}))
+        return {"success": False, "text": "", "products": [], "products_valid": False,
+                "supported_filter_fields": [], "applied_filters": {}, "unmatched_filters": []}
 
 
 def validate_mcp_endpoint(url: str) -> str:
@@ -506,12 +618,23 @@ def validate_mcp_endpoint(url: str) -> str:
 
 
 def mcp_test_error_code(error: Exception) -> str:
+    if isinstance(error, McpToolReturnedError):
+        return "mcp_tool_error"
+    # MCP's async client can wrap the underlying HTTPX exception in an
+    # ExceptionGroup. Unwrap it so logs retain a safe, useful failure class.
+    while isinstance(error, BaseExceptionGroup) and error.exceptions:
+        nested = next((item for item in error.exceptions if isinstance(item, Exception)), None)
+        if nested is None:
+            break
+        error = nested
     if isinstance(error, ValueError):
         return str(error)
     if isinstance(error, httpx.TimeoutException):
         return "mcp_timeout"
     if isinstance(error, httpx.ConnectError):
         return "mcp_connection_failed"
+    if isinstance(error, httpx.TransportError):
+        return "mcp_transport_error"
     if isinstance(error, httpx.HTTPStatusError):
         status = error.response.status_code
         return "mcp_unauthorized" if status in {401, 403} else "mcp_http_error"
@@ -536,6 +659,33 @@ def _auth_headers(api_key: str, auth_method: str, endpoint_url: str = "") -> dic
     if hostname.endswith(".ngrok-free.dev"):
         headers["ngrok-skip-browser-warning"] = "true"
     return headers
+
+
+class GisTenantContextAuth(httpx.Auth):
+    """Sign each GIS MCP HTTP request with a one-time tenant assertion."""
+
+    async def async_auth_flow(self, request: httpx.Request):
+        secret = settings.gis_mcp_context_secret
+        if len(secret) < 32:
+            raise ValueError("gis_mcp_context_not_configured")
+        body = await request.aread()
+        timestamp = str(int(time.time()))
+        request_id = str(uuid.uuid4())
+        method = request.method.upper()
+        path = request.url.path
+        body_digest = hashlib.sha256(body).hexdigest()
+        signed_context = f"{timestamp}.{self.tenant_id}.{request_id}.{method}.{path}.{body_digest}"
+        signature = hmac.new(secret.encode("utf-8"), signed_context.encode("utf-8"), hashlib.sha256).hexdigest()
+        request.headers["X-FaroAI-Tenant-ID"] = self.tenant_id
+        request.headers["X-FaroAI-Tenant-Timestamp"] = timestamp
+        request.headers["X-FaroAI-Request-ID"] = request_id
+        request.headers["X-FaroAI-Tenant-Signature"] = signature
+        yield request
+
+    def __init__(self, tenant_id: str) -> None:
+        if not re.fullmatch(r"[0-9a-fA-F-]{36}", tenant_id):
+            raise ValueError("invalid_faroai_tenant_id")
+        self.tenant_id = tenant_id
 
 
 async def _list_streamable_mcp_tools(url: str, api_key: str, auth_method: str) -> list[str]:
@@ -585,8 +735,13 @@ def list_approved_mcp_tool_specs(connection: dict[str, Any], permitted: set[str]
 
 
 async def _call_streamable_mcp(url: str, api_key: str, auth_method: str, tool: str,
-                               message: str, lang: str, filters: dict[str, Any] | None = None) -> Any:
-    async with httpx.AsyncClient(headers=_auth_headers(api_key, auth_method, url),
+                               message: str, lang: str, filters: dict[str, Any] | None = None,
+                               legacy_message: str | None = None,
+                               tenant_id: str | None = None) -> tuple[Any, set[str]]:
+    client_options: dict[str, Any] = {"headers": _auth_headers(api_key, auth_method, url)}
+    if tenant_id:
+        client_options["auth"] = GisTenantContextAuth(tenant_id)
+    async with httpx.AsyncClient(**client_options,
                                  timeout=httpx.Timeout(15), follow_redirects=False,
                                  trust_env=False) as client:
         async with streamable_http_client(url, http_client=client, terminate_on_close=True) as (
@@ -594,40 +749,44 @@ async def _call_streamable_mcp(url: str, api_key: str, auth_method: str, tool: s
         ):
             async with ClientSession(read_stream, write_stream) as session:
                 arguments: dict[str, Any] = {"query": message, "language": lang}
-                if filters:
+                supported_filters: dict[str, Any] = {}
+                if filters or legacy_message:
                     available = await session.list_tools()
                     selected_tool = next((item for item in available.tools if item.name == tool), None)
                     input_schema = getattr(selected_tool, "inputSchema", None) if selected_tool else None
                     properties = input_schema.get("properties", {}) if isinstance(input_schema, dict) else {}
                     filter_schema = properties.get("filters") if isinstance(properties, dict) else None
                     filter_fields = filter_schema.get("properties", {}) if isinstance(filter_schema, dict) else {}
-                    supports_shape_filter = (
-                        isinstance(filter_schema, dict)
-                        and filter_schema.get("type") == "object"
-                        and (
-                            "stone_shape_exclude" in filter_fields
-                            or filter_schema.get("additionalProperties") is True
-                            or not filter_fields
-                        )
-                    )
+                    supports_structured_filters = isinstance(filter_schema, dict) and filter_schema.get("type") == "object"
+                    if legacy_message and not supports_structured_filters:
+                        arguments["query"] = legacy_message
+                    if isinstance(filter_schema, dict) and filter_schema.get("type") == "object":
+                        allows_extra = filter_schema.get("additionalProperties") is True
+                        supported_filters = {
+                            key: value for key, value in filters.items()
+                            if isinstance(filter_fields, dict) and key in filter_fields or allows_extra
+                        }
                     logger.info(json.dumps({
                         "event": "mcp_search_filter_schema",
                         "tool": tool,
-                        "supports_shape_filter": supports_shape_filter,
+                        "requested_filter_fields": sorted(filters.keys())[:30],
+                        "sent_filter_fields": sorted(supported_filters.keys())[:30],
                         "input_fields": sorted(properties.keys())[:30] if isinstance(properties, dict) else [],
                         "required_fields": (input_schema.get("required", [])[:30]
                                             if isinstance(input_schema, dict) and isinstance(input_schema.get("required"), list)
                                             else []),
                     }))
-                    if supports_shape_filter:
-                        arguments["filters"] = filters
-                return await session.call_tool(tool, arguments=arguments)
+                    if supported_filters:
+                        arguments["filters"] = supported_filters
+                result = await session.call_tool(tool, arguments=arguments)
+                return result, set(supported_filters)
 
 
 async def _call_streamable_mcp_operation(url: str, api_key: str, auth_method: str,
-                                        tool: str, arguments: dict[str, Any]) -> Any:
+                                        tool: str, arguments: dict[str, Any], tenant_id: str) -> Any:
     """Call one fixed product-management tool after verifying it is advertised by GIS."""
     async with httpx.AsyncClient(headers=_auth_headers(api_key, auth_method, url),
+                                 auth=GisTenantContextAuth(tenant_id),
                                  timeout=httpx.Timeout(20), follow_redirects=False,
                                  trust_env=False) as client:
         async with streamable_http_client(url, http_client=client, terminate_on_close=True) as (
@@ -659,7 +818,7 @@ def call_approved_mcp_tool(tenant_id: str, connection: dict[str, Any], tool: str
         validate_mcp_endpoint(str(connection.get("endpoint_url") or ""))
         result = asyncio.run(_call_streamable_mcp_operation(
             str(connection["endpoint_url"]), str(connection.get("api_key") or ""),
-            str(connection.get("auth_method") or "bearer"), tool, arguments,
+            str(connection.get("auth_method") or "bearer"), tool, arguments, tenant_id,
         ))
         is_error = bool(getattr(result, "isError", False))
         structured = getattr(result, "structuredContent", None)

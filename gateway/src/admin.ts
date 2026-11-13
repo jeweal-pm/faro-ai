@@ -1,6 +1,6 @@
 // @ts-nocheck
-export type AdminVariables = { correlationId: string; platformAdmin: { email: string; authMethod: 'oidc' | 'local' | 'service' }; csrfHash: Buffer };
-import { verify } from '@node-rs/argon2';
+export type AdminVariables = { correlationId: string; platformAdmin: { email: string; authMethod: 'oidc' | 'local' | 'service' | 'tenant_session'; scopes?: string[] }; csrfHash: Buffer };
+import { hash, verify } from '@node-rs/argon2';
 import { Hono } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import * as oidc from 'openid-client';
@@ -8,6 +8,7 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypt
 import { Pool } from 'pg';
 import { Redis } from 'ioredis';
 import { z } from 'zod';
+import { artifactLayoutSchema } from './artifact-security.js';
 import { allowedProviderForDeployment, decryptProviderSecret, encryptProviderSecret, hashToken, maskSecretHint, parseEncryptionKey, safeEqual, validateMcpEndpoint, validateProviderEndpoint, } from './admin-security.js';
 const bool = (fallback) => z.enum(['true', 'false']).default(fallback).transform((value) => value === 'true');
 const env = z.object({
@@ -74,6 +75,8 @@ async function ensureAdminRedisConnected() {
 const ADMIN_SESSION_SECONDS = 8 * 60 * 60;
 const SESSION_COOKIE = env.BACKOFFICE_COOKIE_SECURE ? '__Host-faroai_admin' : 'faroai_admin';
 const CSRF_COOKIE = env.BACKOFFICE_COOKIE_SECURE ? '__Host-faroai_admin_csrf' : 'faroai_admin_csrf';
+const TENANT_SESSION_COOKIE = env.BACKOFFICE_COOKIE_SECURE ? '__Host-faroai_tenant' : 'faroai_tenant';
+const TENANT_CSRF_COOKIE = env.BACKOFFICE_COOKIE_SECURE ? '__Host-faroai_tenant_csrf' : 'faroai_tenant_csrf';
 const STATE_COOKIE = env.BACKOFFICE_COOKIE_SECURE ? '__Host-faroai_oidc_state' : 'faroai_oidc_state';
 const allowedLocalHosts = new Set(env.FAROAI_ALLOWED_LOCAL_MODEL_HOSTS.split(',').map((host) => host.trim().toLowerCase()).filter(Boolean));
 const allowedMcpHosts = new Set(env.MCP_ALLOWED_HOSTS.split(',').map((host) => host.trim().toLowerCase()).filter(Boolean));
@@ -164,6 +167,13 @@ const loginSchema = z.object({ email: z.string().trim().email().max(254), passwo
 const tenantCreateSchema = z.object({ name: z.string().trim().min(1).max(120) }).strict();
 const tenantPatchSchema = z.object({ name: z.string().trim().min(1).max(120).optional(), status: z.enum(['active', 'suspended']).optional() }).strict().refine((data) => Object.keys(data).length > 0);
 const creditSchema = z.object({ amount: z.number().int().min(-1_000_000_000).max(1_000_000_000).refine((value) => value !== 0), entry_type: z.enum(['grant', 'adjustment']), reason: z.string().trim().min(3).max(500) }).strict();
+const tenantAppCredentialSchema = z.object({
+    label: z.string().trim().min(1).max(100),
+    scopes: z.array(z.enum(['chat:write', 'feedback:write', 'knowledge:write', 'mcp:write', 'catalogue:write', 'gis:product:write', 'gis:procurement:read', 'gis:procurement:write', 'gis:customers:read', 'document:import', 'document:procurement'])).min(1).max(11),
+}).strict().refine((value) => new Set(value.scopes).size === value.scopes.length);
+const tenantAppCredentialScopesSchema = z.object({
+    scopes: z.array(z.enum(['chat:write', 'feedback:write', 'knowledge:write', 'mcp:write', 'catalogue:write', 'gis:product:write', 'gis:procurement:read', 'gis:procurement:write', 'gis:customers:read', 'document:import', 'document:procurement'])).min(1).max(11),
+}).strict().refine((value) => new Set(value.scopes).size === value.scopes.length);
 const providerSchema = z.object({
     provider: z.enum(['openrouter', 'ollama', 'lmstudio']),
     name: z.string().trim().min(1).max(100),
@@ -192,6 +202,13 @@ const mcpConnectionSchema = z.object({
     enabled: z.boolean().default(true),
     allowed_tools: z.array(z.string().regex(/^[A-Za-z0-9_.:-]{1,100}$/)).max(50).default([]),
 }).strict();
+const tenantMcpAccountSchema = z.object({
+    email: z.string().trim().email().max(254),
+    password: z.string().min(12).max(1024),
+}).strict();
+const tenantMcpAccountPatchSchema = z.object({ status: z.enum(['active', 'disabled']) }).strict();
+const mcpNewToolPolicySchema = z.object({ policy: z.enum(['all_discovered', 'none_selected']) }).strict();
+const rootDebugTenantSchema = z.object({ tenant_id: z.string().uuid() }).strict();
 const learningSettingsSchema = z.object({
     local_training_authorized: z.boolean().default(false),
     local_authorization_reference: z.string().trim().max(300).optional().nullable(),
@@ -235,6 +252,40 @@ function checkOrigin(c) {
         return false;
     }
 }
+export async function resolveTenantSessionToken(token) {
+    if (!token || token.length < 32 || token.length > 256) return null;
+    const result = await pool.query(`SELECT s.tenant_admin_id,s.tenant_id,s.csrf_hash,u.email,t.name AS tenant_name,t.consent_version
+      FROM tenant_admin_sessions s JOIN tenant_admin_users u ON u.id=s.tenant_admin_id AND u.tenant_id=s.tenant_id
+      JOIN tenants t ON t.id=s.tenant_id
+      WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.status='active' AND t.status='active'`, [hashToken(token)]);
+    return result.rows[0] ?? null;
+}
+export function tenantSessionCookie(request) {
+    const cookieHeader = request.headers.get('cookie') ?? '';
+    const cookieName = env.BACKOFFICE_COOKIE_SECURE ? '__Host-faroai_tenant' : 'faroai_tenant';
+    const token = cookieHeader.match(new RegExp(`(?:^|;\\s*)${cookieName}=([^;]+)`))?.[1];
+    if (!token) return null;
+    try { return decodeURIComponent(token); } catch { return null; }
+}
+export async function resolveTenantSessionRequest(request, requireWrite = false) {
+    const token = tenantSessionCookie(request);
+    const session = token ? await resolveTenantSessionToken(token) : null;
+    if (!session) return null;
+    if (requireWrite) {
+        let originAllowed = false;
+        try { originAllowed = new URL(request.headers.get('origin') ?? '').origin === new URL(env.BACKOFFICE_URL).origin; } catch { /* fail closed */ }
+        const cookies = request.headers.get('cookie') ?? '';
+        const csrfCookieName = env.BACKOFFICE_COOKIE_SECURE ? '__Host-faroai_tenant_csrf' : 'faroai_tenant_csrf';
+        const csrf = cookies.match(new RegExp(`(?:^|;\\s*)${csrfCookieName}=([^;]+)`))?.[1];
+        const header = request.headers.get('x-csrf-token') ?? '';
+        let csrfValue = '';
+        try { csrfValue = csrf ? decodeURIComponent(csrf) : ''; } catch { return null; }
+        if (!originAllowed || !csrfValue || !safeEqual(csrfValue, header)
+            || !timingSafeEqual(hashToken(csrfValue), session.csrf_hash)) return null;
+    }
+    void pool.query('UPDATE tenant_admin_sessions SET last_seen_at=now() WHERE token_hash=$1', [hashToken(token)]).catch(() => undefined);
+    return session;
+}
 async function createSession(c, email, authMethod) {
     const token = randomBytes(32).toString('base64url');
     const csrf = randomBytes(32).toString('base64url');
@@ -247,30 +298,53 @@ async function createSession(c, email, authMethod) {
 const requireAdmin = async (c, next) => {
     if (!env.BACKOFFICE_ENABLED)
         return fail(c, 404, 'not_found', 'Backoffice is disabled.');
+    // A browser can hold both root and tenant cookies. Prompt routes must use the
+    // matching tenant session when the request carries its tenant CSRF token.
+    const path = c.req.path.replace(/^\/admin\/v1/, '');
+    const match = /^\/tenants\/([0-9a-f-]{36})(?:\/(product-creation\/(?:drafts|tool)|procurement\/(?:assistant|confirm)|customers\/assistant|artifacts\/plan))?$/i.exec(path);
+    const tenantLookup = c.req.method === 'GET' && !!match && !match[2];
+    const promptOperation = c.req.method === 'POST' && !!match?.[2];
+    if (tenantLookup || promptOperation) {
+        const tenantSession = await resolveTenantSessionRequest(c.req.raw, !tenantLookup);
+        if (tenantSession && match?.[1] === tenantSession.tenant_id) {
+            c.set('platformAdmin', { email: tenantSession.email, authMethod: 'tenant_session', scopes: ['gis:product:write', 'gis:procurement:read', 'gis:procurement:write', 'gis:customers:read', 'chat:write'] });
+            c.set('csrfHash', tenantSession.csrf_hash);
+            await next();
+            return;
+        }
+    }
     const token = getCookie(c, SESSION_COOKIE);
     if (!token) {
-        // Prompt-originated GIS operations use a server-held tenant credential.
-        // Keep this exception limited to the four GIS workflow endpoints; it cannot
-        // grant access to Backoffice administration or tenant-management routes.
-        const path = c.req.path.replace(/^\/admin\/v1/, '');
-        const match = /^\/tenants\/([0-9a-f-]{36})(?:\/(product-creation\/(?:drafts|tool)|procurement\/(?:assistant|confirm)))?$/i.exec(path);
+        // Prompt-originated GIS operations may also use a scoped server credential.
+        // Keep this exception limited to prompt workflows.
         const bearer = /^Bearer (fai_[A-Za-z0-9_-]{32,})$/.exec(c.req.header('authorization') ?? '');
-        const tenantLookup = c.req.method === 'GET' && !!match && !match[2];
-        const promptOperation = c.req.method === 'POST' && !!match?.[2];
-        if ((!tenantLookup && !promptOperation) || !bearer)
+        if (!tenantLookup && !promptOperation)
             return fail(c, 401, 'unauthorized', 'A platform admin session is required.');
+        if (!bearer) return fail(c, 401, 'unauthorized', 'A platform admin or matching tenant session is required.');
         const keyHash = createHash('sha256').update(env.API_KEY_PEPPER).update(bearer[1]!).digest();
-        const serviceResult = await pool.query(`SELECT k.id,k.tenant_id,k.scopes,t.status
+        const serviceResult = await pool.query(`SELECT k.id,k.tenant_id,k.scopes,k.client_credential_id,t.status
           FROM api_keys k JOIN tenants t ON t.id=k.tenant_id
-          WHERE k.key_hash=$1 AND k.revoked_at IS NULL`, [keyHash]);
+          WHERE k.key_hash=$1 AND k.revoked_at IS NULL AND (k.expires_at IS NULL OR k.expires_at>now())`, [keyHash]);
         const service = serviceResult.rows[0];
-        const allowedScopes = tenantLookup ? ['gis:product:write', 'gis:procurement:write']
-            : match[2]!.startsWith('product-creation/') ? ['gis:product:write'] : ['gis:procurement:write'];
+        const allowedScopes = tenantLookup ? ['gis:product:write', 'gis:procurement:read', 'gis:procurement:write']
+            : match[2]!.startsWith('product-creation/') ? ['gis:product:write']
+            : match[2] === 'artifacts/plan' ? ['gis:procurement:write', 'chat:write']
+                    : match[2] === 'procurement/assistant' ? ['gis:procurement:read', 'gis:procurement:write', 'document:procurement']
+                        : match[2] === 'customers/assistant' ? ['gis:customers:read']
+                        : ['gis:procurement:write'];
         if (!service || service.status !== 'active' || service.tenant_id !== match[1]
             || !Array.isArray(service.scopes) || !allowedScopes.some((scope) => service.scopes.includes(scope))
             || (env.FAROAI_TENANT_MODE === 'single' && service.tenant_id !== env.FAROAI_SINGLE_TENANT_ID))
-            return fail(c, 403, 'forbidden', 'The configured tenant credential cannot perform this GIS operation.');
-        c.set('platformAdmin', { email: `tenant-api-key:${service.id}`, authMethod: 'service' });
+            return fail(c, 403, 'forbidden', match[2] === 'procurement/assistant'
+                ? 'Use a tenant credential with gis:procurement:read for searches or gis:procurement:write for confirmed GIS changes.'
+                : 'The configured tenant credential cannot perform this operation.');
+        const documentActor = c.req.header('x-faroai-document-actor') ?? '';
+        const hasDocumentProcurementScope = Array.isArray(service.scopes) && service.scopes.includes('document:procurement');
+        const stableDocumentActor = hasDocumentProcurementScope && service.client_credential_id
+            && /^[A-Za-z0-9._:-]{1,128}$/.test(documentActor)
+            ? `tenant-document:${createHmac('sha256', env.API_KEY_PEPPER).update(`GIS document actor:${service.tenant_id}:${service.client_credential_id}:${documentActor}`).digest('hex')}`
+            : null;
+        c.set('platformAdmin', { email: stableDocumentActor ?? `tenant-api-key:${service.id}`, authMethod: 'service', scopes: service.scopes });
         c.set('csrfHash', Buffer.alloc(0));
         void pool.query('UPDATE api_keys SET last_used_at=now() WHERE id=$1', [service.id]).catch(() => undefined);
         await next();
@@ -298,7 +372,8 @@ const requireAdmin = async (c, next) => {
     void pool.query('UPDATE platform_admin_sessions SET last_seen_at=now() WHERE token_hash=$1', [hashToken(token)]).catch(() => undefined);
     await next();
 };
-const gisPromptActorKind = (c) => c.get('platformAdmin').authMethod === 'service' ? 'tenant_api' : 'platform_admin';
+const gisPromptActorKind = (c) => c.get('platformAdmin').authMethod === 'service' ? 'tenant_api'
+    : c.get('platformAdmin').authMethod === 'tenant_session' ? 'tenant_admin' : 'platform_admin';
 adminRoutes.use('*', async (c, next) => {
     c.header('Cache-Control', 'no-store');
     c.header('X-Content-Type-Options', 'nosniff');
@@ -480,6 +555,65 @@ adminRoutes.put('/system/procurement-settings', async (c) => {
         client.release();
     }
 });
+async function mcpNewToolPolicy(): Promise<'all_discovered' | 'none_selected'> {
+    const result = await pool.query(`SELECT setting_value->>'policy' AS policy FROM platform_runtime_settings
+      WHERE setting_key='mcp_new_tool_default'`);
+    return result.rows[0]?.policy === 'none_selected' ? 'none_selected' : 'all_discovered';
+}
+function mergeDiscoveredToolPermissions(previousDiscovered: string[], previousAllowed: string[], discovered: string[], defaultPolicy: 'all_discovered' | 'none_selected') {
+    const allowed = new Set(previousAllowed.filter((tool) => discovered.includes(tool)));
+    if (defaultPolicy === 'all_discovered') {
+        for (const tool of discovered) if (!previousDiscovered.includes(tool)) allowed.add(tool);
+    }
+    return [...allowed];
+}
+adminRoutes.get('/system/mcp-settings', async (c) => c.json({ success: true,
+    data: { new_tool_policy: await mcpNewToolPolicy() }, correlation_id: c.get('correlationId') }));
+adminRoutes.put('/system/mcp-settings', async (c) => {
+    const parsed = mcpNewToolPolicySchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return fail(c, 400, 'invalid_request', 'The new-tool permission policy is invalid.');
+    await pool.query(`INSERT INTO platform_runtime_settings(setting_key,setting_value,updated_by_email,updated_at)
+      VALUES('mcp_new_tool_default',$1,$2,now()) ON CONFLICT(setting_key) DO UPDATE SET
+        setting_value=EXCLUDED.setting_value,updated_by_email=EXCLUDED.updated_by_email,updated_at=now()`,
+    [JSON.stringify({ policy: parsed.data.policy }), c.get('platformAdmin').email]);
+    await pool.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,resource_id,metadata)
+      VALUES(NULL,$1,$2,'platform_admin','platform.mcp_default_policy.updated','platform_runtime_setting','mcp_new_tool_default',$3)`,
+    [c.get('correlationId'), c.get('platformAdmin').email, JSON.stringify(parsed.data)]);
+    return c.json({ success: true, data: { new_tool_policy: parsed.data.policy }, correlation_id: c.get('correlationId') });
+});
+adminRoutes.get('/system/debug-tenant', async (c) => {
+    const saved = await pool.query(`SELECT setting_value->>'tenant_id' AS tenant_id
+      FROM platform_runtime_settings WHERE setting_key='root_debug_tenant'`);
+    let tenantId = saved.rows[0]?.tenant_id as string | undefined;
+    let source: 'saved' | 'default' = tenantId ? 'saved' : 'default';
+    let tenant = tenantId ? (await pool.query('SELECT id,name,status FROM tenants WHERE id=$1', [tenantId])).rows[0] : null;
+    if (!tenant) {
+        const fallback = await pool.query(`SELECT id,name,status FROM tenants
+          WHERE status='active' AND ($1::uuid IS NULL OR id=$1) ORDER BY created_at LIMIT 1`,
+        [env.FAROAI_TENANT_MODE === 'single' ? env.FAROAI_SINGLE_TENANT_ID : null]);
+        tenant = fallback.rows[0] ?? null;
+        tenantId = tenant?.id;
+        source = 'default';
+    }
+    return c.json({ success: true, data: { tenant_id: tenantId ?? null, tenant_name: tenant?.name ?? null,
+      status: tenant?.status ?? null, source }, correlation_id: c.get('correlationId') });
+});
+adminRoutes.put('/system/debug-tenant', async (c) => {
+    const parsed = rootDebugTenantSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success || !await tenantExists(parsed.data?.tenant_id ?? ''))
+        return fail(c, 400, 'invalid_tenant', 'Choose a tenant available to this deployment.');
+    const tenant = await pool.query('SELECT id,name,status FROM tenants WHERE id=$1', [parsed.data.tenant_id]);
+    const actorEmail = c.get('platformAdmin').email;
+    await pool.query(`INSERT INTO platform_runtime_settings(setting_key,setting_value,updated_by_email,updated_at)
+      VALUES('root_debug_tenant',$1,$2,now()) ON CONFLICT(setting_key) DO UPDATE SET
+      setting_value=EXCLUDED.setting_value,updated_by_email=EXCLUDED.updated_by_email,updated_at=now()`,
+    [JSON.stringify({ tenant_id: tenant.rows[0].id }), actorEmail]);
+    await pool.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,resource_id,metadata)
+      VALUES(NULL,$1,$2,'platform_admin','platform.debug_tenant.updated','platform_runtime_setting','root_debug_tenant',$3)`,
+    [c.get('correlationId'), actorEmail, JSON.stringify({ tenant_id: tenant.rows[0].id })]);
+    return c.json({ success: true, data: { tenant_id: tenant.rows[0].id, tenant_name: tenant.rows[0].name,
+      status: tenant.rows[0].status, source: 'saved' }, correlation_id: c.get('correlationId') });
+});
 adminRoutes.get('/tenants', async (c) => {
     const paging = pageParams.safeParse(c.req.query());
     if (!paging.success)
@@ -576,8 +710,58 @@ adminRoutes.patch('/tenants/:tenantId', async (c) => {
     if (!parsed.success)
         return fail(c, 400, 'invalid_request', 'The tenant update is invalid.');
     const result = await pool.query(`UPDATE tenants SET name=COALESCE($2,name),status=COALESCE($3,status),updated_at=now() WHERE id=$1 RETURNING id,name,status`, [tenantId, parsed.data.name ?? null, parsed.data.status ?? null]);
+    if (parsed.data.status === 'suspended')
+        await pool.query('UPDATE tenant_admin_sessions SET revoked_at=now() WHERE tenant_id=$1 AND revoked_at IS NULL', [tenantId]);
     await pool.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,resource_id,metadata)
      VALUES($1,$2,$3,'platform_admin','tenant.updated','tenant',$1,$4)`, [tenantId, c.get('correlationId'), c.get('platformAdmin').email, JSON.stringify(parsed.data)]);
+    return c.json({ success: true, data: result.rows[0], correlation_id: c.get('correlationId') });
+});
+adminRoutes.get('/tenants/:tenantId/mcp-admin-users', async (c) => {
+    const tenantId = c.req.param('tenantId');
+    if (!z.string().uuid().safeParse(tenantId).success || !await tenantExists(tenantId))
+        return fail(c, 404, 'not_found', 'The tenant was not found.');
+    const result = await pool.query(`SELECT id,email,status,created_at,updated_at,last_login_at
+      FROM tenant_admin_users WHERE tenant_id=$1 ORDER BY created_at`, [tenantId]);
+    return c.json({ success: true, data: { items: result.rows }, correlation_id: c.get('correlationId') });
+});
+adminRoutes.post('/tenants/:tenantId/mcp-admin-users', async (c) => {
+    const tenantId = c.req.param('tenantId');
+    if (!z.string().uuid().safeParse(tenantId).success || !await tenantExists(tenantId))
+        return fail(c, 404, 'not_found', 'The tenant was not found.');
+    const parsed = tenantMcpAccountSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return fail(c, 400, 'invalid_request', 'Use a valid email and a password with at least 12 characters.');
+    let passwordHash;
+    try { passwordHash = await hash(parsed.data.password); }
+    catch { return fail(c, 503, 'auth_unavailable', 'The tenant login account could not be secured.'); }
+    const email = parsed.data.email.toLowerCase();
+    const result = await pool.query(`INSERT INTO tenant_admin_users(tenant_id,email,password_hash,status,created_by_email)
+      VALUES($1,$2,$3,'active',$4) ON CONFLICT(email) DO UPDATE SET
+        password_hash=EXCLUDED.password_hash,status='active',updated_at=now(),created_by_email=EXCLUDED.created_by_email
+      WHERE tenant_admin_users.tenant_id=EXCLUDED.tenant_id
+      RETURNING id,email,status,created_at,updated_at,last_login_at`,
+    [tenantId, email, passwordHash, c.get('platformAdmin').email]);
+    if (!result.rows[0]) return fail(c, 409, 'email_in_use', 'This email is already assigned to a different tenant.');
+    await pool.query('UPDATE tenant_admin_sessions SET revoked_at=now() WHERE tenant_admin_id=$1 AND revoked_at IS NULL', [result.rows[0].id]);
+    await pool.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,resource_id,metadata)
+      VALUES($1,$2,$3,'platform_admin','tenant.mcp_admin.provisioned','tenant_admin_user',$4,$5)`,
+    [tenantId, c.get('correlationId'), c.get('platformAdmin').email, result.rows[0].id, JSON.stringify({ email })]);
+    return c.json({ success: true, data: result.rows[0], correlation_id: c.get('correlationId') }, 201);
+});
+adminRoutes.patch('/tenants/:tenantId/mcp-admin-users/:userId', async (c) => {
+    const tenantId = c.req.param('tenantId');
+    const userId = c.req.param('userId');
+    if (!z.string().uuid().safeParse(tenantId).success || !z.string().uuid().safeParse(userId).success || !await tenantExists(tenantId))
+        return fail(c, 404, 'not_found', 'The tenant account was not found.');
+    const parsed = tenantMcpAccountPatchSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return fail(c, 400, 'invalid_request', 'The account status is invalid.');
+    const result = await pool.query(`UPDATE tenant_admin_users SET status=$3,updated_at=now()
+      WHERE id=$1 AND tenant_id=$2 RETURNING id,email,status,created_at,updated_at,last_login_at`, [userId, tenantId, parsed.data.status]);
+    if (!result.rows[0]) return fail(c, 404, 'not_found', 'The tenant account was not found.');
+    if (parsed.data.status === 'disabled')
+        await pool.query('UPDATE tenant_admin_sessions SET revoked_at=now() WHERE tenant_admin_id=$1 AND tenant_id=$2 AND revoked_at IS NULL', [userId, tenantId]);
+    await pool.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,resource_id,metadata)
+      VALUES($1,$2,$3,'platform_admin','tenant.mcp_admin.status.updated','tenant_admin_user',$4,$5)`,
+    [tenantId, c.get('correlationId'), c.get('platformAdmin').email, userId, JSON.stringify({ status: parsed.data.status })]);
     return c.json({ success: true, data: result.rows[0], correlation_id: c.get('correlationId') });
 });
 adminRoutes.get('/tenants/:tenantId/credits/ledger', async (c) => {
@@ -1232,7 +1416,7 @@ adminRoutes.put('/tenants/:tenantId/mcp/connections/:integration', async (c) => 
         return c.json({ success: true, data: {
                 id: result.rows[0]?.id, integration: integrationKey, endpoint_url: endpointUrl, auth_method: parsed.data.auth_method, enabled: parsed.data.enabled,
                 connection_status: connectionStatus, discovered_tools: discoveredTools, allowed_tools: allowedTools,
-                secret_hint: maskSecretHint(encrypted?.hint ?? old?.secret_hint ?? null),
+                secret_hint: maskSecretHint(encrypted?.hint ?? old?.secret_hint ?? null), last_checked_at: resetDiscovery ? null : old?.last_checked_at ?? null,
             }, correlation_id: c.get('correlationId') });
     }
     catch {
@@ -1257,7 +1441,7 @@ adminRoutes.post('/tenants/:tenantId/mcp/connections/:integration/test', async (
         return fail(c, 400, 'invalid_integration', 'The MCP integration type is invalid.');
     if (!await tenantExists(tenantId))
         return fail(c, 404, 'not_found', 'The tenant was not found.');
-    const result = await pool.query(`SELECT id,endpoint_url,auth_method,secret_ciphertext,secret_nonce,secret_tag,allowed_tools
+    const result = await pool.query(`SELECT id,endpoint_url,auth_method,secret_ciphertext,secret_nonce,secret_tag,allowed_tools,discovered_tools
        FROM tenant_mcp_connections WHERE tenant_id=$1 AND integration_key=$2`, [tenantId, integrationKey]);
     const connection = result.rows[0];
     if (!connection)
@@ -1298,20 +1482,293 @@ adminRoutes.post('/tenants/:tenantId/mcp/connections/:integration/test', async (
         return fail(c, 502, 'mcp_unavailable', mcpTestFailureMessages[failureCode]
             ?? 'The MCP server could not be verified. Check the endpoint, API key, and approved host configuration.');
     }
-    const allowedTools = connection.allowed_tools.filter((tool) => discoveredTools.includes(tool));
+    const allowedTools = mergeDiscoveredToolPermissions(connection.discovered_tools ?? [], connection.allowed_tools ?? [], discoveredTools, await mcpNewToolPolicy());
     await pool.query(`UPDATE tenant_mcp_connections SET connection_status='connected',discovered_tools=$3,allowed_tools=$4,
        last_checked_at=now(),last_error_code=NULL,updated_at=now() WHERE id=$1 AND tenant_id=$2`, [connection.id, tenantId, discoveredTools, allowedTools]);
     await pool.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,resource_id,metadata)
      VALUES($1,$2,$3,'platform_admin','mcp.connection.tested','mcp_connection',$4,$5)`, [tenantId, c.get('correlationId'), c.get('platformAdmin').email, connection.id, JSON.stringify({ integration: integrationKey, discovered_tool_count: discoveredTools.length })]);
     return c.json({ success: true, data: { connection_status: 'connected', discovered_tools: discoveredTools, allowed_tools: allowedTools }, correlation_id: c.get('correlationId') });
 });
+export const tenantMcpRoutes = new Hono<{ Variables: {
+    correlationId: string;
+    tenantAdmin: { id: string; tenantId: string; email: string };
+} }>();
+function setTenantSessionCookies(c, token, csrf) {
+    const base = { path: '/', httpOnly: true, secure: env.BACKOFFICE_COOKIE_SECURE, sameSite: 'Lax', maxAge: ADMIN_SESSION_SECONDS };
+    setCookie(c, TENANT_SESSION_COOKIE, token, base);
+    setCookie(c, TENANT_CSRF_COOKIE, csrf, { ...base, httpOnly: false });
+    const alternateSessionCookie = env.BACKOFFICE_COOKIE_SECURE ? 'faroai_tenant' : '__Host-faroai_tenant';
+    const alternateCsrfCookie = env.BACKOFFICE_COOKIE_SECURE ? 'faroai_tenant_csrf' : '__Host-faroai_tenant_csrf';
+    const alternateSecure = alternateSessionCookie.startsWith('__Host-');
+    deleteCookie(c, alternateSessionCookie, { path: '/', secure: alternateSecure, sameSite: 'Lax' });
+    deleteCookie(c, alternateCsrfCookie, { path: '/', secure: alternateSecure, sameSite: 'Lax' });
+}
+function clearTenantSessionCookies(c) {
+    deleteCookie(c, TENANT_SESSION_COOKIE, { path: '/', secure: env.BACKOFFICE_COOKIE_SECURE, sameSite: 'Lax' });
+    deleteCookie(c, TENANT_CSRF_COOKIE, { path: '/', secure: env.BACKOFFICE_COOKIE_SECURE, sameSite: 'Lax' });
+}
+tenantMcpRoutes.use('*', async (c, next) => {
+    c.header('Cache-Control', 'no-store');
+    c.header('X-Content-Type-Options', 'nosniff');
+    c.header('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+    await next();
+});
+tenantMcpRoutes.get('/auth/config', (c) => c.json({ success: true, data: { enabled: env.BACKOFFICE_ENABLED } }));
+tenantMcpRoutes.post('/auth/login', async (c) => {
+    if (!env.BACKOFFICE_ENABLED) return fail(c, 404, 'not_found', 'Tenant sign-in is disabled.');
+    if (!checkOrigin(c)) return fail(c, 403, 'forbidden', 'The request origin is not allowed.');
+    const parsed = loginSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return fail(c, 400, 'invalid_request', 'Email and password are required.');
+    const email = parsed.data.email.toLowerCase();
+    const rateKey = `tenant:auth:${hashToken(email).toString('hex')}`;
+    try {
+        await ensureAdminRedisConnected();
+        const attempts = await redis.incr(rateKey);
+        if (attempts === 1) await redis.expire(rateKey, 900);
+        if (attempts > 8) return fail(c, 429, 'rate_limited', 'Too many login attempts. Try again later.');
+    } catch { return fail(c, 503, 'auth_unavailable', 'Tenant sign-in is temporarily unavailable.'); }
+    const result = await pool.query(`SELECT u.id,u.tenant_id,u.password_hash,u.status,t.name AS tenant_name,t.status AS tenant_status
+      FROM tenant_admin_users u JOIN tenants t ON t.id=u.tenant_id WHERE u.email=$1 ORDER BY u.created_at LIMIT 2`, [email]);
+    const user = result.rows.length === 1 ? result.rows[0] : null;
+    let passwordValid = false;
+    try { passwordValid = !!user && await verify(user.password_hash, parsed.data.password); } catch { passwordValid = false; }
+    if (!user || user.status !== 'active' || user.tenant_status !== 'active' || !passwordValid)
+        return fail(c, 401, 'unauthorized', 'The email or password is incorrect.');
+    try {
+        await redis.del(rateKey);
+        const token = randomBytes(32).toString('base64url');
+        const csrf = randomBytes(32).toString('base64url');
+        await pool.query(`INSERT INTO tenant_admin_sessions(token_hash,tenant_admin_id,tenant_id,csrf_hash,expires_at)
+          VALUES($1,$2,$3,$4,now()+interval '8 hours')`, [hashToken(token), user.id, user.tenant_id, hashToken(csrf)]);
+        await pool.query('UPDATE tenant_admin_users SET last_login_at=now() WHERE id=$1 AND tenant_id=$2', [user.id, user.tenant_id]);
+        await pool.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,resource_id,metadata)
+          VALUES($1,$2,$3,'tenant_admin','tenant.mcp_admin.login','tenant_admin_user',$4,'{}')`, [user.tenant_id, c.get('correlationId'), email, user.id]);
+        setTenantSessionCookies(c, token, csrf);
+        return c.json({ success: true, data: { email, tenant: { id: user.tenant_id, name: user.tenant_name }, expires_in_seconds: ADMIN_SESSION_SECONDS }, correlation_id: c.get('correlationId') });
+    } catch { return fail(c, 503, 'auth_unavailable', 'Tenant sign-in is temporarily unavailable.'); }
+});
+const requireTenantAdmin = async (c, next) => {
+    if (!env.BACKOFFICE_ENABLED) return fail(c, 404, 'not_found', 'Tenant sign-in is disabled.');
+    const token = getCookie(c, TENANT_SESSION_COOKIE);
+    if (!token) return fail(c, 401, 'unauthorized', 'A tenant administrator session is required.');
+    const result = await pool.query(`SELECT s.tenant_admin_id,s.tenant_id,s.csrf_hash,u.email
+      FROM tenant_admin_sessions s JOIN tenant_admin_users u ON u.id=s.tenant_admin_id AND u.tenant_id=s.tenant_id
+      JOIN tenants t ON t.id=s.tenant_id
+      WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.status='active' AND t.status='active'`, [hashToken(token)]);
+    const session = result.rows[0];
+    if (!session) return fail(c, 401, 'unauthorized', 'The tenant administrator session has expired.');
+    const safeMethod = ['GET', 'HEAD', 'OPTIONS'].includes(c.req.method);
+    const origin = c.req.header('origin');
+    if ((origin && !checkOrigin(c)) || (!origin && !safeMethod)) return fail(c, 403, 'forbidden', 'The request origin is not allowed.');
+    if (!safeMethod) {
+        const csrfCookie = getCookie(c, TENANT_CSRF_COOKIE) ?? '';
+        const csrfHeader = c.req.header('x-csrf-token') ?? '';
+        if (!csrfCookie || !csrfHeader || !safeEqual(csrfCookie, csrfHeader)
+            || !timingSafeEqual(hashToken(csrfCookie), session.csrf_hash))
+            return fail(c, 403, 'csrf_failed', 'The request could not be verified.');
+    }
+    c.set('tenantAdmin', { id: session.tenant_admin_id, tenantId: session.tenant_id, email: session.email });
+    void pool.query('UPDATE tenant_admin_sessions SET last_seen_at=now() WHERE token_hash=$1', [hashToken(token)]).catch(() => undefined);
+    await next();
+};
+tenantMcpRoutes.get('/auth/session', requireTenantAdmin, async (c) => {
+    const actor = c.get('tenantAdmin');
+    const result = await pool.query('SELECT id,name,status FROM tenants WHERE id=$1', [actor.tenantId]);
+    return c.json({ success: true, data: { email: actor.email, tenant: result.rows[0], expires_in_seconds: ADMIN_SESSION_SECONDS }, correlation_id: c.get('correlationId') });
+});
+tenantMcpRoutes.post('/auth/logout', requireTenantAdmin, async (c) => {
+    const token = getCookie(c, TENANT_SESSION_COOKIE);
+    if (token) {
+        await pool.query('UPDATE tenant_admin_sessions SET revoked_at=now() WHERE token_hash=$1 AND revoked_at IS NULL', [hashToken(token)]);
+        const actor = c.get('tenantAdmin');
+        await pool.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,resource_id,metadata)
+          VALUES($1,$2,$3,'tenant_admin','tenant.mcp_admin.logout','tenant_admin_user',$4,'{}')`, [actor.tenantId, c.get('correlationId'), actor.email, actor.id]);
+    }
+    clearTenantSessionCookies(c);
+    return c.json({ success: true, data: { logged_out: true }, correlation_id: c.get('correlationId') });
+});
+tenantMcpRoutes.use('/mcp/*', requireTenantAdmin);
+tenantMcpRoutes.get('/app-credentials', requireTenantAdmin, async (c) => {
+    const actor = c.get('tenantAdmin');
+    const result = await pool.query(`SELECT id,client_id,label,scopes,created_at,last_used_at,revoked_at
+      FROM tenant_app_credentials WHERE tenant_id=$1 ORDER BY created_at DESC`, [actor.tenantId]);
+    return c.json({ success: true, data: { items: result.rows }, correlation_id: c.get('correlationId') });
+});
+tenantMcpRoutes.post('/app-credentials', requireTenantAdmin, async (c) => {
+    const actor = c.get('tenantAdmin');
+    const parsed = tenantAppCredentialSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return fail(c, 400, 'invalid_request', 'The application credential details are invalid.');
+    const clientId = `fai_client_${randomBytes(18).toString('base64url')}`;
+    const clientSecret = `fai_secret_${randomBytes(32).toString('base64url')}`;
+    const secretHash = createHmac('sha256', env.API_KEY_PEPPER).update(clientSecret).digest();
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const result = await client.query(`INSERT INTO tenant_app_credentials(tenant_id,client_id,client_secret_hash,label,scopes,created_by_email)
+          VALUES($1,$2,$3,$4,$5,$6) RETURNING id,client_id,label,scopes,created_at,last_used_at,revoked_at`,
+        [actor.tenantId, clientId, secretHash, parsed.data.label, parsed.data.scopes, actor.email]);
+        const credential = result.rows[0];
+        await client.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,resource_id,metadata)
+          VALUES($1,$2,$3,'tenant_admin','tenant.app_credential.created','tenant_app_credential',$4,$5)`,
+        [actor.tenantId, c.get('correlationId'), actor.email, credential.id, JSON.stringify({ scopes: credential.scopes })]);
+        await client.query('COMMIT');
+        return c.json({ success: true, data: { ...credential, client_secret: clientSecret }, correlation_id: c.get('correlationId') }, 201);
+    } catch {
+        await client.query('ROLLBACK').catch(() => undefined);
+        return fail(c, 503, 'credential_create_failed', 'The application credential could not be created.');
+    } finally { client.release(); }
+});
+tenantMcpRoutes.patch('/app-credentials/:id', requireTenantAdmin, async (c) => {
+    const actor = c.get('tenantAdmin');
+    const id = c.req.param('id');
+    if (!z.string().uuid().safeParse(id).success) return fail(c, 404, 'not_found', 'The application credential was not found.');
+    const parsed = tenantAppCredentialScopesSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return fail(c, 400, 'invalid_request', 'The application credential permissions are invalid.');
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const changed = await client.query(`UPDATE tenant_app_credentials SET scopes=$1
+          WHERE id=$2 AND tenant_id=$3 AND revoked_at IS NULL
+          RETURNING id,client_id,label,scopes,created_at,last_used_at,revoked_at`, [parsed.data.scopes, id, actor.tenantId]);
+        if (!changed.rowCount) { await client.query('ROLLBACK'); return fail(c, 404, 'not_found', 'The active application credential was not found.'); }
+        const credential = changed.rows[0];
+        const revoked = await client.query(`UPDATE api_keys SET revoked_at=COALESCE(revoked_at,now())
+          WHERE client_credential_id=$1 AND tenant_id=$2 AND revoked_at IS NULL`, [id, actor.tenantId]);
+        await client.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,resource_id,metadata)
+          VALUES($1,$2,$3,'tenant_admin','tenant.app_credential.scopes_updated','tenant_app_credential',$4,$5)`,
+        [actor.tenantId, c.get('correlationId'), actor.email, id, JSON.stringify({ scopes: credential.scopes, revoked_access_tokens: revoked.rowCount ?? 0 })]);
+        await client.query('COMMIT');
+        return c.json({ success: true, data: { ...credential, revoked_access_tokens: revoked.rowCount ?? 0 }, correlation_id: c.get('correlationId') });
+    } catch {
+        await client.query('ROLLBACK').catch(() => undefined);
+        return fail(c, 503, 'credential_update_failed', 'The application credential permissions could not be updated.');
+    } finally { client.release(); }
+});
+tenantMcpRoutes.delete('/app-credentials/:id', requireTenantAdmin, async (c) => {
+    const actor = c.get('tenantAdmin');
+    const id = c.req.param('id');
+    if (!z.string().uuid().safeParse(id).success) return fail(c, 404, 'not_found', 'The application credential was not found.');
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const changed = await client.query(`UPDATE tenant_app_credentials SET revoked_at=COALESCE(revoked_at,now())
+          WHERE id=$1 AND tenant_id=$2 RETURNING id,client_id`, [id, actor.tenantId]);
+        if (!changed.rowCount) { await client.query('ROLLBACK'); return fail(c, 404, 'not_found', 'The application credential was not found.'); }
+        await client.query(`UPDATE api_keys SET revoked_at=COALESCE(revoked_at,now())
+          WHERE client_credential_id=$1 AND tenant_id=$2`, [id, actor.tenantId]);
+        await client.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,resource_id,metadata)
+          VALUES($1,$2,$3,'tenant_admin','tenant.app_credential.revoked','tenant_app_credential',$4,'{}')`,
+        [actor.tenantId, c.get('correlationId'), actor.email, id]);
+        await client.query('COMMIT');
+        return c.json({ success: true, data: { id, status: 'revoked' }, correlation_id: c.get('correlationId') });
+    } catch {
+        await client.query('ROLLBACK').catch(() => undefined);
+        return fail(c, 503, 'credential_update_failed', 'The application credential could not be revoked.');
+    } finally { client.release(); }
+});
+tenantMcpRoutes.get('/mcp/connections', async (c) => {
+    const actor = c.get('tenantAdmin');
+    const result = await pool.query(`SELECT id,integration_key,display_name,endpoint_url,auth_method,enabled,connection_status,discovered_tools,allowed_tools,
+      secret_hint,last_checked_at,last_error_code FROM tenant_mcp_connections WHERE tenant_id=$1 ORDER BY integration_key`, [actor.tenantId]);
+    return c.json({ success: true, data: { items: result.rows.map((row) => ({ ...row, secret_hint: maskSecretHint(row.secret_hint) })) }, correlation_id: c.get('correlationId') });
+});
+tenantMcpRoutes.put('/mcp/connections/:integration', async (c) => {
+    const actor = c.get('tenantAdmin');
+    const integrationKey = c.req.param('integration');
+    if (!mcpIntegrationKeys.includes(integrationKey)) return fail(c, 400, 'invalid_integration', 'The MCP integration type is invalid.');
+    const parsed = mcpConnectionSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success || new Set(parsed.data?.allowed_tools ?? []).size !== (parsed.data?.allowed_tools.length ?? 0))
+        return fail(c, 400, 'invalid_request', 'The MCP connection configuration is invalid.');
+    let endpoint;
+    try { endpoint = validateMcpEndpoint(parsed.data.endpoint_url, allowedMcpHosts, env.MCP_ALLOW_DOCKER_HOST_HTTP); }
+    catch { return fail(c, 400, 'invalid_endpoint', 'The endpoint must use HTTPS and a host approved by the platform root.'); }
+    const endpointUrl = endpoint.href.replace(/\/$/, '');
+    const previous = await pool.query(`SELECT id,endpoint_url,auth_method,secret_ciphertext,secret_nonce,secret_tag,discovered_tools,allowed_tools,
+      connection_status,last_checked_at,last_error_code,secret_hint FROM tenant_mcp_connections WHERE tenant_id=$1 AND integration_key=$2`, [actor.tenantId, integrationKey]);
+    const old = previous.rows[0];
+    if (!old && !parsed.data.api_key) return fail(c, 400, 'api_key_required', 'An API key is required for a new MCP connection.');
+    let encrypted = null;
+    if (parsed.data.api_key) {
+        try { encrypted = encryptProviderSecret(parsed.data.api_key, encryptionKey()); }
+        catch { return fail(c, 503, 'secret_storage_unavailable', 'Secure MCP credential storage is not configured.'); }
+    }
+    const resetDiscovery = !old || old.endpoint_url !== endpointUrl || old.auth_method !== parsed.data.auth_method || !!encrypted;
+    const discoveredTools = resetDiscovery ? [] : old.discovered_tools;
+    const allowedTools = resetDiscovery ? [] : parsed.data.allowed_tools;
+    if (allowedTools.some((tool) => !discoveredTools.includes(tool))) return fail(c, 400, 'tool_not_discovered', 'Only tools found by the latest successful connection test can be enabled.');
+    const secretCiphertext = encrypted?.ciphertext ?? old?.secret_ciphertext;
+    const secretNonce = encrypted?.nonce ?? old?.secret_nonce;
+    const secretTag = encrypted?.tag ?? old?.secret_tag;
+    if (!secretCiphertext || !secretNonce || !secretTag) return fail(c, 400, 'api_key_required', 'An API key is required for a new MCP connection.');
+    try {
+        const saved = await pool.query(`INSERT INTO tenant_mcp_connections
+          (tenant_id,integration_key,display_name,endpoint_url,auth_method,secret_ciphertext,secret_nonce,secret_tag,secret_hint,enabled,connection_status,discovered_tools,allowed_tools,last_checked_at,last_error_code)
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+          ON CONFLICT(tenant_id,integration_key) DO UPDATE SET display_name=EXCLUDED.display_name,endpoint_url=EXCLUDED.endpoint_url,
+            auth_method=EXCLUDED.auth_method,secret_ciphertext=EXCLUDED.secret_ciphertext,secret_nonce=EXCLUDED.secret_nonce,secret_tag=EXCLUDED.secret_tag,
+            secret_hint=EXCLUDED.secret_hint,enabled=EXCLUDED.enabled,connection_status=EXCLUDED.connection_status,
+            discovered_tools=EXCLUDED.discovered_tools,allowed_tools=EXCLUDED.allowed_tools,last_checked_at=EXCLUDED.last_checked_at,
+            last_error_code=EXCLUDED.last_error_code,updated_at=now() RETURNING id`,
+        [actor.tenantId, integrationKey, parsed.data.display_name, endpointUrl, parsed.data.auth_method, secretCiphertext, secretNonce, secretTag,
+          encrypted?.hint ?? old?.secret_hint, parsed.data.enabled, resetDiscovery ? 'untested' : old.connection_status, discoveredTools, allowedTools,
+          resetDiscovery ? null : old?.last_checked_at ?? null, resetDiscovery ? null : old?.last_error_code ?? null]);
+        await pool.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,resource_id,metadata)
+          VALUES($1,$2,$3,'tenant_admin','mcp.connection.updated','mcp_connection',$4,$5)`,
+        [actor.tenantId, c.get('correlationId'), actor.email, saved.rows[0].id, JSON.stringify({ integration: integrationKey, enabled: parsed.data.enabled, credential_rotated: !!encrypted, endpoint_changed: resetDiscovery })]);
+        return c.json({ success: true, data: { id: saved.rows[0].id, integration: integrationKey, display_name: parsed.data.display_name,
+          endpoint_url: endpointUrl, auth_method: parsed.data.auth_method, enabled: parsed.data.enabled, connection_status: resetDiscovery ? 'untested' : old.connection_status,
+          discovered_tools: discoveredTools, allowed_tools: allowedTools, secret_hint: maskSecretHint(encrypted?.hint ?? old?.secret_hint ?? null),
+          last_checked_at: resetDiscovery ? null : old?.last_checked_at ?? null }, correlation_id: c.get('correlationId') });
+    } catch { return fail(c, 409, 'mcp_connection_conflict', 'The MCP connection could not be saved.'); }
+});
+tenantMcpRoutes.post('/mcp/connections/:integration/test', async (c) => {
+    const actor = c.get('tenantAdmin');
+    const integrationKey = c.req.param('integration');
+    if (!mcpIntegrationKeys.includes(integrationKey)) return fail(c, 400, 'invalid_integration', 'The MCP integration type is invalid.');
+    const result = await pool.query(`SELECT id,endpoint_url,auth_method,secret_ciphertext,secret_nonce,secret_tag,allowed_tools,discovered_tools
+      FROM tenant_mcp_connections WHERE tenant_id=$1 AND integration_key=$2`, [actor.tenantId, integrationKey]);
+    const connection = result.rows[0];
+    if (!connection) return fail(c, 404, 'not_found', 'Save this MCP connection before testing it.');
+    let apiKey;
+    try { apiKey = decryptProviderSecret(connection.secret_ciphertext, connection.secret_nonce, connection.secret_tag, encryptionKey()); }
+    catch { return fail(c, 503, 'secret_unavailable', 'The MCP credential could not be read securely.'); }
+    let discoveredTools;
+    let failureCode = 'connection_test_failed';
+    try {
+        const body = JSON.stringify({ tenant_id: actor.tenantId, correlation_id: c.get('correlationId'), endpoint_url: connection.endpoint_url, api_key: apiKey, auth_method: connection.auth_method });
+        const timestamp = Math.floor(Date.now() / 1000).toString();
+        const signature = createHmac('sha256', env.FAROAI_INTERNAL_SECRET).update(`${timestamp}.${body}`).digest('hex');
+        const response = await fetch(new URL('/internal/v1/mcp/test', env.PYTHON_SERVICE_URL), { method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-faroai-timestamp': timestamp, 'x-faroai-signature': signature },
+          body, signal: AbortSignal.timeout(15_000), redirect: 'error' });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || typeof payload !== 'object' || payload === null || !('discovered_tools' in payload)
+          || !Array.isArray(payload.discovered_tools) || !payload.discovered_tools.every((tool) => typeof tool === 'string')) {
+            const reportedCode = typeof payload === 'object' && payload !== null && 'error_code' in payload ? payload.error_code : null;
+            if (typeof reportedCode === 'string' && Object.hasOwn(mcpTestFailureMessages, reportedCode)) failureCode = reportedCode;
+            throw new Error('mcp_probe_failed');
+        }
+        discoveredTools = [...new Set(payload.discovered_tools)].slice(0, 100);
+    } catch {
+        await pool.query(`UPDATE tenant_mcp_connections SET connection_status='error',last_checked_at=now(),last_error_code='connection_test_failed',updated_at=now() WHERE id=$1 AND tenant_id=$2`, [connection.id, actor.tenantId]);
+        await pool.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,resource_id,metadata)
+          VALUES($1,$2,$3,'tenant_admin','mcp.connection.test_failed','mcp_connection',$4,$5)`, [actor.tenantId, c.get('correlationId'), actor.email, connection.id, JSON.stringify({ integration: integrationKey })]);
+        return fail(c, 502, 'mcp_unavailable', mcpTestFailureMessages[failureCode] ?? 'The MCP server could not be verified. Check the endpoint, API key, and approved host configuration.');
+    }
+    const allowedTools = mergeDiscoveredToolPermissions(connection.discovered_tools ?? [], connection.allowed_tools ?? [], discoveredTools, await mcpNewToolPolicy());
+    await pool.query(`UPDATE tenant_mcp_connections SET connection_status='connected',discovered_tools=$3,allowed_tools=$4,last_checked_at=now(),last_error_code=NULL,updated_at=now()
+      WHERE id=$1 AND tenant_id=$2`, [connection.id, actor.tenantId, discoveredTools, allowedTools]);
+    await pool.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,resource_id,metadata)
+      VALUES($1,$2,$3,'tenant_admin','mcp.connection.tested','mcp_connection',$4,$5)`, [actor.tenantId, c.get('correlationId'), actor.email, connection.id, JSON.stringify({ integration: integrationKey, discovered_tool_count: discoveredTools.length })]);
+    return c.json({ success: true, data: { connection_status: 'connected', discovered_tools: discoveredTools, allowed_tools: allowedTools }, correlation_id: c.get('correlationId') });
+});
 export async function mcpConnectionsForTenant(tenantId) {
-    const result = await pool.query(`SELECT id AS source_id,display_name,endpoint_url,auth_method,secret_ciphertext,secret_nonce,secret_tag,allowed_tools
+    const result = await pool.query(`SELECT id AS source_id,integration_key,display_name,endpoint_url,auth_method,secret_ciphertext,secret_nonce,secret_tag,allowed_tools
        FROM tenant_mcp_connections
       WHERE tenant_id=$1 AND enabled=true AND connection_status='connected' AND cardinality(allowed_tools)>0
       ORDER BY integration_key`, [tenantId]);
     return result.rows.map((row) => ({
-        source_id: row.source_id, name: row.display_name, endpoint_url: row.endpoint_url, auth_method: row.auth_method,
+        source_id: row.source_id, integration_key: row.integration_key, name: row.display_name, endpoint_url: row.endpoint_url, auth_method: row.auth_method,
         api_key: decryptProviderSecret(row.secret_ciphertext, row.secret_nonce, row.secret_tag, encryptionKey()),
         allowed_tools: row.allowed_tools,
     }));
@@ -1377,14 +1834,77 @@ const productMcpActionSchema = z.object({
     confirm: z.literal(true).optional(),
 }).strict();
 const PRODUCT_CREATION_TOOLS = ['get_product_master_data', 'preview_product', 'create_product', 'create_products_bulk', 'get_mcp_bulk_job_status'];
-const PROCUREMENT_TOOLS = ['get_product_master_data', 'search_locations', 'get_location', 'create_voucher_type', 'search_po_products',
+const PROCUREMENT_TOOLS = ['get_product_master_data', 'search_locations', 'get_location', 'get_supplier', 'search_suppliers', 'create_voucher_type', 'search_po_products',
     'preview_purchase_order', 'create_purchase_order', 'search_purchase_orders', 'get_purchase_order', 'preview_inventory_receipt', 'receive_inventory'];
 const procurementAssistantSchema = z.object({
     message: z.string().trim().min(1).max(1500),
     history: z.array(z.record(z.unknown())).max(12).optional(),
+    document_context: z.string().min(1).max(32_000).optional(),
+    document_analysis_consented: z.literal(true).optional(),
+}).strict().refine((value) => !value.document_context || value.document_analysis_consented === true);
+const customerBirthdayAssistantSchema = z.object({
+    message: z.string().trim().min(1).max(500),
+}).strict();
+const documentPlanInputSchema = z.object({
+    message: z.string().trim().min(1).max(1500),
+    format: z.enum(['pdf', 'docx', 'xlsx']),
+    columns: z.array(z.string().min(1).max(120)).min(1).max(20),
+    current_layout: artifactLayoutSchema.default({}),
+}).strict();
+const documentPlanOutputSchema = z.object({
+    edit: z.boolean(), orientation: z.enum(['portrait', 'landscape']).optional(),
+    title: z.string().trim().min(1).max(120).optional(), layout: artifactLayoutSchema,
+    requires_image: z.boolean(), remove_image: z.boolean(), unsupported: z.string().max(240).optional(),
 }).strict();
 const procurementRuntimeSettingsSchema = z.object({ conversation_history_enabled: z.boolean() }).strict();
 const procurementConfirmSchema = z.object({ draft_id: z.string().regex(/^[a-f0-9]{32}$/) }).strict();
+adminRoutes.post('/tenants/:tenantId/artifacts/plan', async (c) => {
+    const tenantId = c.req.param('tenantId');
+    if (!z.string().uuid().safeParse(tenantId).success || !await tenantExists(tenantId))
+        return fail(c, 404, 'not_found', 'The tenant was not found.');
+    const parsed = documentPlanInputSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return fail(c, 400, 'invalid_request', 'Enter a document revision request with available columns.');
+    let candidates;
+    let decisionApiKey;
+    try {
+        candidates = await modelCandidatesForTenant(tenantId, { max_output_tokens: 1200 });
+        decisionApiKey = await jevDecisionApiKey();
+    } catch { return fail(c, 503, 'model_configuration_unavailable', 'Document model configuration is unavailable.'); }
+    if (!candidates.length) return fail(c, 409, 'no_eligible_model', 'Configure an eligible paid model before revising a document.');
+    const reservationId = await reserveModelCredit(tenantId, c.get('correlationId'));
+    if (!reservationId) return fail(c, 402, 'insufficient_credits', 'The tenant has no available AI credits for this document revision.');
+    try {
+        const result = await callProductAi('/internal/v1/artifacts/plan', tenantId, c.get('correlationId'), {
+            ...parsed.data, provider_candidates: candidates, decision_api_key: decisionApiKey,
+        }, 75_000);
+        const plan = documentPlanOutputSchema.safeParse(result.plan);
+        if (!plan.success) {
+            await settleModelCredit(reservationId, result.model_used === true);
+            return fail(c, 502, 'document_plan_invalid', 'The model returned an unsupported document change.');
+        }
+        const hidden = plan.data.layout.hidden_columns ?? [];
+        const visible = parsed.data.columns.filter((column) => !hidden.includes(column));
+        const ordered = plan.data.layout.column_order;
+        if (visible.length === 0 || hidden.some((column) => !parsed.data.columns.includes(column))
+            || (ordered && (ordered.length !== visible.length || new Set(ordered).size !== ordered.length
+                || ordered.some((column) => !visible.includes(column))))) {
+            await settleModelCredit(reservationId, result.model_used === true);
+            return fail(c, 502, 'document_plan_invalid', 'The requested columns do not match this document.');
+        }
+        if (plan.data.edit && !plan.data.unsupported && !plan.data.orientation && !plan.data.title
+            && Object.keys(plan.data.layout).length === 0 && !plan.data.requires_image && !plan.data.remove_image) {
+            await settleModelCredit(reservationId, result.model_used === true);
+            return fail(c, 502, 'document_plan_empty', 'FaroAI could not identify a supported document change in that request.');
+        }
+        await settleModelCredit(reservationId, result.model_used === true);
+        return c.json({ success: true, data: plan.data, correlation_id: c.get('correlationId') });
+    } catch (error) {
+        await settleModelCredit(reservationId, false).catch(() => undefined);
+        console.warn(JSON.stringify({ event: 'document_plan_failed', correlation_id: c.get('correlationId'),
+            error_code: error instanceof Error ? error.message : 'unknown' }));
+        return fail(c, 502, 'document_plan_failed', 'FaroAI could not interpret the document change. Please try a more specific instruction.');
+    }
+});
 adminRoutes.post('/tenants/:tenantId/product-creation/drafts', async (c) => {
     const tenantId = c.req.param('tenantId');
     if (!z.string().uuid().safeParse(tenantId).success || !await tenantExists(tenantId))
@@ -1590,6 +2110,15 @@ adminRoutes.post('/tenants/:tenantId/procurement/assistant', async (c) => {
     const parsed = procurementAssistantSchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success)
         return fail(c, 400, 'invalid_request', 'Enter a Thai or English supplier, PO, or inventory request.');
+    const actor = c.get('platformAdmin');
+    if (parsed.data.document_context && actor.authMethod === 'service') {
+        const proof = c.req.header('x-faroai-document-procurement-proof') ?? '';
+        const correlationId = c.get('correlationId') ?? '';
+        const proofPayload = `${tenantId}\n${correlationId}\n${parsed.data.message}\n${parsed.data.document_context}`;
+        const expectedProof = createHmac('sha256', env.API_KEY_PEPPER).update(proofPayload).digest('hex');
+        if (!actor.scopes?.includes('document:procurement') || !safeEqual(proof, expectedProof))
+            return fail(c, 403, 'document_processing_not_authorized', 'Document text must come from an authorized FaroAI document-import job.');
+    }
     // Assistant exposes only discovered and approved tools; each operation is
     // authorized independently instead of requiring every write capability.
     const gis = await productGisConnection(tenantId, []);
@@ -1597,6 +2126,15 @@ adminRoutes.post('/tenants/:tenantId/procurement/assistant', async (c) => {
         return c.json({ success: false, error: gis.error, message: gis.missing_tools
             ? `Approve these GIS procurement tools in MCP connections first: ${gis.missing_tools.join(', ')}.`
             : 'Enable and test the tenant GIS MCP connection first.', correlation_id: c.get('correlationId') }, 409);
+    const readOnlyServiceCredential = actor.authMethod === 'service'
+        && actor.scopes?.includes('gis:procurement:read')
+        && !actor.scopes?.includes('gis:procurement:write');
+    if (readOnlyServiceCredential) {
+        const readTools = new Set([
+            'get_product_master_data', 'search_suppliers', 'get_supplier', 'search_purchase_orders', 'get_purchase_order',
+        ]);
+        gis.connection.allowed_tools = gis.connection.allowed_tools.filter((tool) => readTools.has(tool));
+    }
     let candidates;
     let decisionApiKey = '';
     let conversationHistoryEnabled = true;
@@ -1618,6 +2156,10 @@ adminRoutes.post('/tenants/:tenantId/procurement/assistant', async (c) => {
         const result = await callProductAi('/internal/v1/procurement/assistant', tenantId, c.get('correlationId'), {
             actor_email: c.get('platformAdmin').email, mcp_connection: gis.connection,
             message: parsed.data.message, history: conversationHistoryEnabled ? parsed.data.history ?? [] : [],
+            ...(parsed.data.document_context ? {
+                document_context: parsed.data.document_context,
+                document_analysis_consented: parsed.data.document_analysis_consented === true,
+            } : {}),
             provider_candidates: candidates, decision_api_key: decisionApiKey,
         }, 120_000);
         procurementStage = 'settle_credit';
@@ -1629,8 +2171,8 @@ adminRoutes.post('/tenants/:tenantId/procurement/assistant', async (c) => {
             const action = result.pending_action;
             const kind = action.kind;
             const argumentsValue = action.arguments;
-            const preview = action.preview;
-            if (!['create_purchase_order', 'receive_inventory', 'create_voucher_type', 'create_supplier', 'activate_supplier'].includes(kind)
+            let preview = action.preview;
+            if (!['create_purchase_order', 'receive_inventory', 'create_voucher_type', 'create_supplier', 'create_location', 'activate_supplier'].includes(kind)
                 || typeof argumentsValue !== 'object' || argumentsValue === null
                 || typeof preview !== 'object' || preview === null) {
                 console.error(JSON.stringify({ event: 'procurement_preview_rejected', kind: typeof kind === 'string' ? kind : null,
@@ -1645,11 +2187,12 @@ adminRoutes.post('/tenants/:tenantId/procurement/assistant', async (c) => {
                     : kind === 'create_voucher_type'
                         ? ['get_product_master_data', 'search_locations', 'get_location', 'create_voucher_type']
                         : kind === 'create_supplier' ? ['search_suppliers', 'create_supplier']
+                            : kind === 'create_location' ? ['get_product_master_data', 'search_locations', 'create_location']
                             : ['search_suppliers', 'activate_supplier'];
             const unapprovedActionTools = requiredForAction.filter((tool) => !gis.connection.allowed_tools.includes(tool));
             if (unapprovedActionTools.length)
                 return fail(c, 403, 'procurement_action_not_approved', `Approve these GIS tools first: ${unapprovedActionTools.join(', ')}.`);
-            if (kind === 'create_supplier') {
+            if (kind === 'create_supplier' && !parsed.data.document_context) {
                 const supplierArgs = argumentsValue as Record<string, unknown>;
                 const supplierFields = ['organization', 'code', 'contact_person', 'country', 'address', 'state', 'city', 'zip',
                     'vendor_type', 'tax_id', 'email', 'phone', 'website'];
@@ -1692,6 +2235,68 @@ adminRoutes.post('/tenants/:tenantId/procurement/assistant', async (c) => {
                 await pool.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,resource_id,metadata)
                   VALUES($1,$2,$3,$4,'gis_supplier.created','gis_supplier',$5,$6)`, [tenantId, c.get('correlationId'), c.get('platformAdmin').email, gisPromptActorKind(c),
                     String(outcome.supplier?.id ?? ''), JSON.stringify({ status: 'active', source: 'procurement_prompt' })]);
+            } else if (kind === 'create_supplier') {
+                const supplierArgs = argumentsValue as Record<string, unknown>;
+                const supplierFields = ['organization', 'code', 'contact_person', 'country', 'address', 'state', 'city', 'zip',
+                    'vendor_type', 'tax_id', 'email', 'phone', 'website'];
+                const supplierRequired = ['organization', 'code', 'contact_person', 'country', 'address', 'state', 'city', 'zip'];
+                if (Object.keys(supplierArgs).some((field) => !supplierFields.includes(field))
+                    || supplierRequired.some((field) => typeof supplierArgs[field] !== 'string' || !(supplierArgs[field] as string).trim()))
+                    return fail(c, 502, 'supplier_create_arguments_invalid', 'The document does not contain all required GIS Supplier details. No Supplier was created.');
+                for (const field of ['code', 'organization']) {
+                    const lookup = await callProductAi('/internal/v1/procurement/tool', tenantId, c.get('correlationId'), {
+                        mcp_connection: gis.connection, tool: 'search_suppliers', arguments: {
+                            query: String(supplierArgs[field]).trim(), limit: 100, offset: 0, include_inactive: true,
+                        },
+                    });
+                    const rows = lookup.result?.suppliers;
+                    if (!Array.isArray(rows) || (typeof lookup.result?.total === 'number' && lookup.result.total > rows.length))
+                        return fail(c, 502, 'supplier_duplicate_check_failed', 'GIS could not verify Supplier duplicates. No Supplier was created.');
+                    const duplicate = rows.find((row) => field === 'code'
+                        ? String(row?.code ?? '').trim().toLowerCase() === String(supplierArgs.code).trim().toLowerCase()
+                        : String(row?.organization ?? row?.name ?? '').trim().toLowerCase() === String(supplierArgs.organization).trim().toLowerCase());
+                    if (duplicate)
+                        return c.json({ success: true, data: { answer: 'GIS found a matching Supplier. No duplicate was created; FaroAI will continue with that record after checking the source details.', history: result.history ?? [], pending_confirmation: null, purchase_orders: [] }, correlation_id: c.get('correlationId') });
+                }
+                const supplier = Object.fromEntries(supplierFields
+                    .filter((field) => supplierArgs[field] !== undefined && supplierArgs[field] !== '')
+                    .map((field) => [field, String(supplierArgs[field]).trim()]));
+                preview = { supplier: { ...supplier, status: 'active' } };
+            } else if (kind === 'create_location') {
+                const locationArgs = argumentsValue as Record<string, unknown>;
+                const locationFields = ['name', 'code', 'type', 'address', 'state', 'city', 'zipcode', 'country', 'email',
+                    'currency', 'Thousandseparator', 'tax', 'Dateformat', 'TimeZone', 'tax_id', 'branch_id'];
+                const locationRequired = ['name', 'code', 'currency', 'Thousandseparator', 'tax', 'Dateformat', 'TimeZone'];
+                if (Object.keys(locationArgs).some((field) => !locationFields.includes(field))
+                    || locationRequired.some((field) => typeof locationArgs[field] !== 'string' || !(locationArgs[field] as string).trim())
+                    || !['store', 'warehouse'].includes(String(locationArgs.type ?? 'Store').toLowerCase()))
+                    return fail(c, 502, 'location_create_arguments_invalid', 'The document does not contain valid required GIS Location details. No Location was created.');
+                const taxData = await callProductAi('/internal/v1/procurement/tool', tenantId, c.get('correlationId'), {
+                    mcp_connection: gis.connection, tool: 'get_product_master_data', arguments: { types: ['tax'], limit: 100 },
+                });
+                const taxRows = taxData.result?.masters?.tax;
+                if (!Array.isArray(taxRows)) return fail(c, 502, 'location_tax_lookup_failed', 'GIS could not verify the Location tax master. No Location was created.');
+                const taxMatch = taxRows.find((row) => row && ['1', 'active', 'Active'].includes(String(row.status ?? row.Status ?? '1'))
+                    && ['id', 'name', 'code'].some((field) => String(row[field] ?? '').trim().toLowerCase() === String(locationArgs.tax).trim().toLowerCase()));
+                if (!taxMatch) return fail(c, 409, 'location_tax_not_verified', 'The Location tax value does not exactly match an active GIS tax master. No Location was created.');
+                const location = Object.fromEntries(locationFields
+                    .filter((field) => locationArgs[field] !== undefined && locationArgs[field] !== '')
+                    .map((field) => [field, String(locationArgs[field]).trim()]));
+                location.type = location.type || 'Store';
+                location.tax = String(taxMatch.id ?? taxMatch.name ?? taxMatch.code);
+                for (const field of ['code', 'name']) {
+                    const lookup = await callProductAi('/internal/v1/procurement/tool', tenantId, c.get('correlationId'), {
+                        mcp_connection: gis.connection, tool: 'search_locations', arguments: {
+                            query: String(location[field]), limit: 100, offset: 0, include_inactive: true,
+                        },
+                    });
+                    const rows = lookup.result?.locations;
+                    if (!Array.isArray(rows) || (typeof lookup.result?.total === 'number' && lookup.result.total > rows.length))
+                        return fail(c, 502, 'location_duplicate_check_failed', 'GIS could not verify Location duplicates. No Location was created.');
+                    const duplicate = rows.find((row) => String(row?.[field] ?? '').trim().toLowerCase() === String(location[field]).toLowerCase());
+                    if (duplicate) return c.json({ success: true, data: { answer: 'GIS found a matching Location. No duplicate was created; FaroAI will continue with that record after verification.', history: result.history ?? [], pending_confirmation: null, purchase_orders: [] }, correlation_id: c.get('correlationId') });
+                }
+                preview = { location: { ...location, created_by_gis: 'GIS will also create its default Vault zone and cash register.' } };
             } else {
             const draftId = randomBytes(16).toString('hex');
             const draft = { tenant_id: tenantId, actor_email: c.get('platformAdmin').email, kind,
@@ -1738,10 +2343,63 @@ adminRoutes.post('/tenants/:tenantId/procurement/assistant', async (c) => {
                         : requestsSupplierCreation
                             ? 'Sync the GIS MCP tool list, then enable `search_suppliers` and `create_supplier` for this connection before creating a supplier.'
                             : 'Supplier lookup is read-only. Sync the GIS MCP tool list, then enable `search_suppliers` for this connection.'
-                : 'The read-only PO lookup needs approved GIS read tools (supplier master, PO search, and PO details). PO creation and inventory receipt permissions are not required to search.';
+                : 'Read-only PO lookup needs approved GIS supplier lookup and PO search tools. Batched PO details are preferred; approve get_purchase_order only when the GIS connection does not support include_lines. PO creation and inventory receipt permissions are not required.';
             return fail(c, 409, code, messageText);
         }
+        if (code === 'gis_mcp_unavailable') {
+            return fail(c, 503, code, 'FaroAI could not reach the GIS MCP service, so it could not check the purchase orders. Check that the MCP server and its tunnel are running, then retry. No PO or inventory was changed.');
+        }
         return fail(c, 502, 'procurement_assistant_failed', 'FaroAI could not complete this PO or inventory request. No PO or receipt was created.');
+    }
+});
+adminRoutes.post('/tenants/:tenantId/customers/assistant', async (c) => {
+    const tenantId = c.req.param('tenantId');
+    if (!z.string().uuid().safeParse(tenantId).success || !await tenantExists(tenantId))
+        return fail(c, 404, 'not_found', 'The tenant was not found.');
+    const parsed = customerBirthdayAssistantSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success)
+        return fail(c, 400, 'invalid_request', 'Enter a customer name or a supported birthday question.');
+    const actor = c.get('platformAdmin');
+    if (actor.authMethod === 'service' && !actor.scopes?.includes('gis:customers:read'))
+        return fail(c, 403, 'forbidden', 'This application credential needs the gis:customers:read permission.');
+    const gis = await productGisConnection(tenantId, ['search_customers']);
+    if (!gis.connection)
+        return c.json({ success: false, error: gis.error, message: gis.missing_tools
+            ? 'Approve the read-only search_customers tool in this tenant’s GIS MCP connection first.'
+            : 'Enable and test this tenant’s GIS MCP connection first.', correlation_id: c.get('correlationId') }, 409);
+    try {
+        const response = await callProductAi('/internal/v1/customers/birthday-lookup', tenantId, c.get('correlationId'), {
+            message: parsed.data.message,
+            mcp_connection: gis.connection,
+        }, 35_000);
+        if (response?.success !== true || typeof response.data !== 'object' || response.data === null
+            || !Array.isArray(response.data.customers) || !Number.isInteger(response.data.total))
+            return fail(c, 502, 'customer_search_response_invalid', 'GIS returned an invalid customer birthday result.');
+        const data = response.data;
+        await pool.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,metadata)
+          VALUES($1,$2,$3,$4,'customer.birthday.searched','gis_customer_search',$5)`, [tenantId, c.get('correlationId'), actor.email,
+            gisPromptActorKind(c), JSON.stringify({ result_count: data.customers.length, total: data.total, has_more: data.has_more === true })]);
+        return c.json({ success: true, data, correlation_id: c.get('correlationId') });
+    } catch (error) {
+        const code = error instanceof Error ? error.message : 'customer_search_failed';
+        const messages: Record<string, string> = {
+            customer_birthday_intent_required: 'Ask explicitly about a customer’s birthday, birth date, age, or customers born on a date.',
+            customer_birthday_filter_required: 'Include a customer name, birth year, month, or specific birthday date.',
+            customer_birthday_filter_not_supported: 'This first release cannot filter by group, VIP status, location, salesperson, age range, missing birthday, or count-only requests. Use a customer name, named month/date, today, or an exact birth year.',
+            birthday_date_ambiguous: 'Please use a named month, such as “June 12”; numeric dates can be ambiguous.',
+            birthday_date_invalid: 'That day does not exist in the specified month.',
+            birth_year_invalid: 'The birth year must be a valid year that is not in the future.',
+            birthday_range_not_supported_yet: 'This release supports a named customer, a specific date, a month, today, or a birth year. Date ranges are not available yet.',
+            customer_search_tool_not_approved: 'Approve the read-only search_customers tool in this tenant’s GIS MCP connection first.',
+            gis_mcp_unavailable: 'The tenant GIS MCP connection could not be reached.',
+            customer_search_failed: 'GIS could not complete the customer birthday lookup.',
+            customer_search_response_invalid: 'GIS returned an invalid customer birthday result.',
+        };
+        const status = code === 'customer_birthday_intent_required' || code === 'customer_birthday_filter_required' || code === 'customer_birthday_filter_not_supported'
+            || code === 'birthday_date_ambiguous' || code === 'birthday_date_invalid' || code === 'birth_year_invalid' || code === 'birthday_range_not_supported_yet' ? 400
+            : code === 'customer_search_tool_not_approved' ? 409
+            : code === 'gis_mcp_unavailable' ? 503 : 502;
+        return fail(c, status, code, messages[code] ?? 'FaroAI could not complete the customer birthday lookup.');
     }
 });
 adminRoutes.post('/tenants/:tenantId/procurement/confirm', async (c) => {
@@ -1768,6 +2426,7 @@ adminRoutes.post('/tenants/:tenantId/procurement/confirm', async (c) => {
             : draft.kind === 'create_voucher_type'
                 ? ['get_product_master_data', 'search_locations', 'get_location', 'create_voucher_type']
                 : draft.kind === 'create_supplier' ? ['search_suppliers', 'create_supplier']
+                    : draft.kind === 'create_location' ? ['get_product_master_data', 'search_locations', 'create_location']
                     : draft.kind === 'activate_supplier' ? ['search_suppliers', 'activate_supplier'] : null;
     if (!requiredForDraft) return fail(c, 409, 'procurement_preview_invalid', 'This GIS preview is invalid.');
     const gis = await productGisConnection(tenantId, requiredForDraft);
@@ -1813,6 +2472,49 @@ adminRoutes.post('/tenants/:tenantId/procurement/confirm', async (c) => {
                 .map((name) => [name, String(supplierArgs[name]).trim()]));
             supplier.status = 'active';
             preview = { supplier };
+        }
+        else if (draft.kind === 'create_location') {
+            const locationArgs = draft.arguments;
+            const locationFields = ['name', 'code', 'type', 'address', 'state', 'city', 'zipcode', 'country', 'email',
+                'currency', 'Thousandseparator', 'tax', 'Dateformat', 'TimeZone', 'tax_id', 'branch_id'];
+            const requiredFields = ['name', 'code', 'currency', 'Thousandseparator', 'tax', 'Dateformat', 'TimeZone'];
+            if (Object.keys(locationArgs).some((field) => !locationFields.includes(field))
+                || requiredFields.some((field) => typeof locationArgs[field] !== 'string' || !locationArgs[field].trim())
+                || !['store', 'warehouse'].includes(String(locationArgs.type ?? 'Store').toLowerCase()))
+                return fail(c, 409, 'location_preview_invalid', 'The GIS Location details are invalid. No Location was created.');
+            const taxData = await callProductAi('/internal/v1/procurement/tool', tenantId, c.get('correlationId'), {
+                mcp_connection: gis.connection, tool: 'get_product_master_data', arguments: { types: ['tax'], limit: 100 },
+            });
+            const taxRows = taxData.result?.masters?.tax;
+            if (!Array.isArray(taxRows)) throw new Error('location_tax_lookup_failed');
+            const taxMatch = taxRows.find((row) => row && ['1', 'active', 'Active'].includes(String(row.status ?? row.Status ?? '1'))
+                && ['id', 'name', 'code'].some((field) => String(row[field] ?? '').trim().toLowerCase() === String(locationArgs.tax).trim().toLowerCase()));
+            if (!taxMatch) {
+                draft.status = 'blocked';
+                await redis.set(key, JSON.stringify(draft), 'EX', 900);
+                return c.json({ success: false, error: 'location_tax_not_verified', message: 'The Location tax value no longer matches an active GIS tax master. No Location was created.' }, 409);
+            }
+            const location = Object.fromEntries(locationFields.filter((field) => locationArgs[field] !== undefined && locationArgs[field] !== '')
+                .map((field) => [field, String(locationArgs[field]).trim()]));
+            location.type = location.type || 'Store';
+            location.tax = String(taxMatch.id ?? taxMatch.name ?? taxMatch.code);
+            for (const field of ['code', 'name']) {
+                const lookup = await callProductAi('/internal/v1/procurement/tool', tenantId, c.get('correlationId'), {
+                    mcp_connection: gis.connection, tool: 'search_locations', arguments: {
+                        query: String(location[field]), limit: 100, offset: 0, include_inactive: true,
+                    },
+                });
+                const rows = lookup.result?.locations;
+                if (!Array.isArray(rows)) throw new Error('location_duplicate_check_failed');
+                if (typeof lookup.result?.total === 'number' && lookup.result.total > rows.length)
+                    throw new Error('location_duplicate_check_incomplete');
+                if (rows.some((row) => String(row?.[field] ?? '').trim().toLowerCase() === String(location[field]).toLowerCase())) {
+                    draft.status = 'blocked';
+                    await redis.set(key, JSON.stringify(draft), 'EX', 900);
+                    return c.json({ success: false, error: 'location_already_exists', message: 'GIS found a Location with the same name or code. No duplicate was created; review the existing record.' }, 409);
+                }
+            }
+            preview = { location: { ...location, created_by_gis: 'GIS will also create its default Vault zone and cash register.' } };
         }
         else if (draft.kind === 'activate_supplier') {
             const supplierId = String(draft.arguments?.supplier_id ?? '');
@@ -1885,8 +2587,8 @@ adminRoutes.post('/tenants/:tenantId/procurement/confirm', async (c) => {
             });
             preview = current.result;
         }
-        const isCustomMasterPreview = ['create_voucher_type', 'create_supplier', 'activate_supplier'].includes(draft.kind);
-        if (!preview || (isCustomMasterPreview ? !(preview.voucher_type || preview.supplier) : preview.valid !== true || (draft.kind === 'receive_inventory' && preview.can_receive === false))) {
+        const isCustomMasterPreview = ['create_voucher_type', 'create_supplier', 'create_location', 'activate_supplier'].includes(draft.kind);
+        if (!preview || (isCustomMasterPreview ? !(preview.voucher_type || preview.supplier || preview.location) : preview.valid !== true || (draft.kind === 'receive_inventory' && preview.can_receive === false))) {
             draft.status = 'blocked';
             await redis.set(key, JSON.stringify(draft), 'EX', 900);
             return c.json({ success: false, error: 'procurement_preview_failed', message: 'GIS data changed or the latest preview did not pass. Review a fresh preview before confirming.', data: preview ?? null }, 409);
@@ -1911,6 +2613,7 @@ adminRoutes.post('/tenants/:tenantId/procurement/confirm', async (c) => {
         const outcome = result.result;
         const completed = tool === 'activate_supplier' ? outcome?.activated === true
             : tool === 'create_purchase_order' || tool === 'create_voucher_type' || tool === 'create_supplier'
+                || tool === 'create_location'
                 ? outcome?.created === true : outcome?.created === true || outcome?.accepted === true;
         if (!completed) {
             draft.status = 'failed';
@@ -1930,11 +2633,13 @@ adminRoutes.post('/tenants/:tenantId/procurement/confirm', async (c) => {
             tool === 'create_purchase_order' ? 'purchase_order.created'
                 : tool === 'create_voucher_type' ? 'gis_voucher_type.created'
                     : tool === 'create_supplier' ? 'gis_supplier.created'
+                        : tool === 'create_location' ? 'gis_location.created'
                         : tool === 'activate_supplier' ? 'gis_supplier.activated' : 'inventory_receipt.created',
             tool === 'create_purchase_order' ? 'gis_purchase_order'
                 : tool === 'create_voucher_type' ? 'gis_voucher_type'
+                    : tool === 'create_location' ? 'gis_location'
                     : (tool === 'create_supplier' || tool === 'activate_supplier') ? 'gis_supplier' : 'gis_inventory_receipt',
-            String(outcome.purchase_order?.id ?? outcome.voucher_type?.id ?? outcome.supplier?.id ?? outcome.receipt?.id ?? outcome.job_id ?? ''),
+            String(outcome.purchase_order?.id ?? outcome.voucher_type?.id ?? outcome.supplier?.id ?? outcome.location?.id ?? outcome.receipt?.id ?? outcome.job_id ?? ''),
             JSON.stringify({ status: (tool === 'create_supplier' || tool === 'activate_supplier')
                 ? 'active' : outcome.status ?? (outcome.accepted ? 'queued' : 'pending_approval') })]);
         const answer = tool === 'create_purchase_order'
@@ -1943,6 +2648,8 @@ adminRoutes.post('/tenants/:tenantId/procurement/confirm', async (c) => {
                 ? `The active Purchase Order voucher ${String(outcome.voucher_type?.name ?? '')} was created in GIS. No supplier, PO, or inventory records were created.`
             : tool === 'create_supplier'
                 ? `Supplier ${String(outcome.supplier?.name ?? outcome.supplier?.organization ?? '')} was created and activated in GIS. This write does not synchronize supplier data to ERP.`
+            : tool === 'create_location'
+                ? `Location ${String(outcome.location?.name ?? outcome.location?.code ?? '')} was created in GIS with its default Vault zone and cash register.`
             : tool === 'activate_supplier'
                 ? `Supplier ${String(outcome.supplier?.name ?? outcome.supplier?.organization ?? '')} was activated in GIS.`
             : outcome.accepted && outcome.job_id

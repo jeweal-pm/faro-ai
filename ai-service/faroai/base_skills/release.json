@@ -1,5 +1,5 @@
 {
-  "release": "2026.10.30.1",
+  "release": "2026.11.05.2",
   "skills": [
     {
       "id": "base.jewelry-search",
@@ -60,36 +60,36 @@
       "name": "data-analysis",
       "description": "Analyze authorized tabular data using verified deterministic calculations.",
       "version": "1.0.0",
-      "status": "planned",
+      "status": "ready",
       "executor": "artifact.analysis",
-      "digest": "19ccd7f38be478f8b666b4e27b8a00e0f5b7d0a257e84fd1504cf433440a5d13"
+      "digest": "5e685ad1e8655438239fa1dbefa2a9cdfa82ec4eb1d63dc54ebfa20981cac52d"
     },
     {
       "id": "base.pdf",
       "name": "pdf",
       "description": "Create an authorized PDF document from approved content and data.",
-      "version": "1.0.0",
-      "status": "planned",
+      "version": "1.2.0",
+      "status": "ready",
       "executor": "artifact.pdf",
-      "digest": "4307bb17d24d524f95f199f693943ea67aec47250b43cdca33a41159f4db694a"
+      "digest": "868cc829e277b9bd3b2aa77577e0786cabdbf487b8de2fc9739a316e83b472bc"
     },
     {
       "id": "base.xlsx",
       "name": "xlsx",
       "description": "Create an authorized Excel workbook from verified tabular data.",
-      "version": "1.0.0",
-      "status": "planned",
+      "version": "1.2.0",
+      "status": "ready",
       "executor": "artifact.xlsx",
-      "digest": "7b877d6c27a9e42ea315f205b5257725465b3efbb3142f9370eb893f2bb0277d"
+      "digest": "47f55f93ac5630823cdc52da5aceb72746221e9b09ebb065ff038fd3aa34d51e"
     },
     {
       "id": "base.docx",
       "name": "docx",
       "description": "Create an authorized Word document from approved content and data.",
-      "version": "1.0.0",
-      "status": "planned",
+      "version": "1.2.0",
+      "status": "ready",
       "executor": "artifact.docx",
-      "digest": "81e7f9debb70cbfe8ce9e1cc3e712edfa32c0a9000af7b1a419628f4157cba1f"
+      "digest": "cd1b4da48a831db8ed186eb89851714b3d0ec63bf6dd9bf452bdb032fc3936bb"
     },
     {
       "id": "base.pptx",

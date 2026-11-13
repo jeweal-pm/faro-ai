@@ -13,7 +13,6 @@ RUN apt-get update \
       'python-docx==1.2.0' \
       'python-pptx==1.0.2' \
       'psycopg[binary]>=3.2,<4' \
-      'redis>=5,<7' \
     && groupadd --system --gid 10002 artifact \
     && useradd --system --uid 10002 --gid artifact --no-create-home artifact \
     && install -d -m 0750 -o 10002 -g 10002 /var/faroai/artifacts

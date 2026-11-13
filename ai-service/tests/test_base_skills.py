@@ -14,12 +14,14 @@ class BaseSkillRegistryTests(unittest.TestCase):
         shutil.copytree(Path(__file__).resolve().parents[1] / "faroai" / "base_skills", self.root)
         self.addCleanup(self.tmp.cleanup)
 
-    def test_shared_catalog_exposes_planned_without_enabling_them(self):
+    def test_shared_catalog_exposes_only_implemented_executor_skills(self):
         registry = BaseSkillRegistry(self.root)
         self.assertEqual(len(registry.catalog()["skills"]), 11)
         self.assertEqual(len(registry.choices("discovery.")), 2)
-        with self.assertRaises(SkillRegistryError):
-            registry.load("base.xlsx", "artifact.xlsx")
+        self.assertEqual(len(registry.choices("artifact.")), 4)
+        excel, instructions = registry.load("base.xlsx", "artifact.xlsx")
+        self.assertEqual(excel.status, "ready")
+        self.assertIn("formula-like text", instructions)
         with self.assertRaises(SkillRegistryError):
             registry.load("base.unknown", "discovery.product")
 

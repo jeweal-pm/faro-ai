@@ -1,14 +1,15 @@
 import { serve } from '@hono/node-server';
 import { Hono, type Context, type MiddlewareHandler } from 'hono';
-import { randomUUID, createHash, createHmac } from 'node:crypto';
+import { randomUUID, randomBytes, createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { constants as fsConstants } from 'node:fs';
 import { open as openFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Pool } from 'pg';
 import { Redis } from 'ioredis';
 import { z } from 'zod';
-import { artifactActorHash, artifactSchema } from './artifact-security.js';
-import { adminRoutes, jevDecisionApiKey, mcpConnectionsForTenant, modelCandidatesForTenant, reserveModelCredit, settleModelCredit, type AdminVariables } from './admin.js';
+import { artifactActorHash, artifactSchema, artifactValidationMessage } from './artifact-security.js';
+import { adminRoutes, tenantMcpRoutes, resolveTenantSessionRequest, jevDecisionApiKey, mcpConnectionsForTenant, modelCandidatesForTenant, reserveModelCredit, settleModelCredit, type AdminVariables } from './admin.js';
+import { cleanupExpiredDocumentSources, createDocumentImportRoutes } from './document-import.js';
 const env = z.object({
     PORT: z.coerce.number().int().positive().default(3000),
     DATABASE_URL: z.string().min(1),
@@ -19,6 +20,10 @@ const env = z.object({
     MAX_BODY_BYTES: z.coerce.number().int().positive().default(32_768),
     FAROAI_ARTIFACT_ENABLED: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
     FAROAI_ARTIFACT_ROOT: z.string().default('/var/faroai/artifacts'),
+    FAROAI_DOCUMENT_IMPORT_ENABLED: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
+    FAROAI_DOCUMENT_IMPORT_ROOT: z.string().default('/var/faroai/document-import/source'),
+    FAROAI_DOCUMENT_PREVIEW_ROOT: z.string().default('/var/faroai/document-import/previews'),
+    FAROAI_DOCUMENT_IMPORT_ENCRYPTION_KEY: z.string().default(''),
     FAROAI_TENANT_MODE: z.enum(['multi', 'single']).default('multi'),
     FAROAI_SINGLE_TENANT_ID: z.string().default(''),
     FAROAI_DEPLOYMENT_MODE: z.enum(['hosted', 'self_hosted']).default('hosted'),
@@ -41,7 +46,7 @@ if (env.FAROAI_TENANT_MODE === 'single') {
     throw new Error('Single-tenant mode requires exactly the configured active tenant in PostgreSQL.');
   }
 }
-type AuthContext = { tenant: { id: string; consent_version: number }; scopes: string[]; apiKeyId: string; consent: { ai_chat: boolean; ai_improve: boolean; ai_training_local: boolean; ai_training_shared: boolean } };
+type AuthContext = { tenant: { id: string; consent_version: number }; scopes: string[]; apiKeyId: string; actorId: string; clientCredentialId?: string | null; consent: { ai_chat: boolean; ai_improve: boolean; ai_training_local: boolean; ai_training_shared: boolean }; exportRequested: boolean };
 type Variables = AdminVariables & { auth: AuthContext };
 const app = new Hono<{ Variables: Variables }>();
 const api = new Hono<{ Variables: Variables }>();
@@ -52,6 +57,19 @@ const chatSchema = z.object({
     history: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().max(1500) })).max(8).default([]),
     state: z.record(z.unknown()).default({}),
 }).strict().refine((value) => Boolean(value.image_base64) === Boolean(value.image_media_type), { message: 'Image data and media type must be provided together.' });
+const procurementAnalysisSchema = z.object({
+    operation: z.enum(['count_lines', 'count_orders', 'sum', 'average', 'minimum', 'maximum']),
+    field: z.enum(['quantity', 'unit_price', 'line_total']),
+    language: z.enum(['en', 'th']),
+    orders: z.array(z.object({
+      line_count: z.number().int().min(0).max(500),
+      lines: z.array(z.object({
+        quantity: z.number().finite().nullable(),
+        unit_price: z.number().finite().nullable(),
+        line_total: z.number().finite().nullable(),
+      }).strict()).max(500),
+    }).strict()).min(1).max(10),
+}).strict().refine((value) => value.orders.reduce((total, order) => total + order.lines.length, 0) <= 500);
 const feedbackSchema = z.object({
     rating: z.enum(['up', 'down']),
     intent: z.string().regex(/^[a-z]{1,12}$/).default('other'),
@@ -124,15 +142,104 @@ app.get('/health/ready', async (c) => {
         return fail(c, 503, 'not_ready', 'Service dependencies are unavailable.');
     }
 });
+api.post('/oauth/token', async (c) => {
+    c.header('Cache-Control', 'no-store');
+    c.header('Pragma', 'no-cache');
+    if (!(c.req.header('content-type') ?? '').toLowerCase().startsWith('application/x-www-form-urlencoded'))
+        return fail(c, 400, 'invalid_client_request', 'Submit token requests as application/x-www-form-urlencoded.');
+    const raw = await c.req.text();
+    if (Buffer.byteLength(raw, 'utf8') > 8192) return fail(c, 413, 'too_large', 'The token request is too large.');
+    const fields = new URLSearchParams(raw);
+    const grantType = fields.get('grant_type') ?? '';
+    const clientId = fields.get('client_id') ?? '';
+    const clientSecret = fields.get('client_secret') ?? '';
+    const requestedScopeText = fields.get('scope');
+    if (grantType !== 'client_credentials' || !/^fai_client_[A-Za-z0-9_-]{20,80}$/.test(clientId)
+        || !/^fai_secret_[A-Za-z0-9_-]{32,100}$/.test(clientSecret))
+        return fail(c, 400, 'invalid_client_request', 'Use the client_credentials grant with a valid client ID and secret.');
+    const rateKey = `oauth:client:${createHash('sha256').update(clientId).digest('hex')}`;
+    try {
+        const attempts = await redis.incr(rateKey);
+        if (attempts === 1) await redis.expire(rateKey, 900);
+        if (attempts > 20) return fail(c, 429, 'rate_limited', 'Too many token requests. Try again later.');
+    } catch { return fail(c, 503, 'auth_unavailable', 'Token issuance is temporarily unavailable.'); }
+    const result = await pool.query(`SELECT c.id,c.tenant_id,c.client_secret_hash,c.scopes,t.status
+      FROM tenant_app_credentials c JOIN tenants t ON t.id=c.tenant_id
+      WHERE c.client_id=$1 AND c.revoked_at IS NULL`, [clientId]);
+    const credential = result.rows[0];
+    const submittedHash = createHmac('sha256', env.API_KEY_PEPPER).update(clientSecret).digest();
+    const validHash = credential?.client_secret_hash;
+    const secretValid = Buffer.isBuffer(validHash) && validHash.length === submittedHash.length
+        && timingSafeEqual(validHash, submittedHash);
+    if (!credential || credential.status !== 'active' || !secretValid)
+        return fail(c, 401, 'invalid_client', 'The client credentials are invalid or revoked.');
+    if (env.FAROAI_TENANT_MODE === 'single' && credential.tenant_id !== env.FAROAI_SINGLE_TENANT_ID)
+        return fail(c, 403, 'tenant_disabled', 'This deployment is restricted to its configured tenant.');
+    const allowedScopes: string[] = Array.isArray(credential.scopes) ? credential.scopes : [];
+    const requestedScopes = requestedScopeText?.trim() ? requestedScopeText.trim().split(/\s+/) : allowedScopes;
+    if (requestedScopes.some((scope) => !allowedScopes.includes(scope)))
+        return fail(c, 400, 'invalid_scope', 'The requested scope is not allowed for this client.');
+    const accessToken = `fai_${randomBytes(32).toString('base64url')}`;
+    const tokenHash = createHash('sha256').update(env.API_KEY_PEPPER).update(accessToken).digest();
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        await client.query(`INSERT INTO api_keys(tenant_id,key_hash,label,scopes,client_credential_id,expires_at)
+          VALUES($1,$2,$3,$4,$5,now()+interval '1 hour')`,
+        [credential.tenant_id, tokenHash, `OAuth ${clientId.slice(-8)}`, requestedScopes, credential.id]);
+        await client.query('UPDATE tenant_app_credentials SET last_used_at=now() WHERE id=$1', [credential.id]);
+        await client.query(`INSERT INTO audit_events(tenant_id,correlation_id,actor_email,actor_kind,action,resource_type,resource_id,metadata)
+          VALUES($1,$2,$3,'tenant_api','tenant.app_credential.token_issued','tenant_app_credential',$4,$5)`,
+        [credential.tenant_id, c.get('correlationId'), clientId, credential.id, JSON.stringify({ scopes: requestedScopes, expires_in_seconds: 3600 })]);
+        await client.query('COMMIT');
+        await redis.del(rateKey).catch(() => undefined);
+        return c.json({ success: true, data: { access_token: accessToken, token_type: 'Bearer', expires_in: 3600, scope: requestedScopes.join(' '), tenant_id: credential.tenant_id }, correlation_id: c.get('correlationId') });
+    } catch {
+        await client.query('ROLLBACK').catch(() => undefined);
+        return fail(c, 503, 'token_unavailable', 'An access token could not be issued.');
+    } finally { client.release(); }
+});
 const authenticate: MiddlewareHandler<{ Variables: Variables }> = async (c, next) => {
     const authorization = c.req.header('authorization') ?? '';
     const match = /^Bearer (fai_[A-Za-z0-9_-]{32,})$/.exec(authorization);
-    if (!match)
-        return fail(c, 401, 'unauthorized', 'A valid FaroAI server credential is required.');
+    if (!match) {
+        const path = c.req.path.replace(/^\/v1/, '');
+        const documentRead = c.req.method === 'GET' && (path === '/document-types'
+            || /^\/document-imports\/[0-9a-f-]{36}$/i.test(path)
+            || /^\/document-imports\/[0-9a-f-]{36}\/preview\/[1-9][0-9]{0,1}$/i.test(path));
+        const documentWrite = (c.req.method === 'POST' && (path === '/document-imports' || /^\/document-imports\/[0-9a-f-]{36}\/procurement$/i.test(path)))
+            || (c.req.method === 'PATCH' && /^\/document-imports\/[0-9a-f-]{36}\/draft$/i.test(path))
+            || (c.req.method === 'DELETE' && /^\/document-imports\/[0-9a-f-]{36}$/i.test(path));
+        const isDocumentPath = documentRead || documentWrite;
+        const sessionAllowed = isDocumentPath || path === '/chat' || path === '/skills/analyze' || path === '/artifacts/context'
+            || path === '/artifacts' || /^\/artifacts\/[0-9a-f-]{36}(?:\/download)?$/i.test(path);
+        const session = sessionAllowed ? await resolveTenantSessionRequest(c.req.raw, !['GET', 'HEAD', 'OPTIONS'].includes(c.req.method)) : null;
+        if (!session) return fail(c, 401, 'unauthorized', 'A valid FaroAI server credential or tenant session is required.');
+        if (env.FAROAI_TENANT_MODE === 'single' && session.tenant_id !== env.FAROAI_SINGLE_TENANT_ID)
+            return fail(c, 403, 'tenant_disabled', 'This deployment is restricted to its configured tenant.');
+        const tenantId = session.tenant_id;
+        const ephemeral = `fai_${randomBytes(32).toString('base64url')}`;
+        const keyHash = createHash('sha256').update(env.API_KEY_PEPPER).update(ephemeral).digest();
+        await pool.query(`INSERT INTO api_keys(tenant_id,key_hash,label,scopes)
+          VALUES($1,$2,'FaroAI authenticated discovery',ARRAY['chat:write']::text[])
+          ON CONFLICT (tenant_id) WHERE label='FaroAI authenticated discovery' AND revoked_at IS NULL DO NOTHING`, [tenantId, keyHash]);
+        const browserKey = await pool.query(`SELECT id FROM api_keys WHERE tenant_id=$1 AND label='FaroAI authenticated discovery' AND revoked_at IS NULL`, [tenantId]);
+        if (!browserKey.rows[0]) return fail(c, 503, 'tenant_configuration_unavailable', 'Tenant discovery is temporarily unavailable.');
+        const csrfConsent = {
+            ai_chat: c.req.header('x-faroai-ai-chat-consent') === 'true',
+            ai_improve: c.req.header('x-faroai-ai-improve-consent') === 'true',
+            ai_training_local: c.req.header('x-faroai-ai-training-local-consent') === 'true',
+            ai_training_shared: env.FAROAI_DEPLOYMENT_MODE !== 'self_hosted' && env.FAROAI_SHARED_TRAINING_ENABLED && c.req.header('x-faroai-ai-training-shared-consent') === 'true',
+        };
+        c.set('auth', { tenant: { id: tenantId, consent_version: session.consent_version ?? 0 }, scopes: isDocumentPath ? ['document:import'] : path === '/skills/analyze' ? ['gis:procurement:read'] : ['chat:write'], apiKeyId: browserKey.rows[0].id, actorId: `session:${session.email}`,
+            consent: csrfConsent, exportRequested: c.req.header('x-faroai-export-requested') === 'true' });
+        await next();
+        return;
+    }
     const keyHash = createHash('sha256').update(env.API_KEY_PEPPER).update(match[1]!).digest();
-    const result = await pool.query(`SELECT k.id, k.tenant_id, k.scopes, t.consent_version
+    const result = await pool.query(`SELECT k.id, k.tenant_id, k.scopes, k.client_credential_id, t.consent_version
        FROM api_keys k JOIN tenants t ON t.id = k.tenant_id
-      WHERE k.key_hash = $1 AND k.revoked_at IS NULL AND t.status = 'active'`, [keyHash]);
+      WHERE k.key_hash = $1 AND k.revoked_at IS NULL AND (k.expires_at IS NULL OR k.expires_at>now()) AND t.status = 'active'`, [keyHash]);
     const row = result.rows[0];
     if (!row)
         return fail(c, 401, 'unauthorized', 'A valid FaroAI server credential is required.');
@@ -140,14 +247,23 @@ const authenticate: MiddlewareHandler<{ Variables: Variables }> = async (c, next
         return fail(c, 403, 'tenant_disabled', 'This deployment is restricted to its configured tenant.');
     }
     void pool.query('UPDATE api_keys SET last_used_at=now() WHERE id=$1', [row.id]).catch(() => undefined);
-    // Consent is supplied by the authenticated calling website backend, never in the JSON body.
+    // Consent and user intent are supplied by the authenticated calling website backend, never in JSON.
     const consent = {
         ai_chat: c.req.header('x-faroai-ai-chat-consent') === 'true',
         ai_improve: c.req.header('x-faroai-ai-improve-consent') === 'true',
         ai_training_local: c.req.header('x-faroai-ai-training-local-consent') === 'true',
         ai_training_shared: env.FAROAI_DEPLOYMENT_MODE !== 'self_hosted' && env.FAROAI_SHARED_TRAINING_ENABLED && c.req.header('x-faroai-ai-training-shared-consent') === 'true',
     };
-    c.set('auth', { tenant: { id: row.tenant_id, consent_version: row.consent_version }, scopes: row.scopes, apiKeyId: row.id, consent });
+    const gisDocumentActor = c.req.header('x-faroai-document-actor') ?? '';
+    const documentPath = c.req.path.includes('/document-imports');
+    if (documentPath && row.client_credential_id && !/^[A-Za-z0-9._:-]{1,128}$/.test(gisDocumentActor))
+        return fail(c, 400, 'document_actor_required', 'The GIS user context is required for this document request.');
+    const actorId = row.client_credential_id && gisDocumentActor
+        ? `oauth-client:${row.client_credential_id}:gis-user:${gisDocumentActor}`
+        : `api-key:${row.id}`;
+    c.set('auth', { tenant: { id: row.tenant_id, consent_version: row.consent_version }, scopes: row.scopes, apiKeyId: row.id,
+        actorId, clientCredentialId: row.client_credential_id ?? null, consent,
+        exportRequested: c.req.header('x-faroai-export-requested') === 'true' });
     await next();
 };
 const enforceScope = (scope: string): MiddlewareHandler<{ Variables: Variables }> => async (c, next) => {
@@ -155,9 +271,17 @@ const enforceScope = (scope: string): MiddlewareHandler<{ Variables: Variables }
         return fail(c, 403, 'forbidden', 'This credential does not have the required permission.');
     await next();
 };
+const enforceAnyScope = (...scopes: string[]): MiddlewareHandler<{ Variables: Variables }> => async (c, next) => {
+    if (!scopes.some((scope) => c.get('auth').scopes.includes(scope)))
+        return fail(c, 403, 'forbidden', 'This credential does not have the required permission.');
+    await next();
+};
 const rateLimit: MiddlewareHandler<{ Variables: Variables }> = async (c, next) => {
     const auth = c.get('auth');
-    const route = new URL(c.req.url).pathname.split('/').at(-1) ?? 'request';
+    const path = c.req.path.replace(/^\/v1/, '');
+    const route = path.startsWith('/document-imports') ? 'document-imports'
+        : path === '/document-types' ? 'document-types'
+            : new URL(c.req.url).pathname.split('/').at(-1) ?? 'request';
     const key = `tenant:${auth.tenant.id}:rate:${route}`;
     try {
         const count = await redis.incr(key);
@@ -197,38 +321,112 @@ async function callPython(path: string, payload: Record<string, unknown>, correl
     return data;
 }
 api.use('*', authenticate, rateLimit);
+api.route('/', createDocumentImportRoutes(pool, {
+    enabled: env.FAROAI_DOCUMENT_IMPORT_ENABLED,
+    sourceRoot: env.FAROAI_DOCUMENT_IMPORT_ROOT,
+    previewRoot: env.FAROAI_DOCUMENT_PREVIEW_ROOT,
+    encryptionKey: env.FAROAI_DOCUMENT_IMPORT_ENCRYPTION_KEY,
+    apiKeyPepper: env.API_KEY_PEPPER,
+}, async (request, tenantId, correlationId, payload) => {
+    const headers = new Headers({ 'content-type': 'application/json' });
+    const authorization = request.headers.get('authorization');
+    const documentActor = request.headers.get('x-faroai-document-actor');
+    if (authorization) headers.set('authorization', authorization);
+    headers.set('x-correlation-id', correlationId);
+    if (documentActor) headers.set('x-faroai-document-actor', documentActor);
+    const proofPayload = `${tenantId}\n${correlationId ?? ''}\n${payload.message}\n${payload.document_context}`;
+    headers.set('x-faroai-document-procurement-proof', createHmac('sha256', env.API_KEY_PEPPER).update(proofPayload).digest('hex'));
+    return app.fetch(new Request(`http://faroai-internal/admin/v1/tenants/${tenantId}/procurement/assistant`, {
+        method: 'POST', headers, body: JSON.stringify(payload),
+    }));
+}, async (request, tenantId, correlationId, draftId) => {
+    const headers = new Headers({ 'content-type': 'application/json' });
+    const authorization = request.headers.get('authorization');
+    const documentActor = request.headers.get('x-faroai-document-actor');
+    if (authorization) headers.set('authorization', authorization);
+    headers.set('x-correlation-id', correlationId);
+    if (documentActor) headers.set('x-faroai-document-actor', documentActor);
+    return app.fetch(new Request(`http://faroai-internal/admin/v1/tenants/${tenantId}/procurement/confirm`, {
+        method: 'POST', headers, body: JSON.stringify({ draft_id: draftId }),
+    }));
+}));
+const documentSourceCleanupTimer = setInterval(() => {
+    void cleanupExpiredDocumentSources(pool, {
+        enabled: env.FAROAI_DOCUMENT_IMPORT_ENABLED,
+        sourceRoot: env.FAROAI_DOCUMENT_IMPORT_ROOT,
+        previewRoot: env.FAROAI_DOCUMENT_PREVIEW_ROOT,
+        encryptionKey: env.FAROAI_DOCUMENT_IMPORT_ENCRYPTION_KEY,
+        apiKeyPepper: env.API_KEY_PEPPER,
+    }).catch(() => undefined);
+}, 60_000);
+documentSourceCleanupTimer.unref();
 const artifactMimes = { pdf: 'application/pdf', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' } as const;
+const artifactSkills = { pdf: 'base.pdf', xlsx: 'base.xlsx', docx: 'base.docx', pptx: 'base.pptx' } as const;
 function artifactActor(c: Context<{ Variables: Variables }>): string | null {
     // This is an opaque server-side session token, never a tenant ID or username.
     const actor = c.req.header('x-faroai-artifact-actor') ?? '';
     const auth = c.get('auth');
     return artifactActorHash(env.API_KEY_PEPPER, auth.tenant.id, auth.apiKeyId, actor);
 }
+api.post('/skills/analyze', enforceAnyScope('chat:write', 'gis:procurement:read', 'gis:procurement:write'), async (c) => {
+    const auth = c.get('auth');
+    const hasProcurementScope = auth.scopes.includes('gis:procurement:read')
+        || auth.scopes.includes('gis:procurement:write');
+    if (!auth.consent.ai_chat && !hasProcurementScope)
+        return fail(c, 403, 'consent_required', 'Chat consent is required.');
+    const raw = await c.req.text();
+    if (Buffer.byteLength(raw, 'utf8') > 512_000) return fail(c, 413, 'too_large', 'The analysis input exceeds its size limit.');
+    let value: unknown;
+    try { value = JSON.parse(raw); } catch { return fail(c, 400, 'invalid_request', 'The analysis input is invalid.'); }
+    const parsed = procurementAnalysisSchema.safeParse(value);
+    if (!parsed.success) return fail(c, 400, 'invalid_request', 'The analysis input is invalid or exceeds its limits.');
+    try {
+      const result = await callPython('/internal/v1/skills/analyze', {
+        tenant_id: auth.tenant.id, ...parsed.data,
+      }, c.get('correlationId'), 15_000);
+      if (result.success !== true || result.base_skill_id !== 'base.data-analysis')
+        return fail(c, 503, 'analysis_unavailable', 'The data analysis skill is unavailable.');
+      return c.json({ success: true, data: result, correlation_id: c.get('correlationId') });
+    } catch {
+      return fail(c, 503, 'analysis_unavailable', 'The data analysis skill is unavailable.');
+    }
+});
 api.get('/artifacts/context', enforceScope('chat:write'), (c) => {
     if (!env.FAROAI_ARTIFACT_ENABLED) return fail(c, 503, 'artifacts_disabled', 'Document creation is not enabled for this deployment.');
     return c.json({ success: true, data: { tenant_id: c.get('auth').tenant.id } });
 });
 api.post('/artifacts', enforceScope('chat:write'), async (c) => {
     if (!env.FAROAI_ARTIFACT_ENABLED) return fail(c, 503, 'artifacts_disabled', 'Document creation is not enabled for this deployment.');
+    if (!c.get('auth').exportRequested) return fail(c, 403, 'export_request_required', 'An explicit user export request is required.');
     const actor = artifactActor(c);
     if (!actor) return fail(c, 400, 'invalid_actor', 'A trusted artifact session is required.');
     const raw = await c.req.text();
-    if (Buffer.byteLength(raw, 'utf8') > 512_000) return fail(c, 413, 'too_large', 'The document input is too large.');
+    if (Buffer.byteLength(raw, 'utf8') > 1_048_576) return fail(c, 413, 'too_large', 'The document input is too large.');
     let value: unknown;
     try { value = JSON.parse(raw); } catch { return fail(c, 400, 'invalid_request', 'The document input is invalid.'); }
     const parsed = artifactSchema.safeParse(value);
-    if (!parsed.success) return fail(c, 400, 'invalid_request', 'The document input is invalid or exceeds its limits.');
+    if (!parsed.success) {
+      const issues = parsed.error.issues.map((issue) => ({
+        code: issue.code,
+        field: issue.path.length ? String(issue.path[0]) : 'document',
+        message: issue.message,
+        type: 'type' in issue ? String(issue.type) : undefined,
+      }));
+      console.warn(JSON.stringify({ event: 'artifact_export_rejected', correlation_id: c.get('correlationId'), issues }));
+      return fail(c, 400, 'invalid_request', artifactValidationMessage(parsed.error.issues));
+    }
+    console.info(JSON.stringify({ event: 'artifact_export_accepted', tenant_id: c.get('auth').tenant.id,
+        format: parsed.data.format, row_count: parsed.data.rows.length, correlation_id: c.get('correlationId') }));
     const auth = c.get('auth');
     const id = randomUUID();
     const { format, ...input } = parsed.data;
     try {
-        await pool.query(`INSERT INTO skill_artifact_jobs(tenant_id,id,api_key_id,actor_hash,format,input_payload,expires_at)
-          VALUES($1,$2,$3,$4,$5,$6::jsonb,now()+interval '24 hours')`,
-        [auth.tenant.id, id, auth.apiKeyId, actor, format, JSON.stringify(input)]);
-        // Queue notification is only a wake-up. The committed DB job is durable.
-        void redis.lpush('platform:queue:artifacts', id).then(() => redis.ltrim('platform:queue:artifacts', 0, 999)).catch(() => undefined);
-        return c.json({ success: true, data: { id, status: 'pending', format, expires_in_seconds: 86400 } }, 202);
+        const skillId = artifactSkills[format];
+        await pool.query(`INSERT INTO skill_artifact_jobs(tenant_id,id,api_key_id,actor_hash,format,base_skill_id,input_payload,expires_at)
+          VALUES($1,$2,$3,$4,$5,$6,$7::jsonb,now()+interval '24 hours')`,
+        [auth.tenant.id, id, auth.apiKeyId, actor, format, skillId, JSON.stringify(input)]);
+        return c.json({ success: true, data: { id, status: 'pending', format, base_skill_id: skillId, expires_in_seconds: 86400 } }, 202);
     } catch { return fail(c, 503, 'artifact_unavailable', 'The document job could not be created.'); }
 });
 async function getArtifact(c: Context<{ Variables: Variables }>) {
@@ -504,6 +702,7 @@ api.get('/embedding/jobs/:jobId', enforceScope('knowledge:write'), async (c) => 
     return c.json({ success: true, job: result.rows[0], correlation_id: c.get('correlationId') });
 });
 app.route('/admin/v1', adminRoutes);
+app.route('/tenant/v1', tenantMcpRoutes);
 app.route('/v1', api);
 app.notFound((c) => fail(c, 404, 'not_found', 'The requested endpoint was not found.'));
 app.onError((error, c) => {

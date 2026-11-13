@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>แผนป้องกัน Master Data ซ้ำและข้อมูลขยะ — FaroAI</title>
+  <style>
+    :root{color-scheme:light;--ink:#18304b;--muted:#647890;--line:#dce6f0;--teal:#35bdb5;--blue:#748cf4;--paper:#fff;--bg:#f2f6fa;--soft:#eef9f8;--amber:#fff4df}
+    *{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#eef3ff,#edfafa 55%,#f7f9fc);color:var(--ink);font:17px/1.7 system-ui,-apple-system,"Segoe UI",sans-serif}
+    main{width:min(1120px,calc(100% - 40px));margin:40px auto 70px}.hero,.card{background:var(--paper);border:1px solid var(--line);border-radius:20px;box-shadow:0 12px 40px #223a5710}.hero{padding:36px 42px;margin-bottom:22px;border-top:5px solid transparent;border-image:linear-gradient(90deg,var(--blue),var(--teal)) 1}.eyebrow{margin:0 0 8px;color:#667fa4;font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}h1{margin:0;font:500 clamp(32px,5vw,48px)/1.15 Georgia,serif;letter-spacing:-.02em}h2{font-size:24px;line-height:1.3;margin:0 0 12px}h3{font-size:18px;margin:0 0 6px}.subtitle{max-width:850px;color:var(--muted);font-size:18px}.meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}.pill{border-radius:999px;background:#f1f5fb;padding:6px 13px;color:#526982;font-size:13px;font-weight:700}.card{padding:26px 30px;margin:18px 0}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.item{border:1px solid var(--line);border-radius:14px;padding:18px;background:#fff}.item p,.card p{margin:6px 0;color:var(--muted)}.callout{padding:17px 20px;border-radius:12px;background:var(--soft);border-left:4px solid var(--teal);margin-top:16px}.warning{background:var(--amber);border-left-color:#e4a43a}.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;counter-reset:step}.step{position:relative;padding:16px 14px;background:#f6f8fc;border:1px solid var(--line);border-radius:13px}.step:before{counter-increment:step;content:counter(step);display:grid;place-items:center;width:28px;height:28px;margin-bottom:8px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--teal));color:white;font-weight:800}.step strong{display:block}.step span{color:var(--muted);font-size:14px}.phase{display:grid;grid-template-columns:155px 1fr;gap:20px;padding:18px 0;border-top:1px solid var(--line)}.phase:first-of-type{border-top:0}.phase-label{color:#327f7b;font-weight:800}.phase ul{margin:0;padding-left:20px;color:var(--muted)}table{width:100%;border-collapse:collapse;margin-top:14px}th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}th{background:#f5f8fc;color:#526982;font-size:14px}td{color:var(--muted)}footer{padding:18px 4px;color:#72849a;font-size:13px}@media(max-width:760px){main{width:min(100% - 24px,1120px);margin-top:16px}.hero,.card{padding:22px}.grid{grid-template-columns:1fr}.flow{grid-template-columns:1fr}.phase{grid-template-columns:1fr;gap:4px}body{font-size:16px}table{display:block;overflow-x:auto}}
+  </style>
+</head>
+<body><main>
+  <header class="hero">
+    <p class="eyebrow">FaroAI · Data governance</p>
+    <h1>แผนป้องกัน Master ซ้ำและข้อมูลขยะ</h1>
+    <p class="subtitle">ข้อเสนอสำหรับ Supplier, Location, Product และ Voucher ที่สร้างจากเอกสารหรือ prompt โดยให้ AI ช่วยเตรียมงาน แต่ GIS ยังเป็นแหล่งข้อมูลหลัก</p>
+    <div class="meta"><span class="pill">วันที่ 12 พ.ย. 2026</span><span class="pill">ขอบเขต: FaroAI + GIS MCP</span><span class="pill">เริ่มจาก document-to-PO</span></div>
+  </header>
+
+  <section class="card"><h2>หลักที่ควรยึด</h2>
+    <div class="grid">
+      <article class="item"><h3>อย่าสร้างเพื่อแก้ mapping ที่ผิด</h3><p>ถ้ารายการมีอยู่แล้ว ให้ค้นและเลือก record เดิมจาก GIS ก่อน หากค้นไม่ตรงหรือมีหลายรายการ ให้หยุดถาม ห้ามเลือก record ที่ “คล้ายที่สุด” เอง</p></article>
+      <article class="item"><h3>แยก “จับคู่” กับ “สร้างใหม่”</h3><p>ผู้ใช้เลือกได้ชัดเจนว่าจะ map ไปยัง Supplier/Location เดิม หรือเสนอสร้างใหม่ การเลือก map ต้องปิดทาง create ใน runtime</p></article>
+      <article class="item"><h3>AI เสนอ ผู้ใช้ยืนยัน GIS เขียน</h3><p>ตรวจชื่อ รหัส ประเทศ ที่อยู่ และข้อมูลซ้ำก่อนแสดง preview การแก้ฟอร์มหรือ OCR ไม่ใช่การอนุมัติสร้าง master</p></article>
+      <article class="item"><h3>เก็บ alias แยกจาก master</h3><p>ชื่อที่ OCR อ่านคลาดหรือชื่อเรียกในเอกสารควรเป็น mapping/alias ที่ตรวจสอบได้ ไม่ควรสร้าง Supplier ใหม่ทุกครั้งที่เจอรูปแบบชื่ออีกแบบ</p></article>
+    </div>
+    <div class="callout warning"><strong>ข้อควรระวัง:</strong> อย่า auto-merge หรือ auto-delete master จากคะแนน similarity เพียงอย่างเดียว เพราะอาจรวมบริษัท สาขา หรือสินค้า distinct เข้าด้วยกัน</div>
+  </section>
+
+  <section class="card"><h2>Flow ที่แนะนำ</h2>
+    <div class="flow">
+      <div class="step"><strong>อ่านเอกสาร</strong><span>เก็บ OCR และตำแหน่งหลักฐานไว้แยกจากค่าที่แก้</span></div>
+      <div class="step"><strong>ค้น GIS</strong><span>จับคู่ exact code ก่อน แล้วเทียบชื่อ/ที่อยู่ พร้อมตรวจผลค้นครบ</span></div>
+      <div class="step"><strong>ให้คนแก้ mapping</strong><span>เลือก master เดิม หรือระบุสร้างใหม่ แก้ line/SKU/จำนวน/ราคาได้</span></div>
+      <div class="step"><strong>ตรวจ duplicate + preview</strong><span>ตรวจ required fields, tenant, สถานะ และ record ซ้ำอีกครั้ง</span></div>
+      <div class="step"><strong>ยืนยันและ audit</strong><span>สร้างเฉพาะรายการที่ยืนยัน บันทึก actor/source/hash/result</span></div>
+    </div>
+  </section>
+
+  <section class="card"><h2>แผนงานเป็นระยะ</h2>
+    <div class="phase"><div class="phase-label">ระยะ 1 · ตอนนี้</div><ul><li>ฟอร์ม PO preparation แก้ Supplier/Location และแถวสินค้าได้</li><li>ผู้ใช้ระบุ “map existing” หรือ “create new” แยกกัน</li><li>บันทึก correction แยกจาก OCR ต้นฉบับ และส่งเตรียม GIS preview ซ้ำได้</li><li>บล็อก create เมื่อผู้ใช้เลือก map existing; master ใหม่ยังมี confirmation แยก</li></ul></div>
+    <div class="phase"><div class="phase-label">ระยะ 2 · GIS-backed mapping</div><ul><li>เปลี่ยนช่องชื่อ/รหัสเป็นค้นหา dropdown จาก GIS ตาม tenant และ master type</li><li>แสดง code, ชื่อ, สถานะ, ที่อยู่ และข้อมูลแยกสาขาเพื่อให้เลือกถูก record</li><li>ส่ง ID ที่ผู้ใช้เลือกกลับมา แต่ backend ต้องค้นยืนยัน ID/tenant/status ซ้ำก่อน preview</li><li>มี duplicate warning แบบ exact code, normalized name และที่อยู่ โดยไม่ auto-merge</li></ul></div>
+    <div class="phase"><div class="phase-label">ระยะ 3 · ควบคุมการสร้าง</div><ul><li>เพิ่ม master draft/quarantine ถ้า GIS รองรับ; ถ้าไม่รองรับ ให้ใช้ preview และ confirmation ที่ FaroAI คุม</li><li>Idempotency key ต่อ operation เพื่อป้องกัน double click/retry สร้างซ้ำ</li><li>ตรวจ code ซ้ำทั้งตอนแสดง preview และก่อน write; ตรวจ inactive/archived แยกจาก not found</li><li>จำกัดสิทธิ์สร้าง master แยกจากสิทธิ์อ่านและสร้าง PO</li></ul></div>
+    <div class="phase"><div class="phase-label">ระยะ 4 · ดูแลระยะยาว</div><ul><li>แดชบอร์ด duplicate candidates และงานค้าง review แยกตาม tenant</li><li>กระบวนการ merge/archive ที่มีผู้อนุมัติและย้อนดู audit ได้</li><li>Alias ที่จำได้ต้อง tenant-scoped, มีผู้อนุมัติ, วันหมดอายุ และลบได้; ห้ามนำ PII/ข้อมูลราคาไปเป็น global learning</li><li>วัดอัตรา duplicate, create ที่ถูกยกเลิก, mapping ที่แก้, preview fail, และเวลาปิดงาน</li></ul></div>
+  </section>
+
+  <section class="card"><h2>กฎป้องกันข้อมูลขยะที่ควรทำเป็นระบบ</h2>
+    <table><thead><tr><th>จุดควบคุม</th><th>ข้อเสนอ</th></tr></thead><tbody>
+      <tr><td>ก่อนเสนอสร้าง</td><td>ค้น code แบบ exact; ค้นชื่อ normalized; ตรวจที่อยู่/ประเทศเพื่อเตือนความคล้าย แต่ให้คนตัดสิน</td></tr>
+      <tr><td>ตอน review</td><td>แสดงข้อมูลจากเอกสารเทียบกับ GIS และช่องที่ไม่ตรง พร้อม source evidence; ค่าไม่ทราบให้ว่าง ไม่เติมเดา</td></tr>
+      <tr><td>ก่อนเขียน</td><td>ทำ duplicate check ซ้ำบน backend, ตรวจสิทธิ์และ tenant, ใช้ idempotency, ปฏิเสธข้อมูลไม่ครบ</td></tr>
+      <tr><td>หลังเขียน</td><td>อ่านกลับจาก GIS เพื่อยืนยัน ID/status; เก็บ audit แบบไม่เก็บ OCR เต็มหรือ credential</td></tr>
+      <tr><td>ข้อมูลเก่า</td><td>รายงาน duplicate และเสนอ merge/archive; ไม่ลบหรือรวมอัตโนมัติ</td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="card"><h2>สิ่งที่ต้องประสานกับทีม GIS MCP</h2><p>ระยะถัดไปควรมี read API ที่คืนรายการ Supplier/Location/Product แบบค้นหาแบ่งหน้า พร้อม code, normalized identity, status และผลค้นว่า complete หรือไม่ รวมทั้ง create endpoint ที่รองรับ idempotency และคืนเหตุผล duplicate อย่างชัดเจน ถ้า GIS มี uniqueness constraint อยู่แล้ว ให้ FaroAI ใช้ผลนั้นและแสดงข้อความแก้ไขได้ แทนการสร้างทางลัดข้าม GIS</p><div class="callout"><strong>ลำดับที่แนะนำ:</strong> ทำ form + retry ให้ผู้ใช้แก้เคสปัจจุบันได้ก่อน → เพิ่ม GIS-backed selectors → เพิ่ม duplicate dashboard และ lifecycle control หลังยืนยัน schema/ข้อจำกัดของ GIS</div></section>
+  <footer>เอกสารนี้เป็นข้อเสนอและแผนงาน ไม่ได้สั่ง merge, archive หรือลบ master ที่มีอยู่</footer>
+</main></body></html>

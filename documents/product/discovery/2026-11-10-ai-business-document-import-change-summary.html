@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>สรุปไฟล์ที่แก้ไข — FaroAI Document Import</title>
+  <style>
+    :root{color-scheme:light;--ink:#17233b;--muted:#63718a;--line:#dfe6f0;--blue:#5969e8;--teal:#38bdb3;--paper:#fff;--wash:#f3f6fb;--green:#167b61;--amber:#94620b}
+    *{box-sizing:border-box}body{margin:0;background:var(--wash);color:var(--ink);font:16px/1.65 Inter,"Noto Sans Thai",system-ui,sans-serif}
+    main{width:min(1120px,calc(100% - 36px));margin:38px auto 64px}.hero{padding:34px 38px;border-radius:22px;background:linear-gradient(120deg,#eff1ff,#e8fbf8);border:1px solid #dfe6f0}
+    .eyebrow{margin:0 0 8px;color:var(--blue);font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}h1{margin:0;font-family:Georgia,"Noto Serif Thai",serif;font-size:clamp(30px,4vw,46px);line-height:1.25;font-weight:500}h2{font-size:22px;margin:0 0 8px}h3{font-size:17px;margin:0 0 6px}
+    .intro{max-width:850px;color:#45536c;margin:14px 0 0}.meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.pill{display:inline-flex;padding:5px 11px;border:1px solid #d6dfed;border-radius:999px;background:#fff;font-size:13px;color:#4d5c74}
+    section{margin-top:24px;padding:25px 28px;background:var(--paper);border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 24px #18284708}.section-intro{color:var(--muted);margin:0 0 17px}.group{padding:18px 0;border-top:1px solid var(--line)}.group:first-of-type{border-top:0;padding-top:0}.group-title{display:flex;align-items:center;gap:10px;margin-bottom:9px}.count{font-size:12px;color:var(--muted);background:#f0f3f9;border-radius:99px;padding:2px 9px}
+    ul.files{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:9px 18px}.files li{padding:10px 12px;border:1px solid #e7ecf4;border-radius:11px;min-width:0}.files code{display:block;color:#324168;font:13px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}.files span{display:block;color:var(--muted);font-size:13px;margin-top:4px}
+    .status-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.status{padding:16px;border-radius:13px;background:#f8faff;border:1px solid var(--line)}.status strong{display:block;margin-bottom:5px}.yes{color:var(--green)}.later{color:var(--amber)}.callout{padding:15px 17px;border-left:4px solid var(--blue);background:#f5f7ff;border-radius:8px;color:#46536b}.foot{color:var(--muted);font-size:13px;margin-top:22px}
+    @media(max-width:760px){main{width:min(100% - 22px,1120px);margin-top:14px}.hero{padding:25px 22px}section{padding:20px 18px}ul.files,.status-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<main>
+  <header class="hero">
+    <p class="eyebrow">FaroAI · Implementation record</p>
+    <h1>สรุปไฟล์ที่แก้ไข<br>ระบบนำเข้าเอกสารธุรกิจ</h1>
+    <p class="intro">สรุปเฉพาะไฟล์ที่เกี่ยวกับงาน Document Import รอบนี้ แยกตามส่วนที่รับผิดชอบ เพื่อให้เปิดดูได้ว่าไฟล์ไหนทำหน้าที่อะไร และส่วนไหนยังรอตั้งค่าก่อนใช้งานจริง ไฟล์อื่นที่เปลี่ยนอยู่ใน workspace จากงานก่อนหน้าไม่ได้รวมไว้ในรายการนี้</p>
+    <div class="meta"><span class="pill">อัปเดต 10 พฤศจิกายน 2026</span><span class="pill">รอบแรก: OCR และตรวจทาน</span><span class="pill">เปิดบนเครื่อง dev แล้ว</span></div>
+  </header>
+
+  <section>
+    <h2>ภาพรวมสถานะ</h2>
+    <p class="section-intro">เวอร์ชันนี้วางฐานรับไฟล์ แยก tenant ประมวล OCR และเปิดให้ผู้ใช้ตรวจผลก่อน ยังไม่สร้างข้อมูลธุรกรรมใน GIS</p>
+    <div class="status-grid">
+      <article class="status"><strong class="yes">ทำในโค้ดแล้ว</strong>อัปโหลด PDF/PNG/JPEG, อ่าน text layer หรือ OCR ภาษาไทย/อังกฤษ, แสดงหน้าเอกสารและข้อความ, ใส่ป้ายประเภทด้วยคน และลบข้อมูล</article>
+      <article class="status"><strong class="yes">เปิดบนเครื่อง dev แล้ว</strong>migration 021, worker credential, encryption key และ feature flag ถูกตั้งค่าแล้ว; API/Backoffice/worker กำลังทำงานใน Compose profile `document-import`</article>
+      <article class="status"><strong class="later">ยังเป็นงานระยะถัดไป</strong>AI จำแนก/ดึงฟิลด์อัตโนมัติ, ตรวจเทียบ master, GIS preview/write, Qdrant หรือการเรียนรู้จาก correction</article>
+    </div>
+  </section>
+
+  <section>
+    <h2>รายการไฟล์แยกตามส่วน</h2>
+    <p class="section-intro">รายการด้านล่างระบุไฟล์ที่เพิ่มหรือแก้เพื่อรองรับ feature นี้ โดยไฟล์ที่มีงานเดิมอยู่แล้วถูกแก้เฉพาะจุดเชื่อมต่อที่เกี่ยวข้อง</p>
+
+    <div class="group">
+      <div class="group-title"><h3>ข้อกำหนดและการตัดสินใจ</h3><span class="count">4 ไฟล์</span></div>
+      <ul class="files">
+        <li><code>documents/product/discovery/2026-11-10-ai-business-document-import.md</code><span>บันทึกโจทย์ ผลการค้นคว้า แนวทางต้นทุน ความปลอดภัย และขอบเขตการพัฒนาระยะต่อไป</span></li>
+        <li><code>documents/product/discovery/2026-11-10-ai-business-document-import.html</code><span>ฉบับ HTML อ่านง่ายของ discovery brief</span></li>
+        <li><code>documents/adr/0056-secure-business-document-intake.md</code><span>เหตุผลและข้อกำหนดการตัดสินใจสำหรับรับและเก็บเอกสารอย่างปลอดภัย</span></li>
+        <li><code>documents/spec/business-document-intake.md</code><span>สัญญา API, สถานะงาน, schema, retention, consent และขอบเขตของรุ่นแรก</span></li>
+      </ul>
+    </div>
+
+    <div class="group">
+      <div class="group-title"><h3>Backend และฐานข้อมูล</h3><span class="count">5 ไฟล์</span></div>
+      <ul class="files">
+        <li><code>gateway/src/document-import.ts</code><span>API สำหรับชนิดเอกสาร, อัปโหลด, สถานะ, preview, แก้ป้ายประเภท และลบงาน</span></li>
+        <li><code>gateway/src/index.ts</code><span>เชื่อม route, ตรวจ session/scope และเปิด cleanup timer แบบปิดเป็นค่าเริ่มต้น</span></li>
+        <li><code>gateway/src/admin.ts</code><span>เพิ่ม scope `document:import` ในการตั้งค่า credential ของ tenant</span></li>
+        <li><code>infra/postgres/migrations/021_business_document_intake.sql</code><span>ตาราง job/audit/heartbeat และสิทธิ์ worker แบบจำกัดคอลัมน์</span></li>
+        <li><code>infra/postgres/provision-document-import-worker.sh</code><span>สคริปต์เตรียม credential ของ worker; เพิ่มไว้แต่ยังไม่ได้รัน</span></li>
+      </ul>
+    </div>
+
+    <div class="group">
+      <div class="group-title"><h3>OCR Worker</h3><span class="count">4 ไฟล์</span></div>
+      <ul class="files">
+        <li><code>document-import-worker/document_import_worker.py</code><span>claim งานจากคิว, ประมวลผลแบบจำกัดรอบ, heartbeat และจัดการอายุข้อมูล</span></li>
+        <li><code>document-import-worker/document_processor.py</code><span>อ่าน PDF/OCR, สร้าง preview ที่ปลอดภัย และจำกัดปริมาณผลลัพธ์</span></li>
+        <li><code>document-import-worker/Dockerfile</code><span>ภาพ worker แบบ non-root พร้อม dependency OCR ภาษาไทยและอังกฤษที่ pin รุ่น</span></li>
+        <li><code>document-import-worker/.dockerignore</code><span>กันไฟล์ที่ไม่จำเป็นจาก build context</span></li>
+      </ul>
+    </div>
+
+    <div class="group">
+      <div class="group-title"><h3>Frontend และ API Proxy</h3><span class="count">12 ไฟล์</span></div>
+      <ul class="files">
+        <li><code>backoffice/app/document-import/page.tsx</code><span>หน้า workspace สำหรับ tenant ที่ล็อกอินแล้ว</span></li>
+        <li><code>backoffice/app/document-import/DocumentImportWorkspace.tsx</code><span>อัปโหลด, consent, OCR status, preview, แก้ประเภท และลบไฟล์</span></li>
+        <li><code>backoffice/app/document-import/DocumentImport.module.css</code><span>รูปแบบหน้าสำหรับการตรวจเอกสาร</span></li>
+        <li><code>backoffice/app/document-import/model.ts</code><span>ชนิดข้อมูลฝั่ง UI</span></li>
+        <li><code>backoffice/app/document-import/server.ts</code><span>helper ฝั่ง server สำหรับเรียก API ด้วย tenant session</span></li>
+        <li><code>backoffice/app/api/document-imports/route.ts</code><span>proxy อ่านชนิดเอกสารและส่งไฟล์เข้า API</span></li>
+        <li><code>backoffice/app/api/document-imports/types/route.ts</code><span>proxy รายการประเภทเอกสาร</span></li>
+        <li><code>backoffice/app/api/document-imports/[id]/route.ts</code><span>proxy สถานะและคำสั่งลบงาน</span></li>
+        <li><code>backoffice/app/api/document-imports/[id]/draft/route.ts</code><span>proxy แก้ป้ายประเภท/ข้อมูลร่าง</span></li>
+        <li><code>backoffice/app/api/document-imports/[id]/pages/[page]/route.ts</code><span>proxy preview หน้าที่ผ่านการตรวจสิทธิ์</span></li>
+        <li><code>backoffice/app/discovery-page.tsx</code><span>เพิ่ม paperclip แยกจากตัวเลือกรูปสินค้าเพื่อเข้า flow เอกสาร</span></li>
+        <li><code>backoffice/app/tenant/FaroAIApiCredentials.tsx</code><span>เพิ่มตัวเลือก permission `document:import` สำหรับ credential</span></li>
+      </ul>
+    </div>
+
+    <div class="group">
+      <div class="group-title"><h3>Docker, คู่มือปฏิบัติการ และ change log</h3><span class="count">8 ไฟล์</span></div>
+      <ul class="files">
+        <li><code>docker-compose.yml</code><span>เพิ่ม volumes แยก, network ภายใน DB และ worker profile แบบ opt-in พร้อม resource limits</span></li>
+        <li><code>documents/infra/document-import-worker-2026-11-10.md</code><span>คู่มือ config, source hash, ข้อจำกัด และขั้นตอนเตรียม runtime</span></li>
+        <li><code>documents/infra/service-index.md</code><span>ลงทะเบียน service worker และบทบาทใน infra</span></li>
+        <li><code>documents/change_log/10-11-26/business-document-intake-implementation.md</code><span>สรุปการเปลี่ยนแปลงและรายการที่ยังไม่ทำ</span></li>
+        <li><code>documents/change_log/10-11-26/ai-business-document-import-plan.md</code><span>ประวัติ discovery และการปรับข้อกำหนด</span></li>
+        <li><code>documents/change_log/10-11-26/business-document-intake-frontend.md</code><span>สรุปส่วน UI และ proxy</span></li>
+        <li><code>documents/change_log/10-11-26/document-import-worker-infra.md</code><span>สรุปการตั้ง infra ที่เพิ่มและสถานะที่ยังไม่รัน</span></li>
+        <li><code>documents/product/discovery/2026-11-10-ai-business-document-import-change-summary.html</code><span>ไฟล์สรุปรายการที่กำลังอ่านอยู่นี้</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>ขอบเขตความปลอดภัยและข้อมูล</h2>
+    <div class="callout">ไฟล์ถูกผูกกับ tenant/ผู้ใช้, ตรวจชนิดและลายเซ็นไฟล์, จำกัดขนาดและผล OCR, เข้ารหัสต้นฉบับและ preview, ให้ worker ทำงานใน network ที่ไม่ออกอินเทอร์เน็ต และไม่ส่งไฟล์ไปยัง AI provider ในรุ่นนี้ การลบจะซ่อนงานและล้างข้อความ/ต้นฉบับทันที ส่วน preview ที่เข้ารหัสจะถูก worker ลบต่อแบบ asynchronous</div>
+    <p>กำหนด retention: ไฟล์ต้นฉบับ 24 ชั่วโมง และผล OCR/ข้อมูลตรวจทาน 7 วัน ประเภทเอกสารใน registry เป็นสถานะรองรับ OCR เท่านั้น ยังไม่มีการยืนยันว่าระบบเข้าใจเอกสารนั้นหรือสามารถนำเข้าธุรกรรมได้</p>
+  </section>
+
+  <section>
+    <h2>สิ่งที่ยังไม่ดำเนินการ</h2>
+    <ul>
+      <li>ผ่าน build และ synthetic OCR/integration checks บน local แล้ว แต่ยังไม่ได้ทดสอบด้วย browser session ของผู้ใช้</li>
+      <li>Feature flag ยังคงปิดเป็นค่าเริ่มต้นใน Compose; เครื่อง dev นี้เปิดใน <code>.env</code> ที่แยกจาก config ใน repository</li>
+      <li>ยังไม่มี AI จำแนกชนิด/ดึงข้อมูล, mapping กับ GIS, preview ธุรกรรม หรือเขียนข้อมูลเข้า GIS</li>
+      <li>ยังไม่มีการส่งเอกสารหรือ correction เข้า Qdrant, RAG หรือการฝึกโมเดล</li>
+    </ul>
+    <p class="foot">แก้ไขตามวันที่ในระบบ: 10 พฤศจิกายน 2026 (Asia/Bangkok). ตรวจ runtime ใน local dev เท่านั้น; parser adversarial review, capacity benchmark และ production deployment ยังไม่ผ่านการตรวจ</p>
+  </section>
+</main>
+</body>
+</html>

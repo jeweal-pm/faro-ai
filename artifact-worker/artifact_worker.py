@@ -8,16 +8,15 @@ import uuid
 from pathlib import Path
 
 import psycopg
-import redis
 from psycopg.rows import dict_row
 
 from document_render import FORMATS, render_document
 
 ROOT = Path(os.environ.get("ARTIFACT_ROOT", "/var/faroai/artifacts"))
 DATABASE_URL = os.environ["DATABASE_URL"]
-REDIS_URL = os.environ["REDIS_URL"]
-if not DATABASE_URL or not REDIS_URL:
-    raise RuntimeError("Dedicated artifact worker database and Redis credentials are required")
+if not DATABASE_URL:
+    raise RuntimeError("Dedicated artifact worker database credentials are required")
+SKILL_BY_FORMAT = {"pdf": "base.pdf", "xlsx": "base.xlsx", "docx": "base.docx", "pptx": "base.pptx"}
 os.umask(0o027)
 
 
@@ -57,18 +56,21 @@ def claim(conn: psycopg.Connection) -> dict | None:
           UPDATE skill_artifact_jobs j SET status='processing', attempts=j.attempts+1,
             claim_id=%s, updated_at=now()
           FROM candidate c WHERE j.tenant_id=c.tenant_id AND j.id=c.id
-          RETURNING j.tenant_id,j.id,j.api_key_id,j.format,j.input_payload,j.claim_id
+          RETURNING j.tenant_id,j.id,j.api_key_id,j.format,j.base_skill_id,j.input_payload,j.claim_id
         """, (token,))
         return cur.fetchone()
 
 
 def run_job(conn: psycopg.Connection, job: dict) -> None:
-    final = file_path(job["tenant_id"], job["id"], job["format"])
-    final.parent.mkdir(mode=0o750, exist_ok=True)
-    if final.parent.is_symlink():
-        raise ValueError("invalid_directory")
-    temporary = final.with_name(f".{final.name}.{job['claim_id']}.tmp")
+    temporary: Path | None = None
     try:
+        if SKILL_BY_FORMAT.get(job["format"]) != job.get("base_skill_id"):
+            raise ValueError("artifact_skill_format_mismatch")
+        final = file_path(job["tenant_id"], job["id"], job["format"])
+        final.parent.mkdir(mode=0o750, exist_ok=True)
+        if final.parent.is_symlink():
+            raise ValueError("invalid_directory")
+        temporary = final.with_name(f".{final.name}.{job['claim_id']}.tmp")
         render_document(job["format"], job["input_payload"], temporary)
         temporary.chmod(0o640)
         digest = hashlib.sha256(temporary.read_bytes()).hexdigest()
@@ -96,7 +98,8 @@ def run_job(conn: psycopg.Connection, job: dict) -> None:
               WHERE tenant_id=%s AND id=%s AND claim_id=%s""",
                         (job["tenant_id"], job["id"], job["claim_id"]))
     finally:
-        temporary.unlink(missing_ok=True)
+        if temporary:
+            temporary.unlink(missing_ok=True)
 
 
 def clean_expired(conn: psycopg.Connection) -> None:
@@ -116,7 +119,6 @@ def clean_expired(conn: psycopg.Connection) -> None:
 def main() -> None:
     if not ROOT.is_dir() or ROOT.is_symlink() or not os.access(ROOT, os.W_OK):
         raise RuntimeError("Private artifact volume is unavailable or not writable")
-    queue = redis.Redis.from_url(REDIS_URL, socket_connect_timeout=2, socket_timeout=7)
     while True:
         try:
             with psycopg.connect(DATABASE_URL, autocommit=True) as conn:
@@ -126,10 +128,7 @@ def main() -> None:
                     if job:
                         run_job(conn, job)
                     else:
-                        try:
-                            queue.blpop("platform:queue:artifacts", timeout=5)
-                        except redis.RedisError:
-                            time.sleep(5)  # PostgreSQL remains the source of truth.
+                        time.sleep(2)  # PostgreSQL is the durable queue and lease source.
         except (psycopg.Error, OSError):
             time.sleep(5)
 

@@ -8,6 +8,7 @@ const sections = new Set<Section>([
   'skills',
   'knowledge',
   'mcp',
+  'debug',
   'learning',
   'audit',
   'settings',

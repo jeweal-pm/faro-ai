@@ -41,13 +41,15 @@ CREATE A PURCHASE ORDER
 
 SEARCH OR CHECK A PURCHASE ORDER
 1. A read-only search/check request is completed in one user turn. Perform all needed GIS reads internally in that request; never ask the user to send a second prompt just to see details or line items.
-2. Resolve a requested supplier name to its exact live GIS supplier ID with get_product_master_data before filtering. Never pass a display name as supplier_id.
-3. Use search_purchase_orders with the verified supplier ID and user-requested filters. If no rows match, retry using the verified supplier ID while removing optional filters one at a time. Keep explicit user constraints clear: do not present a result from another supplier or status as a match. If a broader diagnostic search finds records outside the requested filters, explain that distinction and show the matching GIS status.
-4. For each matching PO needed to answer the request, call get_purchase_order in this same request before responding. Include the PO number, supplier display name, status, date, each product name/SKU, ordered quantity, unit price and line total when GIS returns them, plus the GIS total. If more than 10 POs match a details request, show the 10 most recent with a clear count of additional matches.
+2. Resolve a requested supplier name to its exact live GIS supplier ID with search_suppliers when available; use get_product_master_data only as a compatibility fallback. Never pass a display name as supplier_id.
+3. Use search_purchase_orders with the verified supplier ID and user-requested filters. For detail requests, set include_lines=true when the live schema supports it. Keep explicit user constraints clear: do not present a result from another supplier or status as a match. If a broader diagnostic search finds records outside the requested filters, explain that distinction and show the matching GIS status.
+4. If GIS details are already included in the search result, use those rows directly and do not call get_purchase_order again. Otherwise, call get_purchase_order for each matching PO needed to answer in this same request. Include the PO number, supplier display name, status, date, each product name/SKU, ordered quantity, unit price and line total when GIS returns them, plus the GIS total. If more than 10 POs match a details request, show the 10 most recent with a clear count of additional matches.
 5. Never expose supplier/location/product database IDs. Resolve supplier display names from the live master; if no unique mapping is available, say the supplier name could not be verified.
 6. A zero-result response is authoritative only after the appropriate supplier ID and requested status have been checked against GIS. Never infer that a record is absent from a failed or overly restrictive search.
 7. Use get_purchase_order to read PO details and line IDs. Do not guess IDs or status.
 8. Status codes: 0 = cancelled, 1 = completed, 2 = pending approval, 3 = approved.
+
+FAROAI may preload a supplier match and a bounded, filtered GIS PO result after Jev selects this workflow's model. If the latest GIS result is already present in the conversation, treat its supplier, status, and total as authoritative; do not repeat the search. Detailed verified rows are displayed by the UI. State the total and displayed count, and do not claim that line details were inspected unless the GIS result confirms complete details.
 
 RECEIVE INVENTORY FROM AN APPROVED PO
 1. Find the PO with search_purchase_orders if needed, then call get_purchase_order.

@@ -202,6 +202,14 @@ tenant enables it.
   same answer when the response does not return a replacement structured result.
   New create/receive/approve requests start their own flow and must not inherit a
   read-only table as their result.
+- Keep a small bilingual PO language lexicon for common observed aliases such as
+  “how many”, “count”, “line items”, “จำนวน”, and “มีกี่รายการ”. It recognizes only
+  supported operations over already-loaded rows (line/PO counts and numeric
+  aggregates); it does not rewrite the prompt sent through Jev, choose tools, infer
+  GIS records, or grant permissions. A recognized count/aggregate appends a concise
+  answer without attaching the existing PO rows again. Unknown or ambiguous wording
+  stays on the normal Jev-selected model path. Do not store these platform behavior
+  hints in Qdrant. See [ADR-0049](../adr/0049-bounded-procurement-language-lexicon.md).
 - Let the user edit and resend the latest prompt from its transcript bubble. Load
   the original text into the composer; provide cancel and save/resend actions.
   Resubmission replaces that prompt and all later transcript output, keeps the

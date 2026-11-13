@@ -1,18 +1,27 @@
 'use client';
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
-import { Check, Filter, LayoutGrid, LoaderCircle, Pencil, Send, Table2, X } from 'lucide-react';
-import { artifactStatus, getPromptTenant, gisPromptRequest, requestArtifact } from './actions';
+import { Check, Filter, LayoutGrid, LoaderCircle, Paperclip, Pencil, Send, Table2, X } from 'lucide-react';
+import { artifactStatus, getPromptTenant, gisPromptRequest, requestArtifact, requestDocumentPlan, requestDocumentProcurement, requestProcurementAnalysis } from './actions';
+import { hasExplicitDocumentExport, hasExportScope, requestedDocument, requestedPdfOrientation } from './chat-intent-hints';
+import { documentLinkLabel, isDocumentRevisionHint, needsDocumentModel, PO_DOCUMENT_COLUMNS,
+  type DocumentFormat, type DocumentImage, type DocumentLayout } from './document-layout';
+import { parseProcurementAnalysisPrompt } from './procurement-analysis';
 
 type Tenant = { id: string; name: string; status: string };
-type PurchaseOrderLine = { product_name: string; sku: string; quantity: number | null; unit_price: number | null; line_total: number | null };
+type PurchaseOrderLine = {
+  product_name: string; sku: string; quantity: number | null; unit_price: number | null; line_total: number | null;
+  image?: string | null; image_url?: string | null; product_image?: string | null; product_image_url?: string | null;
+};
 type PurchaseOrderDisplay = {
   po_number: string; supplier_name: string; status: string; date: string | null; delivery_date: string | null;
   line_count: number; total_quantity: number | null; total_amount: number | null; lines: PurchaseOrderLine[];
   filtered?: boolean; filter_label?: string;
 };
-type Message = { role: 'user' | 'assistant'; text: string; purchaseOrders?: PurchaseOrderDisplay[]; sourcePurchaseOrders?: PurchaseOrderDisplay[]; language?: 'th' | 'en'; historyAfter?: ModelMessage[]; artifactId?: string; artifactFormat?: string };
-type PendingConfirmation = { draft_id: string; kind: 'create_purchase_order' | 'receive_inventory' | 'create_voucher_type' | 'activate_supplier'; preview: Record<string, unknown>; expires_in_seconds: number };
+type Message = { role: 'user' | 'assistant'; text: string; purchaseOrders?: PurchaseOrderDisplay[]; sourcePurchaseOrders?: PurchaseOrderDisplay[]; language?: 'th' | 'en'; historyAfter?: ModelMessage[]; artifactId?: string; artifactFormat?: string; artifactLabel?: string; baseSkillId?: string };
+type ArtifactSnapshot = { id: string; orders: PurchaseOrderDisplay[]; format: DocumentFormat; title: string;
+  orientation?: 'portrait' | 'landscape'; layout: DocumentLayout; image?: DocumentImage; version: number };
+type PendingConfirmation = { draft_id: string; kind: 'create_purchase_order' | 'receive_inventory' | 'create_voucher_type' | 'create_supplier' | 'create_location' | 'activate_supplier'; preview: Record<string, unknown>; expires_in_seconds: number };
 type ModelMessage = Record<string, unknown>;
 type ApiResult<T> = { success: boolean; data?: T; error?: string; message?: string };
 
@@ -82,14 +91,6 @@ function isPoContextFollowUp(prompt: string) {
   return /\b(?:only|filter|under|over|below|above|less|more|price|quantity|qty|items?|lines?|those|these|them|status|supplier|sort)\b|(?:เฉพาะ|กรอง|ต่ำกว่า|มากกว่า|ไม่เกิน|อย่างน้อย|จำนวน|รายการ|สินค้า|ราคา|สถานะ|ผู้ขาย|เรียง)/i.test(prompt);
 }
 
-function requestedDocument(prompt: string): 'pdf' | 'xlsx' | 'docx' | 'pptx' | null {
-  if (/\b(?:xlsx|excel|spreadsheet)\b|(?:เอ็กเซล|เอกเซล)/i.test(prompt)) return 'xlsx';
-  if (/\bpdf\b/i.test(prompt)) return 'pdf';
-  if (/\b(?:docx|word)\b/i.test(prompt)) return 'docx';
-  if (/\b(?:pptx|powerpoint)\b|(?:พาวเวอร์พอยต์)/i.test(prompt)) return 'pptx';
-  return null;
-}
-
 function formatPoNumber(value: number | null) {
   if (value === null || !Number.isFinite(value)) return '—';
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
@@ -110,7 +111,33 @@ function formatPoStatus(value: string, language: 'th' | 'en') {
   return value || 'ไม่ระบุสถานะ';
 }
 
+function baseSkillLabel(skillId: string, language: 'th' | 'en') {
+  const labels: Record<string, { th: string; en: string }> = {
+    'base.data-analysis': { th: 'วิเคราะห์ข้อมูล', en: 'Data analysis' },
+    'base.pdf': { th: 'สร้าง PDF', en: 'PDF' },
+    'base.xlsx': { th: 'สร้าง Excel', en: 'Excel' },
+    'base.docx': { th: 'สร้าง Word', en: 'Word' },
+  };
+  const label = labels[skillId];
+  return label ? `Base Skill · ${label[language]}` : null;
+}
+
 type PurchaseOrderView = 'cards' | 'table';
+
+const productImagePlaceholder = '/images/product-image-placeholder.webp';
+
+function PurchaseOrderProductImage({ line, compact = false }: { line: PurchaseOrderLine; compact?: boolean }) {
+  const [failed, setFailed] = useState(false);
+  const source = line.product_image_url || line.image_url || line.product_image || line.image;
+  const src = !failed && source ? source : productImagePlaceholder;
+  return <div className={`procurement-po-product-image${compact ? ' is-compact' : ''}`}>
+    {/* GIS image URLs can expire or reject browser requests, so fall back on load errors too. */}
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img src={src} alt={line.product_name ? `${line.product_name} product` : 'Product'} onError={() => {
+      if (src !== productImagePlaceholder) setFailed(true);
+    }} />
+  </div>;
+}
 
 function PurchaseOrderResults({
   orders, language, view, onViewChange, onDisplayedChange,
@@ -177,7 +204,8 @@ function PurchaseOrderResults({
         {order.delivery_date && <div><dt>{th ? 'กำหนดส่ง' : 'Delivery'}</dt><dd>{formatPoDate(order.delivery_date)}</dd></div>}
       </dl>
       {view === 'cards' ? <div className="procurement-po-item-grid">
-        {order.lines.length ? order.lines.map((line, lineIndex) => <article className="procurement-po-item-card" key={`${line.sku}-${lineIndex}`}>
+        {order.lines.length ? order.lines.map((line, lineIndex) => <article className="procurement-po-item-card" key={`${line.sku}-${lineIndex}-${line.product_image_url ?? line.image_url ?? line.product_image ?? line.image ?? ''}`}>
+          <PurchaseOrderProductImage line={line} />
           <h4>{line.product_name || (th ? 'ไม่ระบุชื่อสินค้า' : 'Unnamed product')}</h4>
           <p className="procurement-po-item-sku">{th ? 'SKU' : 'SKU'} · {line.sku || '—'}</p>
           <dl>
@@ -189,21 +217,23 @@ function PurchaseOrderResults({
       </div> : <div className="procurement-po-table-wrap">
         <table className="procurement-po-table">
           <thead><tr>
+            <th scope="col" aria-label={th ? 'รูปสินค้า' : 'Product image'} />
             <th scope="col">{th ? 'สินค้า' : 'Product'}</th>
             <th scope="col">SKU</th>
             <th scope="col" className="numeric">{th ? 'จำนวน' : 'Qty'}</th>
             <th scope="col" className="numeric">{th ? 'ราคาต่อหน่วย' : 'Unit price'}</th>
             <th scope="col" className="numeric">{th ? 'รวม' : 'Amount'}</th>
           </tr></thead>
-          <tbody>{order.lines.length ? order.lines.map((line, lineIndex) => <tr key={`${line.sku}-${lineIndex}`}>
+          <tbody>{order.lines.length ? order.lines.map((line, lineIndex) => <tr key={`${line.sku}-${lineIndex}-${line.product_image_url ?? line.image_url ?? line.product_image ?? line.image ?? ''}`}>
+            <td className="procurement-po-image-cell"><PurchaseOrderProductImage line={line} compact /></td>
             <td className="procurement-po-product">{line.product_name || (th ? 'ไม่ระบุชื่อสินค้า' : 'Unnamed product')}</td>
             <td className="procurement-po-sku">{line.sku || '—'}</td>
             <td className="numeric">{formatPoNumber(line.quantity)}</td>
             <td className="numeric">{formatPoNumber(line.unit_price)}</td>
             <td className="numeric procurement-po-line-total">{formatPoNumber(line.line_total)}</td>
-          </tr>) : <tr><td colSpan={5} className="procurement-po-empty">{th ? 'ไม่พบรายการที่ตรงกับตัวกรองนี้' : 'No line items match this filter.'}</td></tr>}</tbody>
+          </tr>) : <tr><td colSpan={6} className="procurement-po-empty">{th ? 'ไม่พบรายการที่ตรงกับตัวกรองนี้' : 'No line items match this filter.'}</td></tr>}</tbody>
           <tfoot><tr>
-            <th scope="row" colSpan={2}>{order.filtered ? (th ? 'รวมรายการที่ตรงเงื่อนไข' : 'Filtered total') : (th ? 'รวมทั้งหมด' : 'Total')}</th>
+            <th scope="row" colSpan={3}>{order.filtered ? (th ? 'รวมรายการที่ตรงเงื่อนไข' : 'Filtered total') : (th ? 'รวมทั้งหมด' : 'Total')}</th>
             <td className="numeric">{formatPoNumber(order.total_quantity)}</td>
             <td />
             <td className="numeric procurement-po-grand-total">{formatPoNumber(order.total_amount)}</td>
@@ -229,7 +259,7 @@ function stripIds(value: unknown): unknown {
     .map(([key, child]) => [key, stripIds(child)]));
 }
 
-export default function ProcurementAssistant({ initialPrompt, onCancel }: { initialPrompt: string; onCancel: () => void }) {
+export default function ProcurementAssistant({ initialPrompt, documentJobId, onCancel }: { initialPrompt: string; documentJobId?: string | null; onCancel: () => void }) {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [tenantId, setTenantId] = useState('');
   const [loaded, setLoaded] = useState(false);
@@ -239,12 +269,32 @@ export default function ProcurementAssistant({ initialPrompt, onCancel }: { init
   const [pending, setPending] = useState<PendingConfirmation | null>(null);
   const [input, setInput] = useState('');
   const [purchaseOrderView, setPurchaseOrderView] = useState<PurchaseOrderView>('cards');
+  const [documentImage, setDocumentImage] = useState<DocumentImage | null>(null);
   const [editingMessageIndex, setEditingMessageIndex] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const started = useRef(false);
+  const documentContextPending = useRef(Boolean(documentJobId));
   const scrollRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const documentImageInputRef = useRef<HTMLInputElement>(null);
   const visibleOrdersByMessage = useRef(new Map<number, PurchaseOrderDisplay[]>());
+  const artifactSnapshots = useRef(new Map<string, ArtifactSnapshot>());
+
+  async function selectDocumentImage(file: File | undefined) {
+    if (!file) return;
+    if (!['image/png', 'image/jpeg'].includes(file.type) || file.size > 256 * 1024) {
+      setError('Attach a PNG or JPEG image no larger than 256 KiB.'); return;
+    }
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',', 2)[1] ?? '');
+      reader.onerror = () => reject(new Error('The image could not be read.'));
+      reader.readAsDataURL(file);
+    }).catch(() => '');
+    if (!base64) { setError('The image could not be read.'); return; }
+    setDocumentImage({ mime_type: file.type as 'image/png' | 'image/jpeg', base64, name: file.name });
+    setError('');
+  }
 
   useEffect(() => {
     void getPromptTenant().then((result) => {
@@ -279,6 +329,8 @@ export default function ProcurementAssistant({ initialPrompt, onCancel }: { init
     const previousOrders = latestPoMessage?.sourcePurchaseOrders ?? displayedOrders;
     const followUpFilter = parsePoLineFilter(normalized);
     const documentFormat = requestedDocument(normalized);
+    const latestArtifactMessage = [...baseMessages].reverse().find((item) => item.artifactId);
+    const lastArtifact = latestArtifactMessage?.artifactId ? artifactSnapshots.current.get(latestArtifactMessage.artifactId) : undefined;
     let transcriptBaseMessages = baseMessages;
     if (!context && previousOrders?.length && followUpFilter && isPoContextFollowUp(normalized)
       && displayedOrders?.some((order) => order.filtered)) {
@@ -291,31 +343,84 @@ export default function ProcurementAssistant({ initialPrompt, onCancel }: { init
     const messagePrefix: Message[] = context
       ? [...baseMessages, { role: 'user', text: normalized }]
       : alreadyShown ? messages : [...transcriptBaseMessages, { role: 'user', text: normalized }];
-    const makeDocument = async (orders: PurchaseOrderDisplay[], format: 'pdf' | 'xlsx' | 'docx' | 'pptx') => {
+    const refersToLoadedResults = /\b(?:these|those|displayed|current|above|same)\b.*\b(?:po|purchase\s+orders?|results?)\b|\b(?:po|purchase\s+orders?)\s+results?\b/i.test(normalized);
+    if (documentFormat && hasExplicitDocumentExport(normalized) && !displayedOrders?.length && !lastArtifact && !hasExportScope(normalized)) {
+      const language = /[\u0E00-\u0E7F]/.test(normalized) ? 'th' : 'en';
+      const text = language === 'th'
+        ? 'ได้เลย ต้องการ PDF ของ PO ชุดไหน? ระบุผู้ขาย สถานะ หรือเลข PO ในข้อความเดียวกันได้เลย เช่น “ทำ PDF ของ PO ที่รออนุมัติของ Ham”'
+        : 'Sure. Which PO results should the PDF contain? Include a supplier, status, or PO number in this message, for example: “Make a PDF of Ham’s pending POs.”';
+      setMessages([...messagePrefix, { role: 'assistant', text, language }]);
+      setInput(''); setError(''); setPending(null);
+      return;
+    }
+    if (documentFormat && hasExplicitDocumentExport(normalized) && !displayedOrders?.length && !lastArtifact && refersToLoadedResults) {
+      const language = /[\u0E00-\u0E7F]/.test(normalized) ? 'th' : 'en';
+      const text = language === 'th'
+        ? 'ฉันยังไม่มีบรรทัด PO โหลดอยู่ในแชทนี้เพื่อทำไฟล์ กรุณาระบุผู้ขายหรือเลข PO ให้ค้นพร้อมชนิดไฟล์ใน prompt เดียว เช่น “Find Aurora Gemstone’s approved POs and export them as PDF.”'
+        : 'I do not have PO lines loaded in this chat to export. Include the supplier or PO number and file format in one prompt, for example: “Find Aurora Gemstone’s approved POs and export them as PDF.”';
+      setMessages([...messagePrefix, { role: 'assistant', text, language }]);
+      setInput(''); setError(''); setPending(null);
+      return;
+    }
+    const makeDocument = async (orders: PurchaseOrderDisplay[], format: DocumentFormat, userRequest: string,
+      previous?: ArtifactSnapshot) => {
       const rows = orders.flatMap((order) => order.lines.map((line) => [order.po_number, order.supplier_name, order.date, order.status,
         line.product_name, line.sku, line.quantity, line.unit_price, line.line_total]));
+      if (!rows.length) throw new Error(/[\u0E00-\u0E7F]/.test(userRequest)
+        ? 'ไม่มีบรรทัดสินค้า PO ที่โหลดได้ จึงไม่ได้สร้างไฟล์เปล่า กรุณาค้น PO ที่มีรายละเอียดสินค้าแล้วสั่ง export อีกครั้ง'
+        : 'No PO line items were loaded, so FaroAI did not create a blank file. Search for PO details and export again.');
       if (rows.length > 500) throw new Error('The displayed results exceed the 500-row document limit; narrow the results first.');
-      const result = await requestArtifact({ format, title: 'Purchase orders - displayed results',
-        columns: ['PO number', 'Supplier', 'Date', 'Status', 'Product', 'SKU', 'Quantity', 'Unit price', 'Amount'], rows });
+      let orientation = requestedPdfOrientation(userRequest) ?? previous?.orientation;
+      let layout: DocumentLayout = { ...previous?.layout };
+      let title = previous?.title ?? 'Purchase orders - displayed results';
+      let image = documentImage ?? previous?.image;
+      if (needsDocumentModel(userRequest)) {
+        const planned = await requestDocumentPlan({ tenantId, message: userRequest, format,
+          columns: PO_DOCUMENT_COLUMNS, currentLayout: layout });
+        if (!planned.success) throw new Error(planned.message);
+        if (!planned.plan.edit) throw new Error('This request does not describe a document change. Tell FaroAI what to change in the report.');
+        if (planned.plan.unsupported) throw new Error(`That document change is not available yet: ${planned.plan.unsupported}`);
+        orientation = planned.plan.orientation ?? orientation;
+        title = planned.plan.title ?? title;
+        if (planned.plan.layout.hidden_columns && !planned.plan.layout.column_order) delete layout.column_order;
+        layout = { ...layout, ...planned.plan.layout };
+        if (planned.plan.remove_image) image = undefined;
+        if (planned.plan.requires_image && !image) throw new Error('Attach a PNG or JPEG image before asking FaroAI to place it in the document.');
+      }
+      const result = await requestArtifact({ format, title, columns: PO_DOCUMENT_COLUMNS, rows, userRequest,
+        orientation, layout, image, revisionOf: previous?.id });
       if (!result.success) throw new Error(result.message);
+      const version = previous ? previous.version + 1 : 1;
+      const snapshot: ArtifactSnapshot = { id: result.id, orders, format, title, orientation, layout, image, version };
+      artifactSnapshots.current.set(result.id, snapshot);
       for (let attempt = 0; attempt < 30; attempt += 1) {
         const status = await artifactStatus(result.id);
         if (status === 'completed') {
           const incomplete = orders.some((order) => order.line_count > order.lines.length);
-          setMessages((current) => [...current, { role: 'assistant', text: `Document created from ${rows.length} displayed line items. Only lines loaded in this conversation are included.${incomplete ? ' Some order lines were not loaded and are not included.' : ''} This link expires after 24 hours.`,
-            artifactId: result.id, artifactFormat: format.toUpperCase() }]);
+          const orientationNote = orientation ? ` ${orientation[0].toUpperCase()}${orientation.slice(1)} layout.` : '';
+          setMessages((current) => [...current, { role: 'assistant', text: `Version ${version} created from ${rows.length} displayed line items.${orientationNote} Only lines loaded in this conversation are included.${incomplete ? ' Some order lines were not loaded and are not included.' : ''} This link expires after 24 hours.`,
+            artifactId: result.id, artifactFormat: format.toUpperCase(), artifactLabel: documentLinkLabel(format, orientation, version), baseSkillId: result.baseSkillId }]);
+          setDocumentImage(null);
           return;
         }
         if (status === 'failed') throw new Error('The document could not be generated.');
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
       setMessages((current) => [...current, { role: 'assistant', text: 'The document is still processing. Use this link again later; it expires after 24 hours.',
-        artifactId: result.id, artifactFormat: format.toUpperCase() }]);
+        artifactId: result.id, artifactFormat: format.toUpperCase(), artifactLabel: documentLinkLabel(format, orientation, version) }]);
+      setDocumentImage(null);
     };
-    if (documentFormat && displayedOrders?.length && /(?:\bexport\b|\bdownload\b|\bfile\b|ส่งออก|ดาวน์โหลด|ไฟล์)/i.test(normalized)
+    if (lastArtifact && isDocumentRevisionHint(normalized) && (!documentFormat || !hasExportScope(normalized))) {
+      setMessages(messagePrefix); setInput(''); setError(''); setBusy(true);
+      try { await makeDocument(lastArtifact.orders, documentFormat ?? lastArtifact.format, normalized, lastArtifact); }
+      catch (error) { setMessages((current) => [...current, { role: 'assistant', text: error instanceof Error ? error.message : 'Document revision failed.' }]); }
+      finally { setBusy(false); }
+      return;
+    }
+    if (documentFormat && displayedOrders?.length && hasExplicitDocumentExport(normalized)
         && !/\b(?:create|approve|receive|cancel)\s+(?:a\s+)?(?:po|purchase\s+order|inventory)\b|(?:อนุมัติ|รับสินค้า|ยกเลิก)/i.test(normalized)) {
       setMessages(messagePrefix); setInput(''); setError(''); setBusy(true);
-      try { await makeDocument(visibleOrdersByMessage.current.get(latestPoMessageIndex) ?? displayedOrders, documentFormat); }
+      try { await makeDocument(visibleOrdersByMessage.current.get(latestPoMessageIndex) ?? displayedOrders, documentFormat, normalized); }
       catch (error) { setMessages((current) => [...current, { role: 'assistant', text: error instanceof Error ? error.message : 'Document creation failed.' }]); }
       finally { setBusy(false); }
       return;
@@ -330,31 +435,70 @@ export default function ProcurementAssistant({ initialPrompt, onCancel }: { init
       const answer = language === 'th'
         ? `พบ ${matchedCount} รายการที่ตรงกับตัวกรอง ${filter.label}`
         : `Found ${matchedCount} line items matching ${filter.label}.`;
-      setMessages([...messagePrefix, { role: 'assistant', text: answer, purchaseOrders: filteredOrders, sourcePurchaseOrders: previousOrders, language, historyAfter: historyForRequest }]);
+      setMessages([...messagePrefix, { role: 'assistant', text: answer, purchaseOrders: filteredOrders, sourcePurchaseOrders: previousOrders, language, historyAfter: historyForRequest, baseSkillId: 'base.data-analysis' }]);
+      return;
+    }
+    const responseLanguage = /[\u0E00-\u0E7F]/.test(normalized) ? 'th' : 'en';
+    const analysisOrders = visibleOrdersByMessage.current.get(latestPoMessageIndex) ?? displayedOrders;
+    const analysis = analysisOrders?.length ? parseProcurementAnalysisPrompt(normalized) : null;
+    if (analysis && analysisOrders) {
+      const incomplete = analysisOrders.some((order) => order.line_count > order.lines.length);
+      const rowCount = analysisOrders.reduce((sum, order) => sum + order.lines.length, 0);
+      if (rowCount > 500) {
+        setMessages([...messagePrefix, { role: 'assistant', text: responseLanguage === 'th'
+          ? 'วิเคราะห์ได้สูงสุด 500 บรรทัดต่อครั้ง กรุณากรองผลลัพธ์ให้แคบลงก่อน'
+          : 'Analysis is limited to 500 loaded lines per request. Narrow the results first.', language: responseLanguage }]);
+        return;
+      }
+      setMessages(messagePrefix); setInput(''); setError(''); setBusy(true);
+      try {
+        const result = await requestProcurementAnalysis({ ...analysis, language: responseLanguage,
+          orders: analysisOrders.map((order) => ({ line_count: order.line_count,
+            lines: order.lines.map(({ quantity, unit_price, line_total }) => ({ quantity, unit_price, line_total })) })) });
+        if (!result.success) throw new Error(result.message);
+        const note = incomplete ? (responseLanguage === 'th' ? ' ผลนี้คำนวณจากบรรทัดที่โหลดได้เท่านั้น' : ' This result uses only the lines that were loaded.') : '';
+        setMessages((current) => [...current, { role: 'assistant', text: `${result.answer}${note}`,
+          language: responseLanguage, historyAfter: historyForRequest, baseSkillId: result.baseSkillId }]);
+      } catch (analysisError) {
+        setMessages((current) => [...current, { role: 'assistant', text: analysisError instanceof Error ? analysisError.message : 'The data analysis skill could not complete this calculation.' }]);
+      } finally { setBusy(false); }
       return;
     }
     setMessages([...messagePrefix]);
     setInput(''); setError(''); setBusy(true); setPending(null);
     setModelHistory(historyForRequest);
     try {
-      const result = await api<{
+      const result = documentJobId && documentContextPending.current
+        ? await requestDocumentProcurement<{
+            answer: string; history: ModelMessage[]; pending_confirmation?: PendingConfirmation | null;
+            purchase_orders?: PurchaseOrderDisplay[];
+          }>({ tenantId, documentJobId, message: normalized, history: historyForRequest })
+        : await api<{
         answer: string; history: ModelMessage[]; pending_confirmation?: PendingConfirmation | null;
         purchase_orders?: PurchaseOrderDisplay[];
       }>(tenantId, `/tenants/${tenantId}/procurement/assistant`, { message: normalized, history: historyForRequest });
       if (!result.success || !result.data) throw new Error(result.message ?? 'FaroAI could not complete the procurement request.');
+      const nextPending = result.data.pending_confirmation ?? null;
+      documentContextPending.current = Boolean(documentJobId && nextPending
+        && ['create_supplier', 'create_location', 'create_voucher_type'].includes(nextPending.kind));
       setModelHistory(result.data.history ?? []);
       const returnedOrders = Array.isArray(result.data.purchase_orders) ? result.data.purchase_orders : [];
       const purchaseOrders = returnedOrders.length
         ? returnedOrders
         : displayedOrders?.length && isPoContextFollowUp(normalized) ? displayedOrders : [];
+      // Each fresh GIS result starts in the product-card view. The user can still
+      // switch this result to a table with the view toggle.
+      if (returnedOrders.length) setPurchaseOrderView('cards');
       setMessages((current) => [...current, {
         role: 'assistant', text: result.data!.answer, purchaseOrders,
         sourcePurchaseOrders: returnedOrders.length ? undefined : latestPoMessage?.sourcePurchaseOrders ?? displayedOrders,
-        language: /[\u0E00-\u0E7F]/.test(normalized) ? 'th' : 'en',
+        language: responseLanguage,
         historyAfter: result.data!.history ?? historyForRequest,
       }]);
-      setPending(result.data.pending_confirmation ?? null);
-      if (documentFormat && returnedOrders.length && !result.data.pending_confirmation) await makeDocument(returnedOrders, documentFormat);
+      setPending(nextPending);
+      if (documentFormat && hasExplicitDocumentExport(normalized) && returnedOrders.length && !result.data.pending_confirmation) {
+        await makeDocument(returnedOrders, documentFormat, normalized);
+      }
     } catch (requestError) {
       const messageText = requestError instanceof Error ? requestError.message : 'FaroAI could not complete the procurement request.';
       setError(messageText);
@@ -373,6 +517,29 @@ export default function ProcurementAssistant({ initialPrompt, onCancel }: { init
       if (!result.success || !result.data) throw new Error(result.message ?? 'GIS did not confirm this operation. Check GIS before retrying.');
       setMessages((current) => [...current, { role: 'assistant', text: result.data!.answer ?? 'GIS confirmed the operation.' }]);
       setPending(result.data.pending_confirmation ?? null);
+      if (documentJobId && ['create_supplier', 'create_location', 'create_voucher_type'].includes(pending.kind)) {
+        documentContextPending.current = true;
+        const continuation = await requestDocumentProcurement<{
+          answer: string; history: ModelMessage[]; pending_confirmation?: PendingConfirmation | null;
+          purchase_orders?: PurchaseOrderDisplay[];
+        }>({ tenantId, documentJobId, message: initialPrompt, history: [] });
+        if (!continuation.success || !continuation.data) {
+          documentContextPending.current = false;
+          const continuationError = continuation.message ?? 'GIS master was created, but FaroAI could not continue the PO review. Send the same document request again to resume.';
+          setError(continuationError);
+          setMessages((current) => [...current, { role: 'assistant', text: continuationError }]);
+          setPending(null);
+          return;
+        }
+        const continuationPending = continuation.data.pending_confirmation ?? null;
+        documentContextPending.current = Boolean(continuationPending
+          && ['create_supplier', 'create_location', 'create_voucher_type'].includes(continuationPending.kind));
+        setModelHistory(continuation.data.history ?? []);
+        const orders = Array.isArray(continuation.data.purchase_orders) ? continuation.data.purchase_orders : [];
+        setMessages((current) => [...current, { role: 'assistant', text: continuation.data!.answer,
+          purchaseOrders: orders, language: /[\u0E00-\u0E7F]/.test(initialPrompt) ? 'th' : 'en', historyAfter: continuation.data!.history ?? [] }]);
+        setPending(continuationPending);
+      }
     } catch (requestError) {
       const messageText = requestError instanceof Error ? requestError.message : 'GIS could not confirm this operation.';
       setError(messageText);
@@ -424,7 +591,8 @@ export default function ProcurementAssistant({ initialPrompt, onCancel }: { init
             {index === latestUserMessageIndex && <button className="procurement-edit-prompt" type="button" onClick={() => editPrompt(index)} disabled={busy} aria-label="Edit latest prompt"><Pencil size={12} /> Edit</button>}
           </div>
           : <strong>FaroAI</strong>}
-        {message.artifactId && <p><a href={`/api/artifacts/${message.artifactId}`} download>Download {message.artifactFormat}</a></p>}
+        {message.role === 'assistant' && message.baseSkillId && <span className="procurement-skill-badge">{baseSkillLabel(message.baseSkillId, message.language ?? 'en')}</span>}
+        {message.artifactId && <p><a href={`/api/artifacts/${message.artifactId}`} download>{message.artifactLabel ?? `Download ${message.artifactFormat}`}</a></p>}
         {message.role === 'assistant' && message.purchaseOrders?.length
           ? <>
             {message.text && message.text.length <= 240 && !/(?:\*\*|Item Name:|Unit Price:|Quantity:)/i.test(message.text)
@@ -436,19 +604,26 @@ export default function ProcurementAssistant({ initialPrompt, onCancel }: { init
       </article>)}
       {busy && <p className="shopping-loading" role="status"><LoaderCircle className="spin" size={16} /> Checking GIS and preparing the next step…</p>}
       {pending && <div className="procurement-preview">
-        <div><p className="eyebrow">GIS PREVIEW · {pending.kind === 'create_purchase_order' ? 'PO · PENDING APPROVAL' : pending.kind === 'receive_inventory' ? 'INVENTORY RECEIPT · PENDING APPROVAL' : pending.kind === 'create_voucher_type' ? 'PURCHASE ORDER VOUCHER' : 'ACTIVATE SUPPLIER'}</p>
+        <div><p className="eyebrow">GIS PREVIEW · {pending.kind === 'create_purchase_order' ? 'PO · PENDING APPROVAL' : pending.kind === 'receive_inventory' ? 'INVENTORY RECEIPT · PENDING APPROVAL' : pending.kind === 'create_voucher_type' ? 'PURCHASE ORDER VOUCHER' : pending.kind === 'create_supplier' ? 'NEW SUPPLIER' : pending.kind === 'create_location' ? 'NEW LOCATION' : 'ACTIVATE SUPPLIER'}</p>
           <p>{pending.kind === 'create_voucher_type'
             ? 'Review the GIS-verified voucher name, group, location, and numbering. Confirm to create this voucher type in GIS.'
+            : pending.kind === 'create_supplier'
+              ? 'Review the source-backed Supplier details. Confirm to create and activate this Supplier in GIS; it does not synchronize to ERP.'
+              : pending.kind === 'create_location'
+                ? 'Review the GIS-verified Store/Warehouse details and tax. Confirm to create it in GIS; GIS will add its default Vault zone and cash register.'
             : pending.kind === 'activate_supplier'
                 ? 'Review the existing GIS supplier and its current status. Confirm to activate it.'
                 : 'AI-generated prices, dates, quantities, and master selections are proposals. Review the GIS-verified details below; edit them by sending a correction, or confirm this exact operation to send it to GIS.'}</p></div>
         <pre>{JSON.stringify(stripIds(pending.preview), null, 2)}</pre>
-        <button className="primary-button compact" type="button" onClick={() => void confirm()} disabled={busy}><Check size={15} /> {pending.kind === 'create_voucher_type' ? 'Confirm and create voucher' : pending.kind === 'activate_supplier' ? 'Confirm and activate supplier' : 'Confirm and send to GIS'}</button>
+        <button className="primary-button compact" type="button" onClick={() => void confirm()} disabled={busy}><Check size={15} /> {pending.kind === 'create_voucher_type' ? 'Confirm and create voucher' : pending.kind === 'create_supplier' ? 'Confirm and create Supplier' : pending.kind === 'create_location' ? 'Confirm and create Location' : pending.kind === 'activate_supplier' ? 'Confirm and activate supplier' : 'Confirm and send to GIS'}</button>
       </div>}
     </div>
     <form className="procurement-composer" onSubmit={submit}>
       <textarea ref={composerRef} value={input} onChange={(event) => setInput(event.target.value)} maxLength={1500} rows={2}
         placeholder="เช่น ค้นหา supplier Ham / Create a supplier for… / Create a PO for 5 rings, model ABC" disabled={busy || !tenantId} />
+      <input ref={documentImageInputRef} className="sr-only" type="file" accept="image/png,image/jpeg" aria-label="Attach an image to the next document" onChange={(event) => { void selectDocumentImage(event.target.files?.[0]); event.target.value = ''; }} />
+      <button className="secondary-button compact procurement-attach-image" type="button" onClick={() => documentImageInputRef.current?.click()} disabled={busy || !tenantId}><Paperclip size={14} /> Image</button>
+      {documentImage && <span className="procurement-attached-image">{documentImage.name}<button type="button" onClick={() => setDocumentImage(null)} aria-label="Remove attached image"><X size={12} /></button></span>}
       {editingMessageIndex !== null && <button className="secondary-button compact procurement-cancel-edit" type="button" onClick={cancelPromptEdit} disabled={busy}>Cancel edit</button>}
       <button className="primary-button compact" type="submit" disabled={busy || !tenantId || !input.trim()} aria-label={editingMessageIndex !== null ? 'Save and resend edited prompt' : 'Send procurement request'}>
         {busy ? <LoaderCircle className="spin" size={15} /> : editingMessageIndex !== null ? <Check size={15} /> : <Send size={15} />} {editingMessageIndex !== null ? 'Save & resend' : 'Send'}

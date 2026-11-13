@@ -41,7 +41,8 @@ class WorkerSecurityTests(unittest.TestCase):
     def test_rechecks_authorization_before_publishing_and_deletes_temp(self):
         job = {'tenant_id': '00000000-0000-0000-0000-000000000001',
                'id': '00000000-0000-0000-0000-000000000002', 'api_key_id': '00000000-0000-0000-0000-000000000003',
-               'claim_id': '00000000-0000-0000-0000-000000000004', 'format': 'pdf', 'input_payload': {}}
+               'claim_id': '00000000-0000-0000-0000-000000000004', 'format': 'pdf',
+               'base_skill_id': 'base.pdf', 'input_payload': {}}
         with tempfile.TemporaryDirectory() as folder, patch.object(worker, 'ROOT', Path(folder)):
             denied = Connection(False)
             worker.run_job(denied, job)

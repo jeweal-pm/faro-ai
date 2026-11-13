@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../jw-gis-backend"
+		},
+		{
+			"path": "../jw-gis-frontend"
+		}
+	],
+	"settings": {}
+}

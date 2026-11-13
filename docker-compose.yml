@@ -8,6 +8,10 @@ services:
       PORT: "3000"
       FAROAI_ARTIFACT_ROOT: /var/faroai/artifacts
       FAROAI_ARTIFACT_ENABLED: ${FAROAI_ARTIFACT_ENABLED:-false}
+      FAROAI_DOCUMENT_IMPORT_ENABLED: ${FAROAI_DOCUMENT_IMPORT_ENABLED:-false}
+      FAROAI_DOCUMENT_IMPORT_ROOT: /var/faroai/document-import/source
+      FAROAI_DOCUMENT_PREVIEW_ROOT: /var/faroai/document-import/previews
+      FAROAI_DOCUMENT_IMPORT_ENCRYPTION_KEY: ${FAROAI_DOCUMENT_IMPORT_ENCRYPTION_KEY:-}
       DATABASE_URL: ${DATABASE_URL:-postgres://faroai:${FAROAI_DB_PASSWORD}@postgres:5432/faroai}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       PYTHON_SERVICE_URL: ${PYTHON_SERVICE_URL:-http://ai-service:8000}
@@ -47,6 +51,8 @@ services:
         condition: service_healthy
       ai-service:
         condition: service_healthy
+      document-import-volume-init:
+        condition: service_completed_successfully
     networks:
       - app
       - data
@@ -55,6 +61,8 @@ services:
       - "10002"
     volumes:
       - artifact_data:/var/faroai/artifacts:ro
+      - document_import_source:/var/faroai/document-import/source:rw
+      - document_import_previews:/var/faroai/document-import/previews:ro
     read_only: true
     tmpfs:
       - /tmp
@@ -89,6 +97,7 @@ services:
       QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
       QDRANT_API_KEY: ${QDRANT_API_KEY:?set QDRANT_API_KEY}
       FAROAI_INTERNAL_SECRET: ${FAROAI_INTERNAL_SECRET:?set FAROAI_INTERNAL_SECRET}
+      FAROAI_GIS_MCP_CONTEXT_SECRET: ${FAROAI_GIS_MCP_CONTEXT_SECRET:-}
       FAROAI_DEPLOYMENT_MODE: ${FAROAI_DEPLOYMENT_MODE:-hosted}
       FAROAI_TENANT_MODE: ${FAROAI_TENANT_MODE:-multi}
       FAROAI_SINGLE_TENANT_ID: ${FAROAI_SINGLE_TENANT_ID:-}
@@ -192,14 +201,11 @@ services:
       context: ./artifact-worker
     environment:
       DATABASE_URL: ${FAROAI_ARTIFACT_DATABASE_URL:-}
-      REDIS_URL: ${FAROAI_ARTIFACT_REDIS_URL:-}
       ARTIFACT_ROOT: /var/faroai/artifacts
     depends_on:
       migrations:
         condition: service_completed_successfully
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     networks:
       - data
@@ -222,6 +228,68 @@ services:
         max-file: "3"
     restart: unless-stopped
 
+  document-import-volume-init:
+    image: postgres:16-alpine
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - test -d /source && test ! -L /source && chown 1000:1000 /source && chmod 0700 /source && test -d /previews && test ! -L /previews && chown 1000:1000 /previews && chmod 0700 /previews
+    network_mode: none
+    volumes:
+      - document_import_source:/source:rw
+      - document_import_previews:/previews:rw
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - FOWNER
+    cpus: "0.05"
+    mem_limit: 32m
+    pids_limit: 16
+    restart: "no"
+
+  document-import-worker:
+    profiles: ["document-import"]
+    build:
+      context: ./document-import-worker
+    environment:
+      DATABASE_URL: ${FAROAI_DOCUMENT_IMPORT_DATABASE_URL:-}
+      FAROAI_DOCUMENT_IMPORT_ROOT: /var/faroai/document-import/source
+      FAROAI_DOCUMENT_PREVIEW_ROOT: /var/faroai/document-import/previews
+      FAROAI_DOCUMENT_IMPORT_TEMP: /tmp/document-import
+      FAROAI_DOCUMENT_IMPORT_ENCRYPTION_KEY: ${FAROAI_DOCUMENT_IMPORT_ENCRYPTION_KEY:-}
+    depends_on:
+      document-import-volume-init:
+        condition: service_completed_successfully
+      migrations:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    networks:
+      - document_import_db
+    volumes:
+      - document_import_source:/var/faroai/document-import/source:ro
+      - document_import_previews:/var/faroai/document-import/previews:rw
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=128m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cpus: "0.20"
+    mem_limit: 512m
+    pids_limit: 64
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
+    restart: unless-stopped
+
   postgres:
     image: postgres:16-alpine
     environment:
@@ -239,6 +307,7 @@ services:
       retries: 5
     networks:
       - data
+      - document_import_db
     cpus: "0.40"
     mem_limit: 768m
     pids_limit: 256
@@ -367,11 +436,15 @@ volumes:
   qdrant_storage:
   qdrant_snapshots:
   artifact_data:
+  document_import_source:
+  document_import_previews:
 
 networks:
   app:
     internal: true
   data:
+    internal: true
+  document_import_db:
     internal: true
   host_api:
     driver: bridge

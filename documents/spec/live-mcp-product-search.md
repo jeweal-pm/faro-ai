@@ -1,6 +1,6 @@
 # SPEC: Live MCP product search in AI discovery
 
-- **Status:** FAROAI integration implemented; GIS structured-filter support pending
+- **Status:** FAROAI caller and GIS MCP structured-filter implementation are in source; deployment refresh and end-to-end verification remain
 - **Date:** 2026-10-15
 - **Decision:** [ADR-0017](../adr/0017-live-mcp-product-search-results.md)
 - **Related:** [MCP connections](../adr/0009-use-multiple-source-mcp.md), [consented model improvement](consented-model-improvement.md)
@@ -22,7 +22,15 @@ The preferred extended input adds `filters` when the tool's advertised schema su
 {
   "query": "I need ring",
   "language": "en",
-  "filters": { "stone_shape_exclude": ["round"] }
+  "filters": {
+    "item": "ring",
+    "metal": "Yellow gold",
+    "gemstone": "Emerald",
+    "color": "Yellow",
+    "style": "Classic",
+    "price": {"max": 500, "max_inclusive": false, "currency": "USD"},
+    "exclude_terms": ["diamond"]
+  }
 }
 ```
 
@@ -47,15 +55,24 @@ The preferred extended input adds `filters` when the tool's advertised schema su
 }
 ```
 
-`filters` is optional for backward compatibility. When supported, `stone_shape_exclude` is an array of canonical GIS shape IDs applied before ranking. Return at most ten useful candidates for FaroAI to validate and rank, with only business data the authenticated tenant is authorized to see. Include `stone_shape` when it is a verified catalog attribute. The top-level result must be an object with a `products` array; return `{"products": []}` for a real no-match result. Do not return a bare array, alternate envelope keys, fabricate products or return raw database records. The tool must enforce its own GIS API authorization and tenant/account scope.
+`filters` is optional for backward compatibility. FaroAI sends only keys advertised in the live schema. GIS resolves item, metal, gemstone, color, and style against active organization masters; price requires an ISO currency and filters matching location price rows; `exclude_terms` applies before ranking. Price bounds are inclusive unless the matching boolean is false. Return at most ten candidates and include `verified_attributes`, `applied_filters`, and `unmatched_filters`. Unresolved master values return an empty result and never silently broaden the query. The top-level result must be an object with a `products` array. Do not return a bare array, alternate envelope keys, fabricated products or raw database records. GIS enforces the configured organization boundary.
 
 ## Authorization and execution
 
 - A connection test only discovers tools. A platform administrator must explicitly approve `search_products` for the tenant connection before Jev can select or call it.
 - At runtime, the gateway passes only enabled, tested tenant connections and approved tool names to the AI service. The AI service checks the selected tool against the same allow-list before making the outbound call.
-- When a Jev route selector is configured, Jev chooses the source/tool. If no selector is configured, a jewelry product query may use the sole enabled source approved for `search_products`; FaroAI does not choose between multiple eligible sources. Product care, repair, sizing, or other explanatory questions stay on the knowledge route.
+- When a Jev route selector is configured, Jev chooses the source/tool. If Jev classifies a request as a product search but returns no usable MCP route, FaroAI may use the sole enabled source approved for `search_products`. Without a selector, a jewelry product query may also use that sole approved source. FaroAI does not choose between multiple eligible sources. Product care, repair, sizing, or other explanatory questions stay on the knowledge route.
 - FaroAI uses the saved endpoint and authentication method; the user query cannot choose a URL, API key, MCP source or tool name.
 - MCP requests use the existing exact-host allow-list, HTTPS policy, redirect rejection and finite timeouts. Tool arguments, headers, API keys and raw responses are not logged.
+- A read-only `search_products` request may be attempted once more after a classified transport, connection, or timeout failure, with a short delay. Do not retry an MCP `isError` tool result, a valid empty result, or any write-capable tool. Keep the final failure as an empty result with the existing verification error; never substitute unverified or cached products.
+
+## Generic discovery queries
+
+- GIS strips common request wording, gift wording, recipient wording, and generic `jewelry` / `jewellery` terms before matching searchable product fields. Concrete catalog terms such as `ring`, `emerald`, `gold`, color, and SKU remain searchable.
+- If only generic discovery wording remains (for example, `Find jewelry for my wife`), GIS may return a bounded browse of at most ten active products from the configured organization that have location price details. The browse remains organization-scoped and uses the same active product and location eligibility rules as ordinary searches.
+- Recipient, occasion, and lifestyle preferences remain context for Jev and answer generation; they are not treated as verified catalog attributes.
+- With structured filters, FAROAI sends the original catalog query separately from facet context. Query-only MCP tools receive selected preference context for backward compatibility.
+- Jev-selected models may reorder only the at-most-ten GIS candidates for recipient, occasion, theme, size, or lifestyle fit. Unknown IDs are discarded and GIS order is preserved if model output is invalid or unavailable.
 
 ## Validation and response mapping
 
@@ -80,4 +97,6 @@ Live responses exist only for the current chat request. They are excluded from R
 - [x] Status-only tools remain functional and cannot populate product cards.
 - [x] Live results do not enter Qdrant, caches, learning candidates or training datasets.
 - [x] Without a Jev selector, a product query reaches the sole approved `search_products` source; multiple eligible sources do not get selected by guesswork.
+- [x] A transient transport failure on read-only `search_products` gets at most one retry; MCP tool errors and valid empty results are not retried.
+- [x] A generic request with no concrete catalog term reaches the sole approved source and returns a bounded browse; the GIS source update includes the generic-term and filtered-browse paths, pending active endpoint verification.
 - [x] Frontend search for “I need a necklace” renders eight GIS product cards with source attribution from the MCP response; results remain request-scoped.

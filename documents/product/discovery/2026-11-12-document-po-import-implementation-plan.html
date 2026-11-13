@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="แผนพัฒนา document-to-PO ของ FaroAI ให้แก้ข้อมูลและส่งเข้า GIS ได้อย่างปลอดภัย พร้อมข้อเสนอ EC2">
+  <title>แผนพัฒนา Document-to-PO | FaroAI</title>
+  <style>
+    :root{color-scheme:light;--ink:#19334d;--muted:#637991;--line:#dce6ef;--paper:#fff;--bg:#f1f5fa;--blue:#7188f3;--teal:#35bdb5;--green:#19816f;--amber:#a96b12;--red:#a8424c;--soft:#eef9f8}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:linear-gradient(145deg,#edf2ff,#eaf8f7 50%,#f5f7fb);color:var(--ink);font:17px/1.72 system-ui,-apple-system,"Segoe UI",sans-serif}
+    main{width:min(1120px,calc(100% - 32px));margin:32px auto 60px}.hero,.card{background:var(--paper);border:1px solid var(--line);border-radius:18px;box-shadow:0 10px 32px #18304b0d}.hero{padding:36px 42px;margin-bottom:18px;border-top:5px solid var(--teal)}.eyebrow{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#637e9f;font-weight:800;margin:0 0 8px}h1{font:500 clamp(32px,5vw,48px)/1.16 Georgia,serif;letter-spacing:-.02em;margin:0}h2{font-size:25px;line-height:1.3;margin:0 0 13px}h3{font-size:18px;line-height:1.4;margin:0 0 5px}.subtitle{font-size:18px;color:var(--muted);max-width:880px;margin:12px 0}.meta{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}.pill{border-radius:999px;padding:5px 12px;background:#f0f4f9;color:#4d647e;font-size:13px;font-weight:700}.card{padding:25px 30px;margin:17px 0}.card p{color:var(--muted);margin:6px 0}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.tile{border:1px solid var(--line);border-radius:13px;padding:17px;background:#fff}.tile p{margin:5px 0 0}.callout{padding:15px 18px;background:var(--soft);border-left:4px solid var(--teal);border-radius:10px;margin-top:15px}.warn{background:#fff6e8;border-color:#e5aa48}.danger{background:#fff0f1;border-color:#d3656c}.status{display:inline-block;border-radius:99px;padding:3px 9px;font-size:12px;font-weight:800;margin-right:7px}.done{color:#176957;background:#e5f5ef}.next{color:#6a55ae;background:#f0edff}.blocked{color:#965d11;background:#fff1d9}.flow{display:grid;grid-template-columns:repeat(6,minmax(130px,1fr));gap:10px;overflow-x:auto;padding:3px 0 10px}.step{min-width:130px;border:1px solid var(--line);border-radius:12px;padding:14px;background:#f8fafc}.num{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;color:#fff;background:linear-gradient(135deg,var(--blue),var(--teal));font-weight:800;margin-bottom:8px}.step p{font-size:14px;margin:4px 0 0}.phase{display:grid;grid-template-columns:170px 1fr;gap:20px;border-top:1px solid var(--line);padding:18px 0}.phase:first-of-type{border-top:0}.phase-label{font-weight:800;color:#337d78}.phase ul{margin:0;padding-left:21px;color:var(--muted)}li{margin:4px 0}table{border-collapse:collapse;width:100%;margin-top:12px}th,td{text-align:left;padding:12px 13px;border-bottom:1px solid var(--line);vertical-align:top}th{background:#f4f7fb;color:#4b637d;font-size:14px}td{color:var(--muted)}.recommend{border:2px solid #7fd4ca;background:linear-gradient(120deg,#f5f7ff,#f0fbf9);border-radius:15px;padding:20px}.recommend strong{color:var(--ink)}.metric{font-size:25px;font-weight:800;color:#286c80}.small{font-size:14px;color:var(--muted)}.sources a{color:#355db5;text-decoration-thickness:1px;text-underline-offset:3px}footer{color:#73869b;font-size:13px;padding:10px 4px}.toc{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}.toc a{color:#31599d;text-decoration:none;background:#f4f7fb;border:1px solid var(--line);border-radius:9px;padding:6px 10px;font-size:14px}
+    pre{margin:10px 0 16px;padding:16px 18px;overflow:auto;border:1px solid #d9e3ef;border-radius:11px;background:#142337;color:#eaf2fb;font:14px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre}code{overflow-wrap:anywhere}.command-note{font-size:14px;color:var(--muted)}
+    @media(max-width:800px){main{width:calc(100% - 20px);margin-top:12px}.hero,.card{padding:21px}.grid{grid-template-columns:1fr}.phase{grid-template-columns:1fr;gap:5px}.flow{grid-template-columns:repeat(6,150px)}body{font-size:16px}table{display:block;overflow-x:auto}pre{font-size:12px;padding:13px}}
+  </style>
+</head>
+<body><main>
+  <header class="hero">
+    <p class="eyebrow">FaroAI · Implementation plan</p>
+    <h1>ทำเอกสารให้เป็น PO ได้<br>แบบตรวจสอบและแก้ไขได้</h1>
+    <p class="subtitle">แผนต่อยอดจาก OCR และ PO preparation ที่มีอยู่ ให้ผู้ใช้แก้ข้อมูลที่อ่านผิด เลือก GIS master ที่ถูกต้อง และส่งสร้าง PO ได้โดยไม่เดาข้อมูลหรือสร้าง master ซ้ำ</p>
+    <div class="meta"><span class="pill">อัปเดต 13 พ.ย. 2026</span><span class="pill">ขอบเขต: FaroAI + GIS MCP</span><span class="pill">เริ่มเฉพาะ PO 1 ใบ / 1 Location</span></div>
+    <nav class="toc"><a href="#now">สถานะวันนี้</a><a href="#flow">Flow ผู้ใช้</a><a href="#phases">ขั้นพัฒนา</a><a href="#safety">ความปลอดภัย</a><a href="#ec2">EC2</a><a href="#deploy">ขั้น deploy</a><a href="#docker-commands">ไฟล์และคำสั่ง Docker</a><a href="#accept">เกณฑ์พร้อมใช้</a></nav>
+  </header>
+
+  <section class="card" id="now"><h2>เริ่มจากของที่มี</h2>
+    <div class="grid">
+      <article class="tile"><span class="status done">มีแล้ว</span><h3>รับไฟล์และ OCR แยก worker</h3><p>Compose profile <code>document-import</code>; worker ทำงานทีละงาน จำกัด 0.20 CPU / 512 MiB, ไม่มี port และต่อได้เฉพาะ PostgreSQL ผ่าน network ภายใน</p></article>
+      <article class="tile"><span class="status done">มีแล้ว</span><h3>เก็บต้นฉบับและข้อมูลตรวจแยกกัน</h3><p>ไฟล์เข้ารหัส เก็บต้นฉบับไม่เกิน 24 ชั่วโมง และข้อมูล review/OCR ไม่เกิน 7 วัน ตามเอกสารปัจจุบัน</p></article>
+      <article class="tile"><span class="status done">มีแล้ว</span><h3>ฟอร์มแก้ PO preparation และส่งใหม่</h3><p>แก้ Supplier, Location, SKU, จำนวน, ราคา และสกุลเงินได้โดยไม่อัปโหลดซ้ำ; correction แยกจาก OCR เดิมและการส่งใหม่ต้องทำ GIS matching/preview ใหม่</p></article>
+      <article class="tile"><span class="status next">ขั้นถัดไป</span><h3>เปลี่ยนการพิมพ์ชื่อเป็น GIS-backed selection</h3><p>ช่อง mapping รุ่นแรกยังใช้ชื่อ/รหัสแบบ exact text; ทำ dropdown ที่ค้น master ของ tenant และผูก GIS ID ที่ backend ตรวจซ้ำได้</p></article>
+    </div>
+    <div class="callout warn"><strong>ข้อจำกัดที่ต้องสื่อให้ตรง:</strong> เพดาน Docker เป็นค่าจำกัดสูงสุด ไม่ใช่ผลวัดการใช้ CPU/RAM จริง และการเปิด worker ไม่ได้แปลว่า PO ถูกสร้างแล้ว ผู้ใช้ต้องตรวจ preview และยืนยันการเขียนแยกต่างหาก</div>
+  </section>
+
+  <section class="card" id="flow"><h2>Flow ที่ผู้ใช้ทำได้ในหน้าเดียว</h2>
+    <div class="flow">
+      <div class="step"><span class="num">1</span><strong>แนบเอกสาร</strong><p>รับ PDF/รูปที่รองรับ; ตรวจชนิดและขนาดก่อนจัดคิว</p></div>
+      <div class="step"><span class="num">2</span><strong>OCR + แยก field</strong><p>อ่านเอกสารใน worker แยก; ข้อความเอกสารเป็นข้อมูล ไม่ใช่คำสั่ง</p></div>
+      <div class="step"><span class="num">3</span><strong>แก้และจับคู่</strong><p>แก้ค่าที่อ่านผิด เลือก Supplier/Location/Product จาก GIS</p></div>
+      <div class="step"><span class="num">4</span><strong>ตรวจความครบ</strong><p>ห้ามเดา tax, country, SKU, quantity หรือ unit price</p></div>
+      <div class="step"><span class="num">5</span><strong>ดู GIS preview</strong><p>ตรวจผู้ขาย, ปลายทาง, รายการ, ยอดรวมและสถานะ</p></div>
+      <div class="step"><span class="num">6</span><strong>ยืนยันสร้าง PO</strong><p>สร้าง PO pending approval; ไม่อนุมัติหรือรับสินค้าแทนผู้ใช้</p></div>
+    </div>
+  </section>
+
+  <section class="card" id="phases"><h2>แผนพัฒนาเป็นขั้น</h2>
+    <div class="phase"><div class="phase-label"><span class="status done">ฐานที่ทำแล้ว</span><br>1 · แก้แล้วส่งใหม่</div><ul><li>มีฟอร์มแก้ข้อมูล PO และลองเตรียมใหม่จากเอกสารเดิม</li><li>เก็บ OCR ต้นฉบับไว้เทียบกับค่าที่ผู้ใช้แก้</li><li>ทุกครั้งที่ส่งซ้ำต้องค้น GIS และสร้าง preview ใหม่; ห้ามใช้ preview เก่า</li><li>Map existing ต้องไม่เรียก create master; Create new ยังต้องผ่าน review/confirmation ของ GIS แยก</li></ul></div>
+    <div class="phase"><div class="phase-label">2 · ทำ mapping ให้เลือกง่าย</div><ul><li>เพิ่ม GIS search selectors สำหรับ Supplier, Location, Product และ Voucher; ค้นแบบแบ่งหน้าและแสดง code, ชื่อ, สถานะ/สาขา</li><li>เลือก record แล้วส่ง ID กลับ API; backend ตรวจ tenant, active status และความตรงกับข้อความในเอกสารซ้ำ</li><li>ถ้า exact match ไม่พบหรือพบหลายตัว ให้แสดงตัวเลือก/คำถาม; ห้ามเลือก “ใกล้เคียงที่สุด” อัตโนมัติ</li><li>แสดงหลักฐานจากเอกสารข้าง field เพื่อให้ผู้ใช้เห็นว่า AI อ่านค่าจากตรงไหน</li></ul></div>
+    <div class="phase"><div class="phase-label">3 · ป้องกัน master ซ้ำ</div><ul><li>ค้น exact code ก่อน แล้วตรวจ normalized name, country และ address เป็น duplicate warning</li><li>แยกปุ่ม “เลือกของเดิม” กับ “ขอสร้างใหม่”; ก่อน create ตรวจ required fields และค้นซ้ำอีกครั้งที่ server</li><li>สร้างแต่ละ master ผ่าน GIS API/MCP ที่มี permission แยกและ idempotency; อ่านกลับ record เพื่อยืนยัน</li><li>ไม่ auto-merge, archive หรือลบ Supplier/Location/Product; ทำรายงาน candidate ให้คนตรวจ</li></ul></div>
+    <div class="phase"><div class="phase-label">4 · เขียน PO อย่างควบคุม</div><ul><li>ใช้ preview แบบ no-write ตรวจ master IDs, currency, tax, quantity, ราคาต่อหน่วยและยอดรวม</li><li>ใช้ confirmation ที่ผูกกับ tenant, actor, document version และ preview hash; เปลี่ยนค่าหลัง preview แล้วต้อง preview ใหม่</li><li>กัน double-submit/retry ด้วย idempotency; ถ้า timeout หลัง write ให้แสดงสถานะไม่แน่ชัดและตรวจ GIS ก่อน retry</li><li>หลังสร้างให้อ่าน PO กลับจาก GIS และแสดงเลขที่/สถานะ pending approval; ไม่เรียก approve หรือ receive</li></ul></div>
+    <div class="phase"><div class="phase-label">5 · ทดสอบและเปิดใช้</div><ul><li>ทดสอบ fixture ที่อนุญาต: PDF มี text, scan ไทย/อังกฤษ, หลาย layout, field หาย, supplier/location ไม่ตรง, สินค้าชื่อคล้ายและ SKU ขัดกัน</li><li>ทดสอบ duplicate, tenant isolation, สิทธิ์อ่าน/เขียน, ผู้ใช้ยกเลิก, timeout, ส่งซ้ำ, ลบและ TTL</li><li>เริ่ม pilot tenant เดียวและจำกัด concurrency; เก็บเฉพาะ latency/error/queue depth/resource metrics ที่ไม่บันทึก OCR หรือ PII</li><li>ขยายจำนวน worker เมื่อ metric แสดงว่า queue หรือเวลารอเกินเป้าหมาย ไม่ขยาย CPU/RAM แบบเดา</li></ul></div>
+  </section>
+
+  <section class="card" id="safety"><h2>กติกาความปลอดภัยที่เป็นเงื่อนไขผ่านงาน</h2>
+    <div class="grid">
+      <article class="tile"><h3>แยก tenant และสิทธิ์</h3><p>ใช้ tenant/actor จาก session ที่ตรวจแล้ว; แยก permission ดู master, สร้าง master, สร้าง PO, approve PO และรับสินค้า</p></article>
+      <article class="tile"><h3>ไฟล์และ OCR เป็นข้อมูลไม่น่าเชื่อถือ</h3><p>ตรวจ signature, MIME, page/pixel/byte limits; ปฏิเสธ format ที่ไม่รองรับ; ไม่ให้ prompt ใน PDF เปลี่ยนคำสั่งระบบหรือเรียก tools เอง</p></article>
+      <article class="tile"><h3>Worker แยกและจำกัด</h3><p>คง worker แบบ non-root, read-only root FS, capabilities dropped, no-new-privileges, internal DB-only network, tmpfs จำกัด และไม่มี provider/GIS credentials</p></article>
+      <article class="tile"><h3>เข้ารหัสและลบตามกำหนด</h3><p>แยก encryption key จาก API secrets; source 24h, review data 7d ตาม policy; การลบต้องลบ source, previews, OCR และ corrections พร้อมตรวจผล</p></article>
+    </div>
+    <div class="callout danger"><strong>ห้ามสร้างจาก OCR โดยตรง:</strong> การอ่านไฟล์หรือกดส่งเข้าคิวไม่เท่ากับการอนุญาตสร้าง GIS master/PO ทุกการเขียนต้องแสดงผลที่กำลังจะสร้างและให้ผู้ใช้ยืนยันตามขอบเขตที่กำหนด</div>
+  </section>
+
+  <section class="card" id="ec2"><h2>ข้อเสนอเครื่อง EC2</h2>
+    <div class="recommend">
+      <span class="status next">แนะนำสำหรับ pilot เริ่มต้น</span>
+      <h3>Amazon EC2 <code>m7i.xlarge</code> · Linux · 4 vCPU · 16 GiB RAM</h3>
+      <p>ใช้ host เดียวกับ FaroAI stack และ OCR worker ที่ทำงานตามคิวทีละงานในช่วง pilot ได้ โดย Jev/provider model ทำงานภายนอก จึงไม่ต้องใช้ GPU สำหรับ OCR/PO preparation รุ่นนี้</p>
+      <div class="grid" style="margin-top:12px">
+        <div class="tile"><div class="metric">4 / 16</div><div class="small">vCPU / GiB memory — มี memory headroom เหนือ Compose budget ปัจจุบัน 4 vCPU / 8 GiB</div></div>
+        <div class="tile"><div class="metric">ประมาณ $0.252/ชม.</div><div class="small">Linux On-Demand ใน Singapore; ประมาณ $183.96 ต่อเดือนเมื่อเปิด 730 ชั่วโมง (เฉพาะ EC2 compute)</div></div>
+        <div class="tile"><strong>Storage: EBS gp3 เข้ารหัส</strong><p>ตั้งขนาดจากข้อมูลฐานข้อมูล, Qdrant, logs และ retention จริง; snapshot/backup แยก account หรือ policy ตามองค์กร; ไม่เก็บ state สำคัญบน instance store</p></div>
+      </div>
+    </div>
+    <table><thead><tr><th>ตัวเลือก</th><th>On-Demand โดยประมาณ</th><th>เหมาะกับ</th><th>ข้อจำกัด/การตัดสินใจ</th></tr></thead><tbody>
+      <tr><td><strong>m7i.xlarge (4 vCPU / 16 GiB)</strong><br>เริ่มตัวนี้</td><td><strong>$0.252/ชม.</strong><br>$183.96 / 730 ชม.</td><td>Pilot 1 tenant หรือโหลดเริ่มต้น, OCR ทำงาน sequential, AI inference ภายนอก</td><td>ความจุ CPU รวมยังจำกัดถ้า API, DB, Qdrant และ OCR ใช้หนักพร้อมกัน; ตั้ง queue/concurrency ต่ำและดู metric ก่อน</td></tr>
+      <tr><td><strong>m7i.2xlarge (8 vCPU / 32 GiB)</strong></td><td><strong>$0.504/ชม.</strong><br>$367.92 / 730 ชม.</td><td>เมื่อใช้งานหลาย tenant พร้อมกัน, queue โตต่อเนื่อง, Qdrant/DB อยู่ host เดียวและมีโหลดจริง</td><td>เพิ่มขนาดเมื่อมีผลวัดยืนยัน; พิจารณาย้าย DB/Qdrant หรือ worker แยกเมื่อเป็น production สำคัญ</td></tr>
+      <tr><td><strong>m7i-flex.xlarge (4 vCPU / 16 GiB)</strong></td><td><strong>$0.2394/ชม.</strong><br>$174.76 / 730 ชม.</td><td>ทางเลือกคุมค่าใช้จ่ายสำหรับโหลดไม่ต่อเนื่อง</td><td>เป็น Flex: baseline CPU 40%; หาก OCR/งานอื่นใช้ CPU ต่อเนื่อง ให้เลือก M7i ปกติหรือ scale worker</td></tr>
+      <tr><td><strong>t3.xlarge</strong></td><td>ตรวจราคาตาม region<br>และโหมด CPU</td><td>งาน dev/test หรือบริการที่ CPU ต่ำและเป็นช่วงสั้น</td><td>ไม่ใช่ตัวเลือกแรกสำหรับ OCR batch ต่อเนื่อง เพราะมี CPU credit model และอาจมีค่า credit เพิ่มใน Unlimited mode</td></tr>
+    </tbody></table>
+    <div class="callout"><strong>สมมติฐานราคา:</strong> Linux, shared tenancy, On-Demand ใน <code>ap-southeast-1</code> (Singapore); ราคาเดือนคิด 730 ชั่วโมง, ไม่รวม VAT/ภาษี, EBS, snapshot, public IPv4, data transfer, load balancer, CloudWatch, database services หรือค่า AI provider. เปิดเครื่องตลอด 24/7 จะคิด compute ใกล้ยอด 730 ชั่วโมง; ปิดเครื่องแล้ว EBS/backup และ resource อื่นยังมีค่าใช้จ่าย</div>
+    <div class="callout"><strong>ก่อนซื้อ:</strong> ราคาเป็น snapshot จาก public pricing indexes วันที่ 12 พ.ย. 2026 และอาจเปลี่ยนตาม AWS Region/เงื่อนไขบัญชี ให้ตรวจยอดล่าสุดใน AWS Pricing Calculator โดยใส่ OS, ชั่วโมงเปิด, EBS, backup, public IPv4, data transfer และ CloudWatch; ใช้ On-Demand ช่วง pilot ก่อนค่อยพิจารณา Savings Plan</div>
+    <p class="small">Sizing นี้เป็นคำแนะนำสำหรับ pilot แบบ single host ไม่ใช่ HA/production SLA. หากต้องรับเอกสารพร้อมกันจำนวนมาก ให้คิวแยกตาม tenant พร้อม fair scheduling/concurrency quota; เพิ่ม worker capacity หรือแยก worker host เมื่อ queue wait/p95 เกินเป้าหมาย แทนการให้ OCR แข่งขันกับ DB บนเครื่องเดียว</p>
+  </section>
+
+  <section class="card" id="deploy"><h2>ขั้นนำขึ้น EC2 แบบปลอดภัย</h2>
+    <p>ลำดับนี้เป็น deployment plan สำหรับ pilot ก่อน ยังไม่ใช่คำสั่งให้เปิด production ทันที</p>
+    <div class="phase"><div class="phase-label">1 · เตรียม AWS</div><ul><li>เลือก Region และ Availability Zone ตามที่ผู้ใช้/ข้อมูลอยู่; ทำ budget alert ก่อนสร้างทรัพยากร</li><li>ให้ EC2 อยู่ private subnet; เปิดรับ HTTPS 443 ผ่าน load balancer หรือ VPN ตามรูปแบบแอป</li><li>ปิด public SSH; ใช้ AWS Systems Manager Session Manager และ IAM role แบบ least privilege</li><li>สร้าง EBS gp3 แบบ encryption at rest, กำหนด snapshot/retention และทดสอบ restore</li></ul></div>
+    <div class="phase"><div class="phase-label">2 · เตรียม secrets</div><ul><li>สร้าง secrets แยก dev/staging/prod ใน AWS Secrets Manager หรือ SSM Parameter Store แบบ SecureString ตาม policy</li><li>สร้าง document encryption key และ database worker credential ใหม่สำหรับ environment นี้; ห้ามคัดลอกจาก local <code>.env</code> หรือ commit ลง Git</li><li>ให้เฉพาะ instance role ที่จำเป็นอ่าน secret; ห้ามใส่ secret ใน user-data, image layer, shell history หรือ logs</li><li>กำหนดแผน rotation/backup ของ key ก่อนเก็บเอกสารจริง เพราะการสูญ key อาจทำให้ถอดรหัสไฟล์ที่ยังอยู่ไม่ได้</li></ul></div>
+    <div class="phase"><div class="phase-label">3 · deploy staging</div><ul><li>ติดตั้ง OS/Docker จากแหล่งทางการและอัปเดต security patches; ใช้ image ที่ pin version/digest และ deploy จาก artifact ที่ตรวจแล้ว</li><li>ตั้งค่า database, Redis, Qdrant, app และ network ตาม Compose/architecture ที่ตรวจแล้ว; อย่าเปิด PostgreSQL, Redis, Qdrant หรือ worker port สู่ internet</li><li>สำรองฐานข้อมูลก่อน migration; รัน migration 021 ตามขั้นตอน deployment และ provision worker ด้วย DB role แบบจำกัด ไม่ใช้ PostgreSQL owner</li><li>เปิด Compose profile <code>document-import</code> แต่คง FaroAI document-import feature flag ปิดไว้จน readiness ผ่าน</li></ul></div>
+    <div class="phase"><div class="phase-label">4 · ตรวจ readiness</div><ul><li>ตรวจ API, DB, Redis, Qdrant และ worker health/heartbeat; ตรวจว่า worker เห็นเฉพาะ DB network และไม่มี published port/egress</li><li>ตรวจ file volumes เป็น private, encryption key ถูกอ่านจาก secret store, TTL sweeper ทำงาน และ logs ไม่มี OCR/PII/secret</li><li>ลอง fixture สังเคราะห์ใน staging: รับไฟล์ → review/correction → GIS preview; ยังไม่ยืนยัน write เพื่อทดสอบการปฏิเสธ input ผิด</li><li>ลอง tenant อื่นอ่าน job ไม่ได้, role worker อ่าน/เขียนได้เฉพาะงานที่กำหนด และ deletion/expiry ทำงานตามกำหนด</li></ul></div>
+    <div class="phase"><div class="phase-label">5 · เปิด pilot</div><ul><li>เปิด feature ให้ tenant ทดลองกลุ่มเล็กก่อน ตั้ง queue limit และ concurrency OCR เริ่มที่ 1 worker</li><li>ใช้ document synthetic หรือเอกสารที่ได้รับอนุญาต; ทดสอบ PO ที่ master ไม่ตรง, master หาย, duplicate และ timeout</li><li>ผู้ใช้ต้องเห็น field/mapping/preview และยืนยันก่อน GIS write; ตรวจ PO ที่อ่านกลับว่าตรงและเป็น pending approval</li><li>ติดตาม CPU/RAM, disk, queue depth/wait, OCR duration, failure rate, deletion lag และค่าใช้จ่าย โดยไม่เก็บเนื้อหาเอกสาร</li></ul></div>
+    <div class="phase"><div class="phase-label">6 · ขยายหรือ rollback</div><ul><li>ขยาย worker/EC2 เมื่อกราฟและ queue SLA แสดงคอขวดต่อเนื่อง; เพิ่มทีละจุดและวัดซ้ำ ไม่เปิด parallelism สูงโดยไม่มี tenant fairness</li><li>Rollback: ปิดรับงานใหม่ก่อน, drain หรือหยุด worker อย่างปลอดภัย, ปิด feature flag แล้วค่อยย้อน app image</li><li>ห้ามใช้ <code>docker compose down -v</code> หรือทิ้ง EBS volumes เพื่อ rollback; เก็บฐานข้อมูลและ document volumes จนตรวจสถานะงานและ retention เสร็จ</li><li>ถ้ามีผล GIS write ไม่แน่ชัด ให้ค้นยืนยันใน GIS ก่อน retry; อย่าสร้าง PO ซ้ำจากการ retry อัตโนมัติ</li></ul></div>
+    <div class="callout warn"><strong>เงื่อนไขก่อน production:</strong> staging walkthrough ผ่าน, backup restore ทดสอบได้, secret rotation/retention/incident owner พร้อม, migration มี rollback/recovery procedure และผู้ดูแลอนุมัติค่าใช้จ่าย/monitoring แล้ว</div>
+  </section>
+
+  <section class="card" id="docker-commands"><h2>ไฟล์ Docker ที่ใช้ และคำสั่งจริง</h2>
+    <div class="callout"><strong>สำหรับ EC2 ใช้ <code>docker-compose.yml</code> ตัวเดียว</strong><br><code>docker-compose.local.yml</code> เป็น override สำหรับเครื่อง dev เท่านั้น มี hot reload, bind mount source และเปิด Qdrant dashboard บน loopback; อย่านำไฟล์นี้ไปรันบน EC2</div>
+    <p>คำสั่งด้านล่างให้รันบน Ubuntu EC2 จากโฟลเดอร์ root ของ FaroAI (ตัวอย่าง <code>/opt/faroai</code>). ต้องติดตั้ง Docker Engine และ Compose v2 แล้ว. Compose ใน repo นี้อ่านค่าจาก process environment และไฟล์ <code>.env</code>; มันไม่ได้ดึง secret จาก AWS Secrets Manager เอง ดังนั้น deployment automation ต้องดึง secret แล้วเขียน environment file ที่จำกัดสิทธิ์ (เช่น mode 0600) ก่อนเรียก Compose. ห้ามใช้ secret จาก local dev หรือ commit ไฟล์นี้</p>
+    <pre><code>docker --version
+docker compose version
+sudo systemctl enable --now docker</code></pre>
+    <p class="command-note">เปิด Docker daemon ให้เริ่มอัตโนมัติเมื่อ EC2 boot. คำสั่งสองบรรทัดแรกใช้ยืนยันว่ามี Docker Engine และ Compose v2</p>
+
+    <h3>1 · เริ่ม stack ครั้งแรก และให้ migration ทำงาน</h3>
+    <pre><code>cd /opt/faroai
+chmod 600 .env
+docker compose -f docker-compose.yml config --quiet
+docker compose -f docker-compose.yml up -d --build
+docker compose -f docker-compose.yml ps -a
+docker compose -f docker-compose.yml logs --tail=100 postgres migrations api</code></pre>
+    <p class="command-note">คำสั่งนี้ build/start บริการหลักตาม base Compose และรัน migration service ตาม dependency รวม migration <code>021_business_document_intake</code>. Worker ยังไม่เริ่ม เพราะอยู่ใน profile แยก และ feature flag มี default เป็นปิด. ตรวจ migration exit code 0 และ API healthy ก่อนเปิดรับเอกสารจริง</p>
+
+    <h3>2 · เตรียมสิทธิ์ฐานข้อมูล worker แบบจำกัด</h3>
+    <pre><code>bash infra/postgres/provision-document-import-worker.sh</code></pre>
+    <p class="command-note">รันหลัง migration 021 สำเร็จและตั้ง <code>FAROAI_DB_PASSWORD</code> ใน <code>.env</code> แล้ว Script สร้าง/หมุนรหัส login เฉพาะ worker แล้วเขียน <code>FAROAI_DOCUMENT_IMPORT_DATABASE_URL</code> ลง <code>.env</code> ด้วย permission 0600; script นี้ไม่เปิด feature, ไม่ตั้ง encryption key และไม่ start worker</p>
+
+    <h3>3 · ตั้ง encryption key และเปิด worker เมื่อพร้อมทดสอบ</h3>
+    <p>สร้าง secret แยกสำหรับ deployment นี้ใน Secrets Manager/SSM แล้วใส่ค่า Base64 ที่แทนข้อมูลสุ่ม 32 bytes ลง <code>FAROAI_DOCUMENT_IMPORT_ENCRYPTION_KEY</code> ใน environment file ที่ Compose อ่านได้. ถ้าต้องสร้าง key ใหม่ ใช้คำสั่งนี้ใน terminal ที่ปลอดภัย แล้วบันทึกค่าที่ได้เข้า secret store โดยไม่ใส่ใน Git หรือ log:</p>
+    <pre><code>openssl rand -base64 32</code></pre>
+    <p>ตั้ง <code>FAROAI_DOCUMENT_IMPORT_ENABLED=true</code> เฉพาะเมื่อ worker, key, DB role และ storage/retention พร้อม</p>
+    <pre><code>docker compose -f docker-compose.yml --profile document-import config --quiet
+docker compose -f docker-compose.yml --profile document-import up -d --build document-import-worker
+docker compose -f docker-compose.yml --profile document-import ps -a
+docker compose -f docker-compose.yml --profile document-import logs --tail=100 document-import-worker
+docker compose -f docker-compose.yml up -d --no-deps --force-recreate api
+curl -fsS http://127.0.0.1:3000/health/ready</code></pre>
+    <p class="command-note">เริ่ม worker และ dependencies ที่จำเป็นก่อน แล้ว recreate API เพื่อให้อ่าน feature flag ใหม่. Worker ไม่มี published port และเชื่อมเฉพาะ internal DB network. ตรวจ worker logs/heartbeat, API readiness, expiry cleanup และทำ staging fixture end-to-end ก่อนให้ผู้ใช้ลองจริง</p>
+
+    <h3>4 · คำสั่งตอนเปิดเครื่อง หรือกู้ stack หลังหยุดเอง</h3>
+    <p>บริการตั้ง <code>restart: unless-stopped</code>; container ที่เคย start จะกลับมาทำงานเมื่อ Docker daemon/เครื่อง reboot. ถ้าสั่ง <code>compose stop</code>, <code>compose down</code> หรือยังไม่เคยสร้าง worker จาก profile ให้รันจาก project root:</p>
+    <pre><code>cd /opt/faroai
+docker compose -f docker-compose.yml --profile document-import up -d
+docker compose -f docker-compose.yml --profile document-import ps -a
+curl -fsS http://127.0.0.1:3000/health/ready</code></pre>
+    <p class="command-note">ถ้ายังไม่เปิด document import หรือไม่ต้องการ worker ให้ใช้ <code>docker compose -f docker-compose.yml up -d</code> โดยไม่มี profile. ไม่ต้อง build ทุกครั้งที่ boot; ใช้ <code>--build</code> เมื่อ deploy source/image รุ่นใหม่เท่านั้น</p>
+
+    <h3>5 · คำสั่งสำหรับเครื่อง dev</h3>
+    <pre><code>cd /home/joke/dev/faroai
+docker compose -f docker-compose.yml -f docker-compose.local.yml --profile document-import config --quiet
+docker compose -f docker-compose.yml -f docker-compose.local.yml --profile document-import up --build -d
+docker compose -f docker-compose.yml -f docker-compose.local.yml --profile document-import ps -a</code></pre>
+    <p class="command-note">ใช้สองไฟล์นี้เฉพาะ development เพราะ override เปิด reload/bind mount และเปลี่ยน resource limits. ถ้าจำเป็นต้องเรียก provider ภายนอก ให้เพิ่ม <code>-f docker-compose.hosted.yml</code> ตามการตั้งค่า egress ที่อนุมัติ; OCR worker อย่างเดียวไม่ต้องใช้ hosted overlay</p>
+
+    <h3>ดู log และหยุดโดยไม่ลบข้อมูล</h3>
+    <pre><code>docker compose -f docker-compose.yml --profile document-import logs --tail=100 api document-import-worker
+docker compose -f docker-compose.yml --profile document-import stop document-import-worker
+docker compose -f docker-compose.yml stop</code></pre>
+    <p class="command-note">Rollback: หยุด intake/worker ก่อน, ตั้ง <code>FAROAI_DOCUMENT_IMPORT_ENABLED=false</code> แล้ว recreate API. ห้ามใช้ <code>docker compose down -v</code> เพราะจะลบ named volumes ที่เก็บ database และไฟล์ใน retention period. คู่มือนี้เป็นเอกสาร ไม่ได้รันคำสั่งกับ EC2 หรือเปลี่ยน runtime</p>
+  </section>
+
+  <section class="card" id="accept"><h2>เกณฑ์ก่อนเรียกว่า “พร้อมใช้”</h2>
+    <table><thead><tr><th>หัวข้อ</th><th>ผ่านเมื่อ</th></tr></thead><tbody>
+      <tr><td>ความถูกต้อง</td><td>PO ที่ได้ตรง supplier/location/SKU/จำนวน/ราคาในเอกสาร; ไม่มีการ fallback ไป Ham หรือ master อื่นเมื่อเอกสารระบุคนละรายการ</td></tr>
+      <tr><td>ไม่มีข้อมูลขยะ</td><td>กรณี master ไม่พบ/คลุมเครือจะแสดงให้แก้หรือหยุด; การสร้าง master ใหม่แยกจากการ map และมี duplicate/idempotency checks</td></tr>
+      <tr><td>ไม่เขียนโดยไม่ตั้งใจ</td><td>preview ไม่เขียนฐานข้อมูล; ต้องยืนยันค่าชุดเดียวกับ preview ก่อนสร้าง PO; PO ที่สร้างเป็น pending approval เท่านั้น</td></tr>
+      <tr><td>ความลับและ retention</td><td>ทดสอบ tenant isolation, สิทธิ์, encryption, ลบข้อมูล และ TTL; logs ไม่มี raw OCR, ไฟล์ หรือ credential</td></tr>
+      <tr><td>ทรัพยากรและคิว</td><td>วัด CPU/RAM peak, OCR duration, queue wait, failure/retry และ disk growth ด้วย fixture ที่อนุญาต แล้วค่อยกำหนด capacity/concurrency</td></tr>
+    </tbody></table>
+  </section>
+
+  <section class="card sources"><h2>แหล่งอ้างอิง EC2</h2>
+    <ul>
+      <li><a href="https://docs.aws.amazon.com/ec2/latest/instancetypes/gp.html">AWS EC2 general-purpose instance specifications</a> — vCPU และ memory ของ M7i/M7i-flex/T3</li>
+      <li><a href="https://aws.amazon.com/ec2/instance-types/m7i/">AWS M7i/M7i-flex overview</a> — ขนาด, network/EBS และ Flex baseline performance</li>
+      <li><a href="https://aws.amazon.com/ec2/pricing/on-demand/">AWS On-Demand pricing</a> — ราคาเปลี่ยนตาม Region และเงื่อนไข</li>
+      <li><a href="https://calculator.aws/">AWS Pricing Calculator</a> — คำนวณยอดจริงตาม Region, EBS และชั่วโมงใช้งาน</li>
+      <li><a href="https://instances.usage.ai/aws/ec2/region/ap-southeast-1/">Public EC2 price index: Singapore</a> — snapshot ราคา Linux On-Demand ใช้เป็นค่าอ้างอิงเบื้องต้น</li>
+      <li><a href="https://vmprices.com/aws/ap-southeast-1/">Public regional VM price index: ap-southeast-1</a> — ใช้ cross-check ราคาคร่าว ๆ; AWS Calculator/console เป็นแหล่งยืนยันก่อนสั่งซื้อ</li>
+    </ul>
+    <p class="small">ตรวจสเปกจาก AWS และตรวจ snapshot ราคา ณ วันที่ 12 พ.ย. 2026. ค่าราคาในตารางเป็นประมาณการ ไม่ใช่ quote หรือยอดบิลสุดท้าย; ตรวจ calculator ก่อนตั้งงบหรือเปิดใช้งานจริง.</p>
+  </section>
+  <footer>แผนนี้ต่อจาก ADR-0056 ถึง ADR-0060 และเอกสาร Master Data Quality Plan. เป็นแผนการพัฒนา ไม่ได้สร้าง EC2, เปลี่ยน Compose หรือเปิด production feature.</footer>
+</main></body></html>

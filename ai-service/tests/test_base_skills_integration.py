@@ -214,6 +214,16 @@ class BaseSkillsIntegrationTests(unittest.TestCase):
         self.assertTrue(_is_po_creation_request(prompt))
         self.assertFalse(_is_voucher_setup_request(prompt))
 
+    def test_guide_prepare_po_examples_route_to_creation_not_search(self):
+        english = "Prepare a PO for 5 ring items from Ham at Central World, using an active Purchase Order voucher in GIS. Resolve products and identifiers from GIS, show the preview, and wait for my confirmation. Do not approve the PO or receive inventory."
+        thai = "เตรียมสร้าง PO สินค้า ring จำนวน 5 ชิ้น จากผู้ขาย Ham ที่สาขา Central World ใช้ Purchase Order voucher ที่ใช้งานได้ใน GIS แสดง preview และรอให้ฉันยืนยันก่อนสร้าง ห้ามอนุมัติ PO หรือรับสินค้า"
+        for prompt in (english, thai):
+            self.assertTrue(_is_po_creation_request(prompt))
+            self.assertFalse(_is_read_only_po_lookup(prompt))
+            self.assertEqual(_required_procurement_read_tools(prompt), {
+                "get_product_master_data", "search_po_products", "preview_purchase_order", "create_purchase_order",
+            })
+
     def test_voucher_create_tool_is_admitted_only_for_voucher_setup(self):
         self.assertTrue(_procurement_tool_allowed_for_request("create_voucher_type", True))
         self.assertFalse(_procurement_tool_allowed_for_request("create_voucher_type", False))
@@ -339,7 +349,7 @@ class BaseSkillsIntegrationTests(unittest.TestCase):
         self.assertEqual(first.status_code, 200)
         self.assertEqual(first.json(), second.json())
         self.assertEqual(len(first.json()['skills']), 11)
-        self.assertEqual(next(x for x in first.json()['skills'] if x['id'] == 'base.xlsx')['status'], 'planned')
+        self.assertEqual(next(x for x in first.json()['skills'] if x['id'] == 'base.xlsx')['status'], 'ready')
         self.assertNotIn('instructions', json.dumps(first.json()))
 
     def test_chat_activates_only_a_skill_matching_the_actual_product_route(self):
