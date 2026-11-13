@@ -1,0 +1,231 @@
+name: FaroAI CI/CD
+
+on:
+  pull_request:
+    branches: [dev]
+  push:
+    branches: [dev]
+  workflow_dispatch:
+    inputs:
+      deploy_staging:
+        description: Build and deploy this dev commit to the protected staging environment
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: faroai-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate-and-build:
+    name: Compose validation and image build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Check out source without persisting credentials
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.0.0
+
+      - name: Validate all Compose profiles
+        run: >-
+          docker compose --env-file .env.example
+          --profile artifacts --profile document-import
+          -f docker-compose.yml -f docker-compose.hosted.yml config --quiet
+
+      - name: Build all FaroAI images
+        run: >-
+          docker compose --env-file .env.example
+          --profile artifacts --profile document-import
+          -f docker-compose.yml -f docker-compose.hosted.yml build --pull
+
+  deploy-staging:
+    name: Publish and deploy to staging
+    needs: validate-and-build
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.deploy_staging == true &&
+      github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment:
+      name: staging
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: faroai-staging-deploy
+      cancel-in-progress: false
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      AWS_GITHUB_ACTIONS_ROLE_ARN: ${{ vars.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+      ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
+      STAGING_SSM_INSTANCE_ID: ${{ vars.STAGING_SSM_INSTANCE_ID }}
+      RELEASE_BUCKET: ${{ vars.STAGING_RELEASE_BUCKET }}
+      STAGING_RUNTIME_SECRET_ARN: ${{ vars.STAGING_RUNTIME_SECRET_ARN }}
+    steps:
+      - name: Check out source without persisting credentials
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Validate staging configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF" == "refs/heads/dev" ]]
+          [[ "$AWS_REGION" =~ ^[a-z]{2}(-gov)?-[a-z]+-[0-9]+$ ]]
+          [[ "$AWS_ACCOUNT_ID" =~ ^[0-9]{12}$ ]]
+          [[ "$AWS_GITHUB_ACTIONS_ROLE_ARN" == "arn:aws:iam::${AWS_ACCOUNT_ID}:role/"* ]]
+          [[ "$ECR_REGISTRY" == "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com" ]]
+          [[ "$STAGING_SSM_INSTANCE_ID" =~ ^i-[0-9a-f]{8,17}$ ]]
+          [[ "$RELEASE_BUCKET" =~ ^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$ ]]
+          [[ "$STAGING_RUNTIME_SECRET_ARN" =~ ^arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:[A-Za-z0-9/_+=.@-]+$ ]]
+
+      - name: Configure short-lived AWS credentials using GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          role-session-name: faroai-staging-${{ github.run_id }}
+          allowed-account-ids: ${{ env.AWS_ACCOUNT_ID }}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.0.0
+
+      - name: Log in to private ECR
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws ecr get-login-password --region "$AWS_REGION" \
+            | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+      - name: Build and publish immutable commit images
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          build_push() {
+            local repository="$1"
+            local context="$2"
+            local dockerfile="$3"
+            shift 3
+            docker buildx build "$context" \
+              --file "$dockerfile" \
+              --pull \
+              --tag "$ECR_REGISTRY/$repository:$IMAGE_TAG" \
+              --label "org.opencontainers.image.revision=$IMAGE_TAG" \
+              --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+              --cache-from "type=gha,scope=$repository" \
+              --cache-to "type=gha,scope=$repository,mode=max" \
+              --provenance=mode=max \
+              --sbom=true \
+              "$@" \
+              --push
+          }
+
+          build_push faroai-api gateway gateway/Dockerfile
+          build_push faroai-ai-service ai-service ai-service/Dockerfile \
+            --build-arg EMBEDDING_MODEL=sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+          build_push faroai-backoffice backoffice backoffice/Dockerfile \
+            --build-arg FAROAI_API_INTERNAL_URL=http://api:3000
+          build_push faroai-artifact-worker artifact-worker artifact-worker/Dockerfile
+          build_push faroai-document-import-worker document-import-worker document-import-worker/Dockerfile
+
+      - name: Upload tracked release source to private S3
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          archive="${RUNNER_TEMP}/faroai-${IMAGE_TAG}.tar.gz"
+          git archive --format=tar.gz --output="$archive" "$IMAGE_TAG" \
+            docker-compose.yml docker-compose.hosted.yml \
+            infra/postgres/init infra/postgres/migrations \
+            infra/postgres/run-migrations.sh infra/deploy/ec2-compose-deploy.sh
+          archive_sha256="$(sha256sum "$archive" | cut -d ' ' -f 1)"
+          aws s3 cp "$archive" \
+            "s3://${RELEASE_BUCKET}/faroai/releases/${IMAGE_TAG}.tar.gz" \
+            --sse AES256 --only-show-errors
+          printf '%s\n' "$archive_sha256" > "${RUNNER_TEMP}/faroai-${IMAGE_TAG}.sha256"
+          rm -f "$archive"
+
+      - name: Deploy the reviewed commit through Systems Manager
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import shlex
+          from pathlib import Path
+
+          sha = os.environ["IMAGE_TAG"]
+          registry = os.environ["ECR_REGISTRY"]
+          bucket = os.environ["RELEASE_BUCKET"]
+          region = os.environ["AWS_REGION"]
+          instance = os.environ["STAGING_SSM_INSTANCE_ID"]
+          secret_arn = os.environ["STAGING_RUNTIME_SECRET_ARN"]
+          digest_file = Path(os.environ["RUNNER_TEMP"], f"faroai-{sha}.sha256")
+          archive_sha256 = digest_file.read_text(encoding="utf-8").strip()
+          if len(archive_sha256) != 64 or any(c not in "0123456789abcdef" for c in archive_sha256):
+              raise SystemExit("Invalid release archive checksum")
+          command = "\n".join([
+              "set -euo pipefail",
+              f"release=/opt/faroai/releases/{sha}",
+              f"stage=/opt/faroai/releases/.{sha}.tmp",
+              f"archive=/tmp/faroai-{sha}.tar.gz",
+              "install -d -o root -g root -m 0750 /opt/faroai/releases",
+              f"trap 'rm -f -- \"$archive\"; rm -rf -- \"$stage\"' EXIT",
+              f"if [[ -e \"$release\" ]]; then test -f \"$release/.bundle.sha256\" && test \"$(cat \"$release/.bundle.sha256\")\" = '{archive_sha256}'; else",
+              f"  aws s3 cp s3://{bucket}/faroai/releases/{sha}.tar.gz \"$archive\" --only-show-errors",
+              f"  printf '%s  %s\\n' '{archive_sha256}' \"$archive\" | sha256sum --check --status",
+              "  rm -rf -- \"$stage\"",
+              "  install -d -o root -g root -m 0750 \"$stage\"",
+              "  tar --no-same-owner --no-same-permissions -xzf \"$archive\" -C \"$stage\"",
+              f"  printf '%s\\n' '{archive_sha256}' > \"$stage/.bundle.sha256\"",
+              "  chmod 0640 \"$stage/.bundle.sha256\"",
+              "  mv -- \"$stage\" \"$release\"",
+              "fi",
+              f"AWS_REGION={shlex.quote(region)} bash \"$release/infra/deploy/ec2-compose-deploy.sh\" {shlex.quote(sha)} {shlex.quote(registry)} {shlex.quote(region)} {shlex.quote(secret_arn)}",
+          ])
+          Path(os.environ["RUNNER_TEMP"], "ssm-parameters.json").write_text(
+              json.dumps({"commands": [command]}), encoding="utf-8"
+          )
+          PY
+
+          command_id="$(aws ssm send-command \
+            --instance-ids "$STAGING_SSM_INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --timeout-seconds 1800 \
+            --parameters "file://${RUNNER_TEMP}/ssm-parameters.json" \
+            --query 'Command.CommandId' --output text)"
+          echo "SSM deployment command submitted: $command_id"
+
+          for attempt in $(seq 1 90); do
+            status="$(aws ssm get-command-invocation \
+              --command-id "$command_id" \
+              --instance-id "$STAGING_SSM_INSTANCE_ID" \
+              --query Status --output text 2>/dev/null || true)"
+            case "$status" in
+              Success) echo "Staging deployment completed for $IMAGE_TAG"; exit 0 ;;
+              Failed|Cancelled|TimedOut|Cancelling)
+                echo "Staging deployment failed with status: $status" >&2
+                exit 1
+                ;;
+              *) sleep 10 ;;
+            esac
+          done
+          echo "Timed out waiting for the SSM deployment result" >&2
+          exit 1
