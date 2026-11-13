@@ -56,7 +56,7 @@ Configure the AWS IAM OIDC provider for `https://token.actions.githubusercontent
 
 Grant only:
 
-- ECR authorization token plus push-layer/image actions on the five named FaroAI repositories. Keep ECR tag immutability enabled and scan-on-push enabled; prefer ECR enhanced scanning for continuous rechecks.
+- `ecr:GetAuthorizationToken` on `*`, and `ecr:BatchCheckLayerAvailability`, `ecr:BatchGetImage`, `ecr:CompleteLayerUpload`, `ecr:InitiateLayerUpload`, `ecr:PutImage`, and `ecr:UploadLayerPart` only on the five named FaroAI repositories. `BatchGetImage` lets deployment retries detect and reuse the existing commit-SHA image tag. Keep ECR tag immutability enabled and scan-on-push enabled; prefer ECR enhanced scanning for continuous rechecks.
 - `s3:PutObject` to `arn:aws:s3:::<bucket>/faroai/releases/*`; no list/read/delete of unrelated objects. Enable Block Public Access, versioning, default encryption, TLS-only access and lifecycle expiration.
 - `ssm:SendCommand` for the approved `AWS-RunShellScript` document and the exact staging instance; `ssm:GetCommandInvocation` for the command results. Do not grant interactive shell/session access unless separately justified.
 - Required narrowly scoped KMS permissions only if customer-managed keys are selected. The workflow currently uses SSE-S3 for release objects.
@@ -77,7 +77,7 @@ AWS APIs may require `Resource: "*"` for selected list/token/status actions. Kee
 1. Merge reviewed code to `dev` and wait for CI success.
 2. In GitHub Actions, run **FaroAI CI/CD** from `dev` and set `deploy_staging=true`.
 3. A staging environment reviewer inspects the commit and approves the deployment.
-4. The workflow publishes five private ECR images and the minimal checksummed source bundle, then invokes SSM on the configured staging instance.
+4. The workflow reuses any already-published immutable commit-SHA images, builds and publishes missing images, uploads the minimal checksummed source bundle, then invokes SSM on the configured staging instance.
 5. Confirm the workflow's readiness result and inspect service health through the approved staging operations path. If it fails, inspect host/service status without copying `.env` or secrets into logs.
 6. For a failed release after migrations, stop and assess migration compatibility. Do not restore/reset the database or perform an automatic code rollback without the separately reviewed recovery plan.
 

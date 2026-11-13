@@ -118,7 +118,21 @@ jobs:
             local repository="$1"
             local context="$2"
             local dockerfile="$3"
+            local existing_tag
             shift 3
+
+            # Commit SHA tags are immutable in ECR. A deployment retry may arrive
+            # after some or all images were published successfully, so reuse any
+            # matching image instead of trying to overwrite that immutable tag.
+            if existing_tag="$(aws ecr batch-get-image \
+              --repository-name "$repository" \
+              --image-ids "imageTag=$IMAGE_TAG" \
+              --query 'images[0].imageId.imageTag' \
+              --output text 2>/dev/null)" && [[ "$existing_tag" == "$IMAGE_TAG" ]]; then
+              echo "Reusing existing immutable image: $ECR_REGISTRY/$repository:$IMAGE_TAG"
+              return 0
+            fi
+
             docker buildx build "$context" \
               --file "$dockerfile" \
               --pull \
