@@ -137,3 +137,11 @@ For live MCP, inject `MCP_CONNECTIONS_JSON` from a secret manager. It maps the e
 ## Reference implementation
 
 `faroai_example/` contains the original portable PHP implementation, sample SQLite data, and its plan. Use it to compare the existing chat behavior while migrating callers and data into the new API. See `faroai_example/README.md` for its separate local run instructions.
+
+## Staging deployment through GitHub Actions
+
+The `dev` push workflow validates and builds images; it does not deploy automatically. A staging deployment is started manually from **Actions → FaroAI CI/CD → Run workflow**, selecting `dev` and setting `deploy_staging` to `true`.
+
+Configure the GitHub `staging` environment variable `STAGING_RUNTIME_SECRET_ARN` with the full ARN of one AWS Secrets Manager secret in the configured account and region. The secret's `SecretString` must be a JSON object whose keys are approved FaroAI secret environment names and whose values are strings. The EC2 instance role must have `secretsmanager:GetSecretValue` for that exact ARN (plus scoped `kms:Decrypt` if the secret uses a customer-managed KMS key). Do not put secret values in GitHub variables, GitHub secrets, the release archive, or the SSM command.
+
+The EC2 deploy script fetches the secret with the instance role and writes `/opt/faroai/.runtime-secrets.env` as a root-owned mode-0600 file. Compose reads it after `/opt/faroai/.env`, so secret values override matching entries. Keep non-secret deployment settings and feature flags such as `FAROAI_ARTIFACT_ENABLED` in the protected host `.env`. If artifacts are enabled, deployment performs a credential/role preflight that requires the URL to authenticate as `faroai_artifact_worker`, inherit `faroai_artifact_access`, and have no elevated PostgreSQL role attributes. A failed retrieval, schema check, or role check stops deployment without printing secret values.

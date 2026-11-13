@@ -70,6 +70,7 @@ jobs:
       ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
       STAGING_SSM_INSTANCE_ID: ${{ vars.STAGING_SSM_INSTANCE_ID }}
       RELEASE_BUCKET: ${{ vars.STAGING_RELEASE_BUCKET }}
+      STAGING_RUNTIME_SECRET_ARN: ${{ vars.STAGING_RUNTIME_SECRET_ARN }}
     steps:
       - name: Check out source without persisting credentials
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -87,6 +88,7 @@ jobs:
           [[ "$ECR_REGISTRY" == "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com" ]]
           [[ "$STAGING_SSM_INSTANCE_ID" =~ ^i-[0-9a-f]{8,17}$ ]]
           [[ "$RELEASE_BUCKET" =~ ^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$ ]]
+          [[ "$STAGING_RUNTIME_SECRET_ARN" =~ ^arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:[A-Za-z0-9/_+=.@-]+$ ]]
 
       - name: Configure short-lived AWS credentials using GitHub OIDC
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
@@ -166,6 +168,7 @@ jobs:
           python3 - <<'PY'
           import json
           import os
+          import shlex
           from pathlib import Path
 
           sha = os.environ["IMAGE_TAG"]
@@ -173,6 +176,7 @@ jobs:
           bucket = os.environ["RELEASE_BUCKET"]
           region = os.environ["AWS_REGION"]
           instance = os.environ["STAGING_SSM_INSTANCE_ID"]
+          secret_arn = os.environ["STAGING_RUNTIME_SECRET_ARN"]
           digest_file = Path(os.environ["RUNNER_TEMP"], f"faroai-{sha}.sha256")
           archive_sha256 = digest_file.read_text(encoding="utf-8").strip()
           if len(archive_sha256) != 64 or any(c not in "0123456789abcdef" for c in archive_sha256):
@@ -194,7 +198,7 @@ jobs:
               "  chmod 0640 \"$stage/.bundle.sha256\"",
               "  mv -- \"$stage\" \"$release\"",
               "fi",
-              f"AWS_REGION={region} bash \"$release/infra/deploy/ec2-compose-deploy.sh\" {sha} {registry} {region}",
+              f"AWS_REGION={shlex.quote(region)} bash \"$release/infra/deploy/ec2-compose-deploy.sh\" {shlex.quote(sha)} {shlex.quote(registry)} {shlex.quote(region)} {shlex.quote(secret_arn)}",
           ])
           Path(os.environ["RUNNER_TEMP"], "ssm-parameters.json").write_text(
               json.dumps({"commands": [command]}), encoding="utf-8"

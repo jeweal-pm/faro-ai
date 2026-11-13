@@ -5,9 +5,11 @@ umask 077
 readonly release_sha="${1:-}"
 readonly ecr_registry="${2:-}"
 readonly aws_region="${3:-}"
+readonly runtime_secret_arn="${4:-}"
 readonly root="/opt/faroai"
 readonly release_dir="${root}/releases/${release_sha}"
 readonly env_file="${root}/.env"
+readonly runtime_secrets_file="${root}/.runtime-secrets.env"
 
 [[ "$release_sha" =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid release identifier" >&2; exit 2; }
 [[ "$ecr_registry" =~ ^[0-9]{12}\.dkr\.ecr\.[a-z]{2}(-gov)?-[a-z]+-[0-9]+\.amazonaws\.com$ ]] || {
@@ -15,6 +17,10 @@ readonly env_file="${root}/.env"
   exit 2
 }
 [[ "$aws_region" =~ ^[a-z]{2}(-gov)?-[a-z]+-[0-9]+$ ]] || { echo "Invalid AWS region" >&2; exit 2; }
+[[ "$runtime_secret_arn" =~ ^arn:aws:secretsmanager:${aws_region}:[0-9]{12}:secret:[A-Za-z0-9/_+=.@-]+$ ]] || {
+  echo "Invalid staging runtime secret ARN" >&2
+  exit 2
+}
 [[ -d "$release_dir" && ! -L "$release_dir" ]] || { echo "Release directory is unavailable" >&2; exit 2; }
 [[ -f "$release_dir/docker-compose.yml" && -f "$release_dir/docker-compose.hosted.yml" ]] || {
   echo "Compose release files are missing" >&2
@@ -30,9 +36,83 @@ export FAROAI_BACKOFFICE_IMAGE="${ecr_registry}/faroai-backoffice:${release_sha}
 export FAROAI_ARTIFACT_WORKER_IMAGE="${ecr_registry}/faroai-artifact-worker:${release_sha}"
 export FAROAI_DOCUMENT_IMPORT_WORKER_IMAGE="${ecr_registry}/faroai-document-import-worker:${release_sha}"
 
+# Pull the one tenant-independent staging runtime secret only on EC2. The
+# secret must be a JSON object of approved environment-name/string pairs.
+python3 - "$runtime_secret_arn" "$aws_region" "$runtime_secrets_file" <<'PY'
+import json
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+secret_arn, region, target_name = sys.argv[1:]
+allowed = {
+    "POSTGRES_PASSWORD",
+    "FAROAI_DB_PASSWORD",
+    "DATABASE_URL",
+    "REDIS_URL",
+    "FAROAI_INTERNAL_SECRET",
+    "FAROAI_GIS_MCP_CONTEXT_SECRET",
+    "API_KEY_PEPPER",
+    "QDRANT_API_KEY",
+    "QDRANT_READ_ONLY_API_KEY",
+    "MODEL_API_KEY",
+    "BACKOFFICE_OIDC_CLIENT_SECRET",
+    "BACKOFFICE_LOCAL_ADMIN_PASSWORD_HASH_B64",
+    "FAROAI_CONFIG_ENCRYPTION_KEY",
+    "FAROAI_GIS_API_KEY",
+    "FAROAI_ARTIFACT_DATABASE_URL",
+    "FAROAI_DOCUMENT_IMPORT_DATABASE_URL",
+    "FAROAI_DOCUMENT_IMPORT_ENCRYPTION_KEY",
+}
+
+try:
+    result = subprocess.run(
+        ["aws", "secretsmanager", "get-secret-value", "--secret-id", secret_arn,
+         "--region", region, "--query", "SecretString", "--output", "text"],
+        check=True, capture_output=True, text=True, timeout=30,
+    )
+    payload = json.loads(result.stdout)
+    if not isinstance(payload, dict) or not payload:
+        raise ValueError("SecretString must be a non-empty JSON object")
+    unknown = set(payload) - allowed
+    if unknown:
+        raise ValueError("Secret contains unsupported environment keys")
+    if any(not isinstance(key, str) or not isinstance(value, str) for key, value in payload.items()):
+        raise ValueError("Secret keys and values must be strings")
+    if any(any(char in value for char in "\x00\r\n") for value in payload.values()):
+        raise ValueError("Secret values cannot contain control line breaks")
+
+    def compose_literal(value: str) -> str:
+        return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+    content = "".join(f"{key}={compose_literal(payload[key])}\n" for key in sorted(payload))
+    target = Path(target_name)
+    fd, temporary_name = tempfile.mkstemp(prefix=".runtime-secrets.", dir=target.parent)
+    try:
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as output:
+            output.write(content)
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temporary_name, target)
+        os.chmod(target, 0o600)
+    finally:
+        if os.path.exists(temporary_name):
+            os.unlink(temporary_name)
+except Exception:
+    print("Could not retrieve or validate the staging runtime secret; secret values were not logged", file=sys.stderr)
+    raise SystemExit(1)
+PY
+chown root:root "$runtime_secrets_file"
+chmod 600 "$runtime_secrets_file"
+
 profiles=()
+artifacts_enabled=false
 if grep -Eq '^FAROAI_ARTIFACT_ENABLED=(true|1)$' "$env_file"; then
   profiles+=(--profile artifacts)
+  artifacts_enabled=true
 fi
 if grep -Eq '^FAROAI_DOCUMENT_IMPORT_ENABLED=(true|1)$' "$env_file"; then
   profiles+=(--profile document-import)
@@ -45,6 +125,7 @@ export DOCKER_CONFIG="$docker_config"
 compose() {
   docker compose \
     --env-file "$env_file" \
+    --env-file "$runtime_secrets_file" \
     -f "$release_dir/docker-compose.yml" \
     -f "$release_dir/docker-compose.hosted.yml" \
     "${profiles[@]}" \
@@ -56,6 +137,11 @@ aws ecr get-login-password --region "$aws_region" \
   | docker login --username AWS --password-stdin "$ecr_registry" >/dev/null
 compose pull
 compose up -d --no-build --remove-orphans
+
+if [[ "$artifacts_enabled" == true ]]; then
+  compose run --rm --no-deps --entrypoint python artifact-worker -c \
+    'import os, psycopg; conn=psycopg.connect(os.environ["DATABASE_URL"], connect_timeout=10); row=conn.execute("SELECT current_user, rolcanlogin, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls, pg_has_role(current_user, %s, %s) FROM pg_roles WHERE rolname=current_user", ("faroai_artifact_access", "member")).fetchone(); conn.close(); expected=("faroai_artifact_worker", True, False, False, False, False, False, True); raise SystemExit("Artifact worker database role is not the expected restricted login") if row != expected else print("Artifact worker database login and restricted role verified")'
+fi
 
 for attempt in $(seq 1 18); do
   if compose exec -T api node -e \
