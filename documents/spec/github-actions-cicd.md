@@ -29,7 +29,7 @@ Image repositories are `faroai-api`, `faroai-ai-service`, `faroai-backoffice`, `
 
 The private S3 archive contains only `docker-compose.yml`, `docker-compose.hosted.yml`, PostgreSQL initialization/migration files and the EC2 deployment script. The workflow computes the archive SHA-256; the EC2 deployment script path is executed only after the host verifies it. S3 must have Block Public Access, TLS-only bucket policy, versioning, server-side encryption, and a lifecycle rule for old release objects.
 
-The EC2 deployment uses the host's `/opt/faroai/.env`, which must be provisioned separately, root-owned and mode `0600`. The deployment script uses a temporary Docker credential directory, pulls the immutable commit-tagged images, runs Compose with `--no-build`, and checks `/health/ready`. It does not print container logs or secret values. Deployment failure does not automatically roll back a database migration.
+The EC2 deployment reads optional non-secret overrides from `/opt/faroai/.env`. If absent, the deployment script creates an empty root-owned file with mode `0600`, and Compose defaults apply. Runtime secrets are fetched separately from AWS Secrets Manager into a protected temporary file. The deployment script uses a temporary Docker credential directory, pulls the immutable commit-tagged images, runs Compose with `--no-build`, and checks `/health/ready`. It does not print container logs or secret values. Deployment failure does not automatically roll back a database migration.
 
 ## GitHub setup
 
@@ -67,7 +67,7 @@ AWS APIs may require `Resource: "*"` for selected list/token/status actions. Kee
 
 - Attach an instance role limited to SSM managed-node connectivity, pull access to the five ECR repositories, and `s3:GetObject` for `faroai/releases/*`. Do not put AWS credentials on disk.
 - Require SSM online status, supported Docker Engine/Compose plugin and AWS CLI v2, encrypted EBS volumes, security-group ingress restricted to the intended application access path, and no public database/vector-store ports. AWS-RunShellScript invokes the release bootstrap through `/bin/sh`; that bootstrap must stay POSIX-compatible. The checked-in `ec2-compose-deploy.sh` is invoked explicitly with Bash.
-- Create `/opt/faroai/.env` through a separate secret-provisioning process. Enforce root ownership and mode `0600`; it must not be inside the release directory or image.
+- `/opt/faroai/.env` is optional and is only for non-secret deployment overrides such as feature flags. The deployment script creates an empty root-owned `0600` file when it is absent. Never put credentials there; the runtime secret bundle is fetched from Secrets Manager and stored separately with root-only permissions.
 - Before first deployment, confirm free disk space and staging-only DB/Qdrant/Redis volumes. Do not reuse production data.
 - CI/CD uses SSM Run Command and does not require inbound SSH or application ports. The current Compose binding keeps FaroAI on host loopback port `3001`; Nginx/TLS, DNS mapping, and inbound `80`/`443` are separate web-ingress setup and are not installed or changed by this workflow. Keep `3001` closed to the internet.
 - Ensure the instance has outbound HTTPS through a NAT/internet route or the required VPC endpoints for SSM, ECR and S3. The current Compose deployment also pulls PostgreSQL, Redis and Qdrant from their upstream registries, so either provide outbound registry access or mirror those images into private ECR.

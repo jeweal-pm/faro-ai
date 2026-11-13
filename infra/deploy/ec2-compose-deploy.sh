@@ -26,7 +26,17 @@ readonly runtime_secrets_file="${root}/.runtime-secrets.env"
   echo "Compose release files are missing" >&2
   exit 2
 }
-[[ -f "$env_file" && ! -L "$env_file" ]] || { echo "Host environment file is unavailable" >&2; exit 2; }
+if [[ -L "$env_file" ]]; then
+  echo "Host environment file must not be a symlink" >&2
+  exit 2
+fi
+if [[ ! -e "$env_file" ]]; then
+  # Runtime secrets are fetched separately from Secrets Manager. The host file
+  # is only for optional non-secret overrides; an empty file uses Compose defaults.
+  install -o root -g root -m 0600 /dev/null "$env_file"
+  echo "Created empty host configuration; Compose defaults will be used"
+fi
+[[ -f "$env_file" ]] || { echo "Host environment file is not a regular file" >&2; exit 2; }
 [[ "$(stat -c '%u' "$env_file")" == "0" ]] || { echo "Host environment file must be root-owned" >&2; exit 2; }
 
 chmod 600 "$env_file"
