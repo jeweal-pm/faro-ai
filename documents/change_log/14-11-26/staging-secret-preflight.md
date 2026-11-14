@@ -18,3 +18,5 @@ After the secret preflight passed, the deployment SSM command failed without a s
 The marker was absent from the next SSM failure. Added a diagnostic-only workflow input that queries an existing SSM command and prints only its status, response code, allowlisted failure categories, and a validated stage marker. It skips Compose build and does not start a new deployment.
 
 The first diagnostic classified the existing failure as unknown. Expanded its safe categories and added bounded, allowlisted stderr terms plus non-sensitive stage breadcrumbs; raw SSM output is still never printed.
+
+The SSM output reached its 24 KB capture limit during verbose image pull progress, hiding the final error and stage marker. Compose pull and startup now use quiet progress options, and API readiness failure prints a safe stage marker explicitly.

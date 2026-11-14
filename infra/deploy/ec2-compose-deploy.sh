@@ -201,9 +201,9 @@ deploy_stage=ECR_LOGIN
 aws ecr get-login-password --region "$aws_region" \
   | docker login --username AWS --password-stdin "$ecr_registry" >/dev/null
 deploy_stage=PULL_IMAGES
-compose pull
+compose pull --quiet
 deploy_stage=START_SERVICES
-compose up -d --no-build --remove-orphans
+compose up -d --no-build --quiet-pull --remove-orphans
 
 if [[ "$artifacts_enabled" == true ]]; then
   deploy_stage=VERIFY_ARTIFACT_DATABASE_ROLE
@@ -226,4 +226,5 @@ for attempt in $(seq 1 18); do
 done
 
 echo "FaroAI API readiness check failed; inspect staging service status without printing secrets" >&2
+echo "FAROAI_DEPLOY_FAILED_STAGE=WAIT_API_READINESS EXIT=1" >&2
 exit 1
