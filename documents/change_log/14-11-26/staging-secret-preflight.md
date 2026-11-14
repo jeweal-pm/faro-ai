@@ -38,3 +38,5 @@ After the artifact worker URL was corrected, staging preflight and image publish
 The first classified provisioning run still failed, but GitHub Actions filtered out the new safe cause marker. Updated both deployment failure and diagnostic-only output filters to show only allowlisted, fixed worker-role cause codes. The diagnostic-only workflow can inspect the already-failed SSM command without publishing or deploying another image.
 
 Safe diagnosis identified the actual EC2 failure: the release archive omitted `infra/deploy/provision-staging-worker-roles.py`, so Python could not open the script. Added the tracked provisioner to the explicit `git archive` path list and verified the path is present in an archive generated locally. No staging Secret changes are required for this failure.
+
+The provisioner now runs from the release bundle and succeeds on EC2. The artifact-role verification still exits nonzero. Added credential-safe verification codes for authentication, connection, or role membership/attribute mismatches so the next deployment exposes only the failing category.

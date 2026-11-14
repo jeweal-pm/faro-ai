@@ -282,7 +282,17 @@ fi
 if [[ "$artifacts_enabled" == true ]]; then
   deploy_stage=VERIFY_ARTIFACT_DATABASE_ROLE
   compose run --rm --no-deps --entrypoint python artifact-worker -c \
-    'import os, psycopg; conn=psycopg.connect(os.environ["DATABASE_URL"], connect_timeout=10); row=conn.execute("SELECT current_user, rolcanlogin, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls, pg_has_role(current_user, %s, %s) FROM pg_roles WHERE rolname=current_user", ("faroai_artifact_access", "member")).fetchone(); conn.close(); expected=("faroai_artifact_worker", True, False, False, False, False, False, True); raise SystemExit("Artifact worker database role is not the expected restricted login") if row != expected else print("Artifact worker database login and restricted role verified")'
+    'import os, psycopg, sys
+try:
+ conn=psycopg.connect(os.environ["DATABASE_URL"], connect_timeout=10)
+ row=conn.execute("SELECT current_user, rolcanlogin, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls, pg_has_role(current_user, %s, %s) FROM pg_roles WHERE rolname=current_user", ("faroai_artifact_access", "member")).fetchone()
+ conn.close()
+ expected=("faroai_artifact_worker", True, False, False, False, False, False, True)
+ if row != expected: print("ARTIFACT_ROLE_VERIFY=ATTRIBUTES_OR_MEMBERSHIP", file=sys.stderr); raise SystemExit(1)
+ print("Artifact worker database login and restricted role verified")
+except psycopg.OperationalError as exc:
+ code="AUTH" if "authentication failed" in str(exc).lower() else "CONNECTION"
+ print("ARTIFACT_ROLE_VERIFY="+code, file=sys.stderr); raise SystemExit(1)'
 fi
 
 deploy_stage=WAIT_API_READINESS
