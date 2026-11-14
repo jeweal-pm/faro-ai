@@ -542,6 +542,34 @@ jobs:
           combined = (logs.stdout + logs.stderr).lower()
           patterns = [('MODULE_MISSING','modulenotfounderror'),('SETTINGS_INVALID','validationerror'),('DATABASE_ERROR','operationalerror'),('CONNECTION_REFUSED','connection refused'),('QDRANT_ERROR','qdrant'),('REDIS_ERROR','redis'),('MEMORY_ERROR','memoryerror'),('OOM','out of memory'),('PORT_BIND_ERROR','address already in use'),('STARTUP_COMPLETE','application startup complete'),('SERVER_RUNNING','uvicorn running')]
           print('AI_LOG_CLASSES=' + ','.join(name for name, phrase in patterns if phrase in combined))
+          api_item = run('docker', 'inspect', 'faroai-api-1')
+          if api_item.returncode:
+              print('API_CONTAINER=NOT_FOUND')
+          else:
+              api = json.loads(api_item.stdout)[0]
+              api_state = api.get('State') or {}
+              print('API_STATE=' + str(api_state.get('Status', 'unknown')))
+              print('API_OOM_KILLED=' + str(api_state.get('OOMKilled', False)))
+              print('API_RESTART_COUNT=' + str(api.get('RestartCount', 'unknown')))
+              print('API_HEALTH=' + str((api_state.get('Health') or {}).get('Status', 'unknown')))
+              for entry in ((api_state.get('Health') or {}).get('Log') or [])[-3:]:
+                  print('API_HEALTHCHECK=' + str(entry.get('ExitCode', 'unknown')))
+          api_logs = run('docker', 'logs', '--tail', '120', 'faroai-api-1')
+          api_text = (api_logs.stdout + api_logs.stderr).lower()
+          api_patterns = [('DATABASE_AUTH_FAILED','password authentication failed'),('DATABASE_HOST_FAILED','name or service not known'),('DATABASE_CONNECTION_REFUSED','connection refused'),('REDIS_ERROR','redis'),('CONFIG_ERROR','zoderror'),('SERVER_RUNNING','listening'),('DATABASE_ERROR','database'),('NOT_READY','not_ready')]
+          print('API_LOG_CLASSES=' + ','.join(name for name, phrase in api_patterns if phrase in api_text))
+          api_probe = """const {Pool}=require('pg'); const Redis=require('ioredis');
+          const p=new Pool({connectionString:process.env.DATABASE_URL,connectionTimeoutMillis:5000});
+          p.query('SELECT 1').then(()=>console.log('API_POSTGRES=OK')).catch(e=>console.log('API_POSTGRES=FAIL:'+String(e.code||e.name))).finally(()=>p.end());
+          const r=new Redis(process.env.REDIS_URL,{lazyConnect:true,connectTimeout:5000,retryStrategy:()=>null});
+          r.ping().then(()=>console.log('API_REDIS=OK')).catch(e=>console.log('API_REDIS=FAIL:'+String(e.code||e.name))).finally(()=>r.disconnect());
+          """
+          result = run('docker', 'exec', 'faroai-api-1', 'node', '-e', api_probe)
+          for line in result.stdout.splitlines():
+              if line.startswith(('API_POSTGRES=', 'API_REDIS=')):
+                  print(line)
+          if result.returncode:
+              print('API_PROBE_EXIT=' + str(result.returncode))
           for service in ('faroai-postgres-1', 'faroai-redis-1', 'faroai-qdrant-1'):
               item = run('docker', 'inspect', service)
               if item.returncode:
