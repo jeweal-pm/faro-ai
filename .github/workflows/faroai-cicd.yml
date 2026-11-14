@@ -239,9 +239,19 @@ jobs:
                   if payload.get(flag) == 'true':
                       try:
                           uri = urlsplit(payload.get(key, ''))
-                          valid = (uri.scheme in ('postgres', 'postgresql') and uri.hostname == 'postgres'
-                                   and uri.port == 5432 and uri.path == '/faroai' and uri.username == role
-                                   and bool(uri.password) and not uri.query and not uri.fragment)
+                          checks = {
+                              'SCHEME': uri.scheme in ('postgres', 'postgresql'),
+                              'HOST': uri.hostname == 'postgres',
+                              'PORT': uri.port == 5432,
+                              'DATABASE': uri.path == '/faroai',
+                              'ROLE': uri.username == role,
+                              'PASSWORD_PRESENT': bool(uri.password),
+                              'QUERY_ABSENT': not uri.query,
+                              'FRAGMENT_ABSENT': not uri.fragment,
+                          }
+                          valid = all(checks.values())
+                          if not valid:
+                              print(key + ' invalid URL components: ' + ', '.join(name for name, passed in checks.items() if not passed), file=sys.stderr)
                       except ValueError:
                           valid = False
                       if not valid:
