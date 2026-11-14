@@ -520,6 +520,7 @@ jobs:
           import json
           script = '''python3 - <<'INNER'
           import json, subprocess
+          from pathlib import Path
           def run(*args):
               return subprocess.run(args, capture_output=True, text=True, timeout=20)
           result = run('docker', 'inspect', 'faroai-ai-service-1')
@@ -555,6 +556,14 @@ jobs:
               api_env = {part.split('=', 1)[0]: part.split('=', 1)[1] for part in (api.get('Config') or {}).get('Env', []) if '=' in part}
               for name in ('FAROAI_INTERNAL_SECRET', 'API_KEY_PEPPER'):
                   print('API_' + name + '_MIN_LENGTH_OK=' + str(len(api_env.get(name, '')) >= 32))
+                  print('API_' + name + '_PRESENT=' + str(bool(api_env.get(name))))
+          runtime_file = Path('/opt/faroai/.runtime-secrets.env')
+          if runtime_file.is_file():
+              secret_lines = runtime_file.read_text().splitlines()
+              for name in ('FAROAI_INTERNAL_SECRET', 'API_KEY_PEPPER'):
+                  values = [line.split('=', 1)[1] for line in secret_lines if line.startswith(name + '=')]
+                  print('RUNTIME_' + name + '_PRESENT=' + str(bool(values)))
+                  print('RUNTIME_' + name + '_MIN_LENGTH_OK=' + str(bool(values) and len(values[-1]) >= 34))
               for entry in ((api_state.get('Health') or {}).get('Log') or [])[-3:]:
                   print('API_HEALTHCHECK=' + str(entry.get('ExitCode', 'unknown')))
           api_logs = run('docker', 'logs', '--tail', '120', 'faroai-api-1')
