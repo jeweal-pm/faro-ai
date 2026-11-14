@@ -209,6 +209,10 @@ jobs:
                   raise ValueError('SECRET_UNSUPPORTED_KEYS')
               if any(not payload.get(k) for k in required):
                   raise ValueError('SECRET_MISSING_REQUIRED_KEYS')
+              short = sorted(k for k in ('FAROAI_INTERNAL_SECRET', 'API_KEY_PEPPER') if len(payload[k]) < 32)
+              if short:
+                  print('Secret keys below 32 characters: ' + ', '.join(short), file=sys.stderr)
+                  raise ValueError('SECRET_KEY_TOO_SHORT')
               if set(payload) & ignored_legacy:
                   print('IGNORED_OBSOLETE_KEYS: ' + ', '.join(sorted(set(payload) & ignored_legacy)))
               if any(any(c in v for c in '\\x00\\r\\n') for v in payload.values()):

@@ -130,6 +130,10 @@ try:
     if missing:
         print("Missing required secret key names: " + ", ".join(missing), file=sys.stderr)
         fail("REQUIRED_SECRET_KEYS_MISSING")
+    short = sorted(key for key in ("FAROAI_INTERNAL_SECRET", "API_KEY_PEPPER") if len(payload[key]) < 32)
+    if short:
+        print("Secret keys below 32 characters: " + ", ".join(short), file=sys.stderr)
+        fail("SECRET_KEY_TOO_SHORT")
     if set(payload) & ignored_legacy:
         print("Ignored obsolete staging key names: " + ", ".join(sorted(set(payload) & ignored_legacy)), file=sys.stderr)
 
