@@ -232,6 +232,7 @@ jobs:
                       raise ValueError('BACKOFFICE_LOGIN_INCOMPLETE')
                   if len(base64.b64decode(payload.get('FAROAI_CONFIG_ENCRYPTION_KEY', '') + '===', validate=False)) != 32:
                       raise ValueError('BACKOFFICE_ENCRYPTION_KEY_INVALID')
+              invalid_worker_urls = []
               for flag, key, role in (
                   ('FAROAI_ARTIFACT_ENABLED', 'FAROAI_ARTIFACT_DATABASE_URL', 'faroai_artifact_worker'),
                   ('FAROAI_DOCUMENT_IMPORT_ENABLED', 'FAROAI_DOCUMENT_IMPORT_DATABASE_URL', 'faroai_document_import_worker'),
@@ -255,7 +256,9 @@ jobs:
                       except ValueError:
                           valid = False
                       if not valid:
-                          raise ValueError(key + '_INVALID')
+                          invalid_worker_urls.append(key)
+              if invalid_worker_urls:
+                  raise ValueError('WORKER_DATABASE_URL_INVALID: ' + ', '.join(invalid_worker_urls))
               if set(payload) & ignored_legacy:
                   print('IGNORED_OBSOLETE_KEYS: ' + ', '.join(sorted(set(payload) & ignored_legacy)))
               if any(any(c in v for c in '\\x00\\r\\n') for v in payload.values()):
