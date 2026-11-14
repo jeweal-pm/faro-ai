@@ -157,7 +157,7 @@ jobs:
           region = os.environ['AWS_REGION']
           arn = os.environ['STAGING_RUNTIME_SECRET_ARN']
           validate = '''
-          import json, subprocess, sys
+          import json, re, subprocess, sys
           required = {'POSTGRES_PASSWORD', 'FAROAI_DB_PASSWORD', 'FAROAI_INTERNAL_SECRET',
                       'API_KEY_PEPPER', 'QDRANT_API_KEY', 'QDRANT_READ_ONLY_API_KEY'}
           allowed = required | {'DATABASE_URL', 'REDIS_URL', 'FAROAI_GIS_MCP_CONTEXT_SECRET',
@@ -184,7 +184,10 @@ jobs:
                   raise ValueError('SECRET_INVALID_OBJECT')
               if any(not isinstance(k, str) or not isinstance(v, str) for k, v in payload.items()):
                   raise ValueError('SECRET_INVALID_TYPES')
-              if set(payload) - allowed:
+              unknown = sorted(set(payload) - allowed)
+              if unknown:
+                  safe_names = [name if re.fullmatch(r'[A-Z][A-Z0-9_]{0,100}', name) else '<invalid-name>' for name in unknown]
+                  print('Unsupported key names: ' + ', '.join(safe_names), file=sys.stderr)
                   raise ValueError('SECRET_UNSUPPORTED_KEYS')
               if any(not payload.get(k) for k in required):
                   raise ValueError('SECRET_MISSING_REQUIRED_KEYS')

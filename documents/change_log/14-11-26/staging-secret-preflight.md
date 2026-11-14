@@ -8,3 +8,5 @@
 Verification: workflow YAML parsed, generated SSM Python compiled, deployment Python compiled, `bash -n` and `git diff --check` passed. Live AWS access and staging deployment remain to be verified by a manual workflow run.
 
 The first live preflight stopped before image publish with `DOCKER_MISSING` on the staging EC2 host. Added an explicit one-time `bootstrap_staging_host` workflow input and an Ubuntu-only Docker Engine/Compose bootstrap script based on Docker's official APT repository. It refuses conflicting container packages rather than replacing them automatically.
+
+The next live preflight passed Docker and reached the secret schema check, which reported `SECRET_UNSUPPORTED_KEYS`. Preflight now lists only validated environment key names that are not accepted; it never logs their values. Invalid key names are replaced with a placeholder in diagnostics.

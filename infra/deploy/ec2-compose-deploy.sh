@@ -51,6 +51,7 @@ export FAROAI_DOCUMENT_IMPORT_WORKER_IMAGE="${ecr_registry}/faroai-document-impo
 python3 - "$runtime_secret_arn" "$aws_region" "$runtime_secrets_file" <<'PY'
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -103,6 +104,8 @@ try:
         fail("SECRET_NOT_NONEMPTY_JSON_OBJECT")
     unknown = set(payload) - allowed
     if unknown:
+        safe_names = [key if isinstance(key, str) and re.fullmatch(r'[A-Z][A-Z0-9_]{0,100}', key) else '<invalid-name>' for key in sorted(unknown)]
+        print('Unsupported secret key names: ' + ', '.join(safe_names), file=sys.stderr)
         fail("UNSUPPORTED_SECRET_KEYS")
     if any(not isinstance(key, str) or not isinstance(value, str) for key, value in payload.items()):
         fail("SECRET_VALUES_MUST_BE_STRINGS")
