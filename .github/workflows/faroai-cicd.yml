@@ -12,6 +12,11 @@ on:
         required: true
         type: boolean
         default: false
+      bootstrap_staging_host:
+        description: Install official Docker Engine and Compose on a fresh approved Ubuntu staging host
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -98,6 +103,45 @@ jobs:
           role-to-assume: ${{ env.AWS_GITHUB_ACTIONS_ROLE_ARN }}
           role-session-name: faroai-staging-${{ github.run_id }}
           allowed-account-ids: ${{ env.AWS_ACCOUNT_ID }}
+
+      - name: Bootstrap Docker on fresh Ubuntu staging host
+        if: inputs.bootstrap_staging_host == true
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, json, os
+          from pathlib import Path
+          script = Path('infra/deploy/bootstrap-ubuntu-docker.sh').read_bytes()
+          encoded = base64.b64encode(script).decode('ascii')
+          command = f"set -eu\nprintf '%s' '{encoded}' | base64 -d | bash"
+          Path(os.environ['RUNNER_TEMP'], 'ssm-bootstrap.json').write_text(
+              json.dumps({'commands': [command]}), encoding='utf-8'
+          )
+          PY
+          command_id="$(aws ssm send-command \
+            --instance-ids "$STAGING_SSM_INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --timeout-seconds 1200 \
+            --parameters "file://${RUNNER_TEMP}/ssm-bootstrap.json" \
+            --query 'Command.CommandId' --output text)"
+          for attempt in $(seq 1 180); do
+            status="$(aws ssm get-command-invocation \
+              --command-id "$command_id" --instance-id "$STAGING_SSM_INSTANCE_ID" \
+              --query Status --output text 2>/dev/null || true)"
+            case "$status" in
+              Success) echo 'Staging Docker bootstrap completed'; exit 0 ;;
+              Failed|Cancelled|TimedOut)
+                aws ssm get-command-invocation \
+                  --command-id "$command_id" --instance-id "$STAGING_SSM_INSTANCE_ID" \
+                  --query 'StandardErrorContent' --output text || true
+                echo "Staging Docker bootstrap failed: $status" >&2
+                exit 1 ;;
+              *) sleep 5 ;;
+            esac
+          done
+          echo 'Staging Docker bootstrap timed out' >&2
+          exit 1
 
       - name: Preflight EC2 before publishing images
         shell: bash
