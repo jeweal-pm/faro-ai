@@ -251,14 +251,31 @@ compose up -d --no-build --quiet-pull --remove-orphans
 
 if [[ "$artifacts_enabled" == true || "$document_import_enabled" == true ]]; then
   deploy_stage=PROVISION_WORKER_DATABASE_ROLES
+  provision_error="$(mktemp "${TMPDIR:-/tmp}/faroai-worker-provision.XXXXXX")"
+  chmod 600 "$provision_error"
   if ! python3 "$release_dir/infra/deploy/provision-staging-worker-roles.py" \
       "$runtime_secrets_file" "$artifacts_enabled" "$document_import_enabled" \
       | compose exec -T postgres psql -q -v ON_ERROR_STOP=1 -U postgres -d faroai \
-        >/dev/null 2>&1; then
+        >/dev/null 2>"$provision_error"; then
+    if grep -q 'required worker access group is missing' "$provision_error"; then
+      echo 'WORKER_ROLE_PROVISION_CAUSE=ACCESS_GROUP_MISSING' >&2
+    elif grep -q 'password authentication failed' "$provision_error"; then
+      echo 'WORKER_ROLE_PROVISION_CAUSE=POSTGRES_AUTH_FAILED' >&2
+    elif grep -q 'syntax error' "$provision_error"; then
+      echo 'WORKER_ROLE_PROVISION_CAUSE=SQL_SYNTAX_ERROR' >&2
+    elif grep -q 'permission denied' "$provision_error"; then
+      echo 'WORKER_ROLE_PROVISION_CAUSE=POSTGRES_PERMISSION_DENIED' >&2
+    elif grep -q 'worker login has unsafe attributes\|worker access group has unsafe attributes' "$provision_error"; then
+      echo 'WORKER_ROLE_PROVISION_CAUSE=UNSAFE_EXISTING_ROLE' >&2
+    else
+      echo 'WORKER_ROLE_PROVISION_CAUSE=OTHER' >&2
+    fi
+    rm -f -- "$provision_error"
     echo 'Restricted worker database role provisioning failed; credentials were not logged' >&2
     echo 'FAROAI_DEPLOY_FAILED_STAGE=PROVISION_WORKER_DATABASE_ROLES EXIT=1' >&2
     exit 1
   fi
+  rm -f -- "$provision_error"
   echo 'Restricted worker database roles provisioned from the staging runtime Secret'
 fi
 
