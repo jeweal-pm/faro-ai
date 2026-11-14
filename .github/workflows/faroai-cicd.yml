@@ -558,6 +558,8 @@ jobs:
           api_text = (api_logs.stdout + api_logs.stderr).lower()
           api_patterns = [('DATABASE_AUTH_FAILED','password authentication failed'),('DATABASE_HOST_FAILED','name or service not known'),('DATABASE_CONNECTION_REFUSED','connection refused'),('REDIS_ERROR','redis'),('CONFIG_ERROR','zoderror'),('SERVER_RUNNING','listening'),('DATABASE_ERROR','database'),('NOT_READY','not_ready')]
           print('API_LOG_CLASSES=' + ','.join(name for name, phrase in api_patterns if phrase in api_text))
+          config_names = ('PORT','DATABASE_URL','REDIS_URL','PYTHON_SERVICE_URL','FAROAI_INTERNAL_SECRET','API_KEY_PEPPER','MAX_BODY_BYTES','FAROAI_ARTIFACT_ENABLED','FAROAI_DOCUMENT_IMPORT_ENABLED','FAROAI_DOCUMENT_IMPORT_ENCRYPTION_KEY','FAROAI_TENANT_MODE','FAROAI_SINGLE_TENANT_ID','FAROAI_DEPLOYMENT_MODE','FAROAI_LOCAL_LLM_ENABLED','FAROAI_SHARED_TRAINING_ENABLED')
+          print('API_CONFIG_FIELDS_IN_ERRORS=' + ','.join(name for name in config_names if name.lower() in api_text))
           api_probe = """const {Pool}=require('pg'); const Redis=require('ioredis');
           const p=new Pool({connectionString:process.env.DATABASE_URL,connectionTimeoutMillis:5000});
           p.query('SELECT 1').then(()=>console.log('API_POSTGRES=OK')).catch(e=>console.log('API_POSTGRES=FAIL:'+String(e.code||e.name))).finally(()=>p.end());
