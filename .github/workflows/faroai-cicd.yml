@@ -542,6 +542,22 @@ jobs:
           combined = (logs.stdout + logs.stderr).lower()
           patterns = [('MODULE_MISSING','modulenotfounderror'),('SETTINGS_INVALID','validationerror'),('DATABASE_ERROR','operationalerror'),('CONNECTION_REFUSED','connection refused'),('QDRANT_ERROR','qdrant'),('REDIS_ERROR','redis'),('MEMORY_ERROR','memoryerror'),('OOM','out of memory'),('PORT_BIND_ERROR','address already in use'),('STARTUP_COMPLETE','application startup complete'),('SERVER_RUNNING','uvicorn running')]
           print('AI_LOG_CLASSES=' + ','.join(name for name, phrase in patterns if phrase in combined))
+          probe = '''from contextlib import closing
+          from faroai.app import connection, redis, qdrant
+          checks = {'POSTGRES': lambda: connection().close(), 'REDIS': lambda: redis.ping(), 'QDRANT': lambda: qdrant.get_collections()}
+          for name, check in checks.items():
+              try:
+                  check()
+                  print('DEPENDENCY_' + name + '=OK')
+              except Exception as error:
+                  print('DEPENDENCY_' + name + '=FAIL:' + type(error).__name__)
+          '''
+          result = run('docker', 'exec', 'faroai-ai-service-1', 'python', '-c', probe)
+          for line in result.stdout.splitlines():
+              if line.startswith('DEPENDENCY_'):
+                  print(line)
+          if result.returncode:
+              print('DEPENDENCY_PROBE_EXIT=' + str(result.returncode))
           for command, label in [(('df','-P','/'),'HOST_DISK_KB'), (('free','-m'),'HOST_MEMORY_MB')]:
               value = run(*command)
               if value.returncode == 0:
