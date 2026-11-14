@@ -52,6 +52,7 @@ export FAROAI_DOCUMENT_IMPORT_WORKER_IMAGE="${ecr_registry}/faroai-document-impo
 # secret must be a JSON object of approved environment-name/string pairs.
 deploy_stage=LOAD_RUNTIME_SECRET
 python3 - "$runtime_secret_arn" "$aws_region" "$runtime_secrets_file" <<'PY'
+import base64
 import json
 import os
 import re
@@ -81,6 +82,8 @@ allowed = {
     "FAROAI_DOCUMENT_IMPORT_DATABASE_URL",
     "FAROAI_DOCUMENT_IMPORT_ENCRYPTION_KEY",
     "BACKOFFICE_COOKIE_SECURE", "BACKOFFICE_ENABLED", "BACKOFFICE_LOCAL_ADMIN_EMAIL",
+    "BACKOFFICE_ADMIN_EMAILS", "BACKOFFICE_OIDC_ISSUER_URL", "BACKOFFICE_OIDC_CLIENT_ID",
+    "BACKOFFICE_OIDC_REDIRECT_URI",
     "BACKOFFICE_LOCAL_AUTH_ENABLED", "BACKOFFICE_OIDC_ENABLED", "BACKOFFICE_URL",
     "EMBEDDING_DIMENSION", "EMBEDDING_MODEL", "FAROAI_ALLOWED_LOCAL_MODEL_HOSTS",
     "FAROAI_ALLOW_EXTERNAL_PROVIDERS", "FAROAI_ARTIFACT_ENABLED",
@@ -134,6 +137,30 @@ try:
     if short:
         print("Secret keys below 32 characters: " + ", ".join(short), file=sys.stderr)
         fail("SECRET_KEY_TOO_SHORT")
+    if payload.get("BACKOFFICE_ENABLED") == "true":
+        oidc = (
+            payload.get("BACKOFFICE_OIDC_ENABLED") == "true"
+            and all(payload.get(key) for key in ("BACKOFFICE_OIDC_ISSUER_URL", "BACKOFFICE_OIDC_CLIENT_ID", "BACKOFFICE_OIDC_CLIENT_SECRET", "BACKOFFICE_OIDC_REDIRECT_URI"))
+            and bool(payload.get("BACKOFFICE_ADMIN_EMAILS", "").strip())
+        )
+        try:
+            hash_valid = base64.b64decode(payload.get("BACKOFFICE_LOCAL_ADMIN_PASSWORD_HASH_B64", ""), validate=True).startswith(b"$argon2id$")
+        except ValueError:
+            hash_valid = False
+        local = (
+            payload.get("BACKOFFICE_LOCAL_AUTH_ENABLED") == "true"
+            and bool(re.fullmatch(r"[^ @]+@[^ @]+[.][^ @]+", payload.get("BACKOFFICE_LOCAL_ADMIN_EMAIL", "")))
+            and not any(char.isspace() for char in payload.get("BACKOFFICE_LOCAL_ADMIN_EMAIL", ""))
+            and hash_valid
+        )
+        if not (oidc or local):
+            fail("BACKOFFICE_LOGIN_INCOMPLETE")
+        try:
+            config_key_valid = len(base64.b64decode(payload.get("FAROAI_CONFIG_ENCRYPTION_KEY", "") + "===", validate=False)) == 32
+        except ValueError:
+            config_key_valid = False
+        if not config_key_valid:
+            fail("BACKOFFICE_ENCRYPTION_KEY_INVALID")
     if set(payload) & ignored_legacy:
         print("Ignored obsolete staging key names: " + ", ".join(sorted(set(payload) & ignored_legacy)), file=sys.stderr)
 

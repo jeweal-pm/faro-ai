@@ -164,7 +164,7 @@ jobs:
           region = os.environ['AWS_REGION']
           arn = os.environ['STAGING_RUNTIME_SECRET_ARN']
           validate = '''
-          import json, re, subprocess, sys
+          import base64, json, re, subprocess, sys
           required = {'POSTGRES_PASSWORD', 'FAROAI_DB_PASSWORD', 'FAROAI_INTERNAL_SECRET',
                       'API_KEY_PEPPER', 'QDRANT_API_KEY', 'QDRANT_READ_ONLY_API_KEY'}
           allowed = required | {'DATABASE_URL', 'REDIS_URL', 'FAROAI_GIS_MCP_CONTEXT_SECRET',
@@ -173,6 +173,8 @@ jobs:
                                 'FAROAI_GIS_API_KEY', 'FAROAI_ARTIFACT_DATABASE_URL',
                                 'FAROAI_DOCUMENT_IMPORT_DATABASE_URL', 'FAROAI_DOCUMENT_IMPORT_ENCRYPTION_KEY',
                                 'BACKOFFICE_COOKIE_SECURE', 'BACKOFFICE_ENABLED', 'BACKOFFICE_LOCAL_ADMIN_EMAIL',
+                                'BACKOFFICE_ADMIN_EMAILS', 'BACKOFFICE_OIDC_ISSUER_URL', 'BACKOFFICE_OIDC_CLIENT_ID',
+                                'BACKOFFICE_OIDC_REDIRECT_URI',
                                 'BACKOFFICE_LOCAL_AUTH_ENABLED', 'BACKOFFICE_OIDC_ENABLED', 'BACKOFFICE_URL',
                                 'EMBEDDING_DIMENSION', 'EMBEDDING_MODEL', 'FAROAI_ALLOWED_LOCAL_MODEL_HOSTS',
                                 'FAROAI_ALLOW_EXTERNAL_PROVIDERS', 'FAROAI_ARTIFACT_ENABLED',
@@ -213,6 +215,22 @@ jobs:
               if short:
                   print('Secret keys below 32 characters: ' + ', '.join(short), file=sys.stderr)
                   raise ValueError('SECRET_KEY_TOO_SHORT')
+              if payload.get('BACKOFFICE_ENABLED') == 'true':
+                  oidc = (payload.get('BACKOFFICE_OIDC_ENABLED') == 'true'
+                          and all(payload.get(k) for k in ('BACKOFFICE_OIDC_ISSUER_URL', 'BACKOFFICE_OIDC_CLIENT_ID', 'BACKOFFICE_OIDC_CLIENT_SECRET', 'BACKOFFICE_OIDC_REDIRECT_URI'))
+                          and bool(payload.get('BACKOFFICE_ADMIN_EMAILS', '').strip()))
+                  try:
+                      hash_valid = base64.b64decode(payload.get('BACKOFFICE_LOCAL_ADMIN_PASSWORD_HASH_B64', ''), validate=True).startswith(b'$argon2id$')
+                  except ValueError:
+                      hash_valid = False
+                  local = (payload.get('BACKOFFICE_LOCAL_AUTH_ENABLED') == 'true'
+                           and bool(re.fullmatch(r'[^ @]+@[^ @]+[.][^ @]+', payload.get('BACKOFFICE_LOCAL_ADMIN_EMAIL', '')))
+                           and not any(c.isspace() for c in payload.get('BACKOFFICE_LOCAL_ADMIN_EMAIL', ''))
+                           and hash_valid)
+                  if not (oidc or local):
+                      raise ValueError('BACKOFFICE_LOGIN_INCOMPLETE')
+                  if len(base64.b64decode(payload.get('FAROAI_CONFIG_ENCRYPTION_KEY', '') + '===', validate=False)) != 32:
+                      raise ValueError('BACKOFFICE_ENCRYPTION_KEY_INVALID')
               if set(payload) & ignored_legacy:
                   print('IGNORED_OBSOLETE_KEYS: ' + ', '.join(sorted(set(payload) & ignored_legacy)))
               if any(any(c in v for c in '\\x00\\r\\n') for v in payload.values()):
