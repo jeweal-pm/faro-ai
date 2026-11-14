@@ -59,6 +59,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from urllib.parse import quote
 
 secret_arn, region, target_name = sys.argv[1:]
 allowed = {
@@ -131,6 +132,16 @@ try:
         fail("REQUIRED_SECRET_KEYS_MISSING")
     if set(payload) & ignored_legacy:
         print("Ignored obsolete staging key names: " + ", ".join(sorted(set(payload) & ignored_legacy)), file=sys.stderr)
+
+    # This staging Compose stack owns its PostgreSQL service. Build the app URI
+    # from the single source of truth so reserved password characters cannot
+    # be interpreted as URI host/query syntax by libpq.
+    payload["DATABASE_URL"] = (
+        "postgresql://faroai:"
+        + quote(payload["FAROAI_DB_PASSWORD"], safe="")
+        + "@postgres:5432/faroai"
+    )
+    print("Staging app database URL derived from FAROAI_DB_PASSWORD")
 
     def compose_literal(value: str) -> str:
         return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"

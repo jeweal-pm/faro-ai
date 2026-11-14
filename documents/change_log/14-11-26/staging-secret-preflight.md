@@ -24,3 +24,5 @@ The SSM output reached its 24 KB capture limit during verbose image pull progres
 The next SSM run reached service startup and failed due to an unhealthy dependency. The diagnostic job now extracts only FaroAI container names and health states from that output so the failing service can be identified without raw logs.
 
 The quiet startup diagnosis identified `faroai-ai-service-1` as unhealthy. Added a diagnostic-only SSM health inspection that reports container state, healthcheck classification, startup log categories, and host capacity without exposing raw logs or environment variables.
+
+The AI health probe isolated PostgreSQL: the service was healthy and DNS resolved, but libpq parsed the configured database URI host as something other than `postgres`. Staging now derives the application `DATABASE_URL` from its local Compose PostgreSQL endpoint and the existing `FAROAI_DB_PASSWORD`, percent-encoding reserved password characters. The runtime Secret remains the password source; no value is logged.
