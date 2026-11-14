@@ -552,6 +552,9 @@ jobs:
               print('API_OOM_KILLED=' + str(api_state.get('OOMKilled', False)))
               print('API_RESTART_COUNT=' + str(api.get('RestartCount', 'unknown')))
               print('API_HEALTH=' + str((api_state.get('Health') or {}).get('Status', 'unknown')))
+              api_env = {part.split('=', 1)[0]: part.split('=', 1)[1] for part in (api.get('Config') or {}).get('Env', []) if '=' in part}
+              for name in ('FAROAI_INTERNAL_SECRET', 'API_KEY_PEPPER'):
+                  print('API_' + name + '_MIN_LENGTH_OK=' + str(len(api_env.get(name, '')) >= 32))
               for entry in ((api_state.get('Health') or {}).get('Log') or [])[-3:]:
                   print('API_HEALTHCHECK=' + str(entry.get('ExitCode', 'unknown')))
           api_logs = run('docker', 'logs', '--tail', '120', 'faroai-api-1')
