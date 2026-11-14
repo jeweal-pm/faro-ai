@@ -233,7 +233,7 @@ services:
     restart: unless-stopped
 
   document-import-volume-init:
-    image: postgres:16-alpine
+    image: postgres:16.16-alpine
     user: "0:0"
     entrypoint: ["/bin/sh", "-ec"]
     command:
@@ -296,7 +296,7 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16.16-alpine
     environment:
       POSTGRES_DB: faroai
       POSTGRES_USER: postgres
@@ -324,7 +324,7 @@ services:
     restart: unless-stopped
 
   migrations:
-    image: postgres:16-alpine
+    image: postgres:16.16-alpine
     environment:
       PGHOST: postgres
       PGPORT: "5432"
