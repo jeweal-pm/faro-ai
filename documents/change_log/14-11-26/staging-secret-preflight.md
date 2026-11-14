@@ -12,3 +12,5 @@ The first live preflight stopped before image publish with `DOCKER_MISSING` on t
 The next live preflight passed Docker and reached the secret schema check, which reported `SECRET_UNSUPPORTED_KEYS`. Preflight now lists only validated environment key names that are not accepted; it never logs their values. Invalid key names are replaced with a placeholder in diagnostics.
 
 The live diagnosis showed the staging Secret contains application settings as well as credentials. Expanded the accepted key list to the known Compose settings, excluded obsolete `DECISION_*` and demo tenant keys from the generated runtime file, and made optional Compose profiles honor flags stored in the Secret. The Secret values remain confined to EC2 and are not logged.
+
+After the secret preflight passed, the deployment SSM command failed without a stage name. Added a safe deployment stage marker in the EC2 script and a GitHub Actions failure summary that prints only that marker and exit code, never raw SSM stderr.

@@ -396,6 +396,11 @@ jobs:
             case "$status" in
               Success) echo "Staging deployment completed for $IMAGE_TAG"; exit 0 ;;
               Failed|Cancelled|TimedOut|Cancelling)
+                aws ssm get-command-invocation \
+                  --command-id "$command_id" \
+                  --instance-id "$STAGING_SSM_INSTANCE_ID" \
+                  --query 'StandardErrorContent' --output text 2>/dev/null \
+                  | python3 -c 'import re,sys; lines=sys.stdin.read().splitlines(); matches=[x for x in lines if re.fullmatch(r"FAROAI_DEPLOY_FAILED_STAGE=[A-Z_]+ EXIT=[0-9]+", x)]; print(matches[-1] if matches else "No safe deployment stage marker was returned")' || true
                 echo "Staging deployment failed with status: $status" >&2
                 exit 1
                 ;;

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 umask 077
+deploy_stage=VALIDATE_HOST
+trap 'code=$?; echo "FAROAI_DEPLOY_FAILED_STAGE=${deploy_stage} EXIT=${code}" >&2' ERR
 
 readonly release_sha="${1:-}"
 readonly ecr_registry="${2:-}"
@@ -48,6 +50,7 @@ export FAROAI_DOCUMENT_IMPORT_WORKER_IMAGE="${ecr_registry}/faroai-document-impo
 
 # Pull the one tenant-independent staging runtime secret only on EC2. The
 # secret must be a JSON object of approved environment-name/string pairs.
+deploy_stage=LOAD_RUNTIME_SECRET
 python3 - "$runtime_secret_arn" "$aws_region" "$runtime_secrets_file" <<'PY'
 import json
 import os
@@ -192,17 +195,23 @@ compose() {
     "$@"
 }
 
+deploy_stage=VALIDATE_COMPOSE
 compose config --quiet
+deploy_stage=ECR_LOGIN
 aws ecr get-login-password --region "$aws_region" \
   | docker login --username AWS --password-stdin "$ecr_registry" >/dev/null
+deploy_stage=PULL_IMAGES
 compose pull
+deploy_stage=START_SERVICES
 compose up -d --no-build --remove-orphans
 
 if [[ "$artifacts_enabled" == true ]]; then
+  deploy_stage=VERIFY_ARTIFACT_DATABASE_ROLE
   compose run --rm --no-deps --entrypoint python artifact-worker -c \
     'import os, psycopg; conn=psycopg.connect(os.environ["DATABASE_URL"], connect_timeout=10); row=conn.execute("SELECT current_user, rolcanlogin, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls, pg_has_role(current_user, %s, %s) FROM pg_roles WHERE rolname=current_user", ("faroai_artifact_access", "member")).fetchone(); conn.close(); expected=("faroai_artifact_worker", True, False, False, False, False, False, True); raise SystemExit("Artifact worker database role is not the expected restricted login") if row != expected else print("Artifact worker database login and restricted role verified")'
 fi
 
+deploy_stage=WAIT_API_READINESS
 for attempt in $(seq 1 18); do
   if compose exec -T api node -e \
     "fetch('http://127.0.0.1:3000/health/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))" \
