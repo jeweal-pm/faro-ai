@@ -542,6 +542,15 @@ jobs:
           combined = (logs.stdout + logs.stderr).lower()
           patterns = [('MODULE_MISSING','modulenotfounderror'),('SETTINGS_INVALID','validationerror'),('DATABASE_ERROR','operationalerror'),('CONNECTION_REFUSED','connection refused'),('QDRANT_ERROR','qdrant'),('REDIS_ERROR','redis'),('MEMORY_ERROR','memoryerror'),('OOM','out of memory'),('PORT_BIND_ERROR','address already in use'),('STARTUP_COMPLETE','application startup complete'),('SERVER_RUNNING','uvicorn running')]
           print('AI_LOG_CLASSES=' + ','.join(name for name, phrase in patterns if phrase in combined))
+          for service in ('faroai-postgres-1', 'faroai-redis-1', 'faroai-qdrant-1'):
+              item = run('docker', 'inspect', service)
+              if item.returncode:
+                  print('SERVICE_' + service + '=NOT_FOUND')
+              else:
+                  details = json.loads(item.stdout)[0]
+                  status = details.get('State') or {}
+                  networks = (details.get('NetworkSettings') or {}).get('Networks') or {}
+                  print('SERVICE_' + service + '=' + str(status.get('Status', 'unknown')) + ':' + str((status.get('Health') or {}).get('Status', 'unknown')) + ':NETWORKS_' + str(len(networks)))
           probe = """import os
           from urllib.parse import urlparse
           from faroai.app import connection, redis, qdrant
@@ -558,10 +567,15 @@ jobs:
                       message = str(error).lower()
                       classes = [('AUTH_FAILED','password authentication failed'),('ROLE_MISSING','role'),('DATABASE_MISSING','does not exist'),('HOST_NOT_FOUND','name or service not known'),('CONNECTION_REFUSED','connection refused'),('TIMEOUT','timeout expired')]
                       print('POSTGRES_FAILURE=' + ','.join(code for code, phrase in classes if phrase in message))
+          import socket
+          try:
+              print('POSTGRES_DNS=' + str(socket.gethostbyname('postgres') != ''))
+          except Exception:
+              print('POSTGRES_DNS=False')
           """
           result = run('docker', 'exec', 'faroai-ai-service-1', 'python', '-c', probe)
           for line in result.stdout.splitlines():
-              if line.startswith(('DEPENDENCY_', 'DATABASE_TARGET=', 'POSTGRES_FAILURE=')):
+              if line.startswith(('DEPENDENCY_', 'DATABASE_TARGET=', 'POSTGRES_FAILURE=', 'POSTGRES_DNS=')):
                   print(line)
           if result.returncode:
               print('DEPENDENCY_PROBE_EXIT=' + str(result.returncode))
