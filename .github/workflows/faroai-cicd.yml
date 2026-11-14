@@ -473,11 +473,39 @@ jobs:
               ('ARTIFACT_DATABASE_ROLE_INVALID', 'artifact worker database role is not the expected restricted login'),
               ('HOST_ENV_INVALID', 'host environment file'),
               ('RELEASE_FETCH_FORBIDDEN', '403 when calling the headobject operation'),
+              ('COMMAND_NOT_FOUND', 'command not found'),
+              ('CONTAINER_EXITED', 'exited with code'),
+              ('COMPOSE_DEPENDENCY_FAILED', 'dependency failed to start'),
+              ('POSTGRES_AUTH_FAILED', 'password authentication failed'),
+              ('DATABASE_CONNECTION_FAILED', 'connection to server failed'),
+              ('NETWORK_TIMEOUT', 'connection timed out'),
+              ('INVALID_REFERENCE', 'invalid reference format'),
+              ('QDRANT_START_FAILED', 'qdrant'),
           ]
           matches = [code for code, phrase in patterns if phrase in output]
           print('SSM status:', invocation.get('Status', 'unknown'))
           print('SSM response code:', invocation.get('ResponseCode', 'unknown'))
           print('Safe failure categories:', ', '.join(matches) if matches else 'UNKNOWN')
+          breadcrumbs = [
+              ('SECRET_LOADED', 'ignored obsolete staging key names'),
+              ('HOST_ENV_CREATED', 'created empty host configuration'),
+              ('ECR_LOGIN_REACHED', 'login succeeded'),
+              ('SERVICE_START_REACHED', 'container faroai-'),
+              ('READINESS_REACHED', 'faroai api readiness check failed'),
+              ('RELEASE_READY', 'faroai staging release is ready'),
+          ]
+          print('Safe deployment breadcrumbs:', ', '.join(code for code, phrase in breadcrumbs if phrase in output) or 'NONE')
+          print('Captured SSM output lengths:', len(invocation.get('StandardErrorContent', '')),
+                len(invocation.get('StandardOutputContent', '')))
+          safe_words = {'error', 'failed', 'invalid', 'permission', 'denied', 'missing', 'unavailable',
+                        'unknown', 'compose', 'docker', 'container', 'image', 'network', 'volume',
+                        'postgres', 'qdrant', 'redis', 'database', 'migration', 'secret', 'aws',
+                        's3', 'ecr', 'pull', 'health', 'unhealthy', 'timeout', 'exited', 'command',
+                        'file', 'directory', 'not', 'found', 'ready', 'python', 'service', 'profile'}
+          for line in invocation.get('StandardErrorContent', '').splitlines()[-8:]:
+              words = [word for word in re.findall(r'[a-z]+', line.lower()) if word in safe_words]
+              if words:
+                  print('Safe stderr terms:', ' '.join(words[:16]))
           for line in output.splitlines():
               if re.fullmatch(r'faroai_deploy_failed_stage=[a-z_]+ exit=[0-9]+', line):
                   print('Stage marker:', line.upper())

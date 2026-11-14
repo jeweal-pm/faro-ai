@@ -16,3 +16,5 @@ The live diagnosis showed the staging Secret contains application settings as we
 After the secret preflight passed, the deployment SSM command failed without a stage name. Added a safe deployment stage marker in the EC2 script and a GitHub Actions failure summary that prints only that marker and exit code, never raw SSM stderr.
 
 The marker was absent from the next SSM failure. Added a diagnostic-only workflow input that queries an existing SSM command and prints only its status, response code, allowlisted failure categories, and a validated stage marker. It skips Compose build and does not start a new deployment.
+
+The first diagnostic classified the existing failure as unknown. Expanded its safe categories and added bounded, allowlisted stderr terms plus non-sensitive stage breadcrumbs; raw SSM output is still never printed.
