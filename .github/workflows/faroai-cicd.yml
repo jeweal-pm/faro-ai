@@ -582,7 +582,7 @@ jobs:
           """
           result = run('docker', 'exec', 'faroai-ai-service-1', 'python', '-c', probe)
           for line in result.stdout.splitlines():
-              if line.startswith(('DEPENDENCY_', 'DATABASE_TARGET=', 'POSTGRES_FAILURE=', 'POSTGRES_DNS=')):
+              if line.startswith(('DEPENDENCY_', 'DATABASE_TARGET=', 'DATABASE_URL_PARSE=', 'LIBPQ_', 'POSTGRES_FAILURE=', 'POSTGRES_DNS=')):
                   print(line)
           if result.returncode:
               print('DEPENDENCY_PROBE_EXIT=' + str(result.returncode))
