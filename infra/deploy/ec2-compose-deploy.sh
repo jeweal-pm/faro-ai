@@ -76,7 +76,17 @@ allowed = {
     "FAROAI_ARTIFACT_DATABASE_URL",
     "FAROAI_DOCUMENT_IMPORT_DATABASE_URL",
     "FAROAI_DOCUMENT_IMPORT_ENCRYPTION_KEY",
+    "BACKOFFICE_COOKIE_SECURE", "BACKOFFICE_ENABLED", "BACKOFFICE_LOCAL_ADMIN_EMAIL",
+    "BACKOFFICE_LOCAL_AUTH_ENABLED", "BACKOFFICE_OIDC_ENABLED", "BACKOFFICE_URL",
+    "EMBEDDING_DIMENSION", "EMBEDDING_MODEL", "FAROAI_ALLOWED_LOCAL_MODEL_HOSTS",
+    "FAROAI_ALLOW_EXTERNAL_PROVIDERS", "FAROAI_ARTIFACT_ENABLED",
+    "FAROAI_DEPLOYMENT_MODE", "FAROAI_DOCUMENT_IMPORT_ENABLED",
+    "FAROAI_LOCAL_LLM_ENABLED", "FAROAI_TENANT_MODE", "MCP_ALLOWED_HOSTS",
+    "MCP_ALLOW_DOCKER_HOST_HTTP", "MCP_CONNECTIONS_JSON", "MODEL_BASE_URL",
+    "MODEL_NAME", "MODEL_PROVIDER", "OPENROUTER_DATA_COLLECTION",
+    "PRODUCT_BASE_URL", "QDRANT_COLLECTION",
 }
+ignored_legacy = {"DECISION_API_KEY", "DECISION_BASE_URL", "DECISION_MODEL", "FAROAI_DEMO_TENANT_ID"}
 
 def fail(code: str) -> None:
     print(f"Staging secret preflight failed [{code}]; secret values were not logged", file=sys.stderr)
@@ -102,7 +112,7 @@ try:
     payload = json.loads(result.stdout)
     if not isinstance(payload, dict) or not payload:
         fail("SECRET_NOT_NONEMPTY_JSON_OBJECT")
-    unknown = set(payload) - allowed
+    unknown = set(payload) - allowed - ignored_legacy
     if unknown:
         safe_names = [key if isinstance(key, str) and re.fullmatch(r'[A-Z][A-Z0-9_]{0,100}', key) else '<invalid-name>' for key in sorted(unknown)]
         print('Unsupported secret key names: ' + ', '.join(safe_names), file=sys.stderr)
@@ -116,11 +126,13 @@ try:
     if missing:
         print("Missing required secret key names: " + ", ".join(missing), file=sys.stderr)
         fail("REQUIRED_SECRET_KEYS_MISSING")
+    if set(payload) & ignored_legacy:
+        print("Ignored obsolete staging key names: " + ", ".join(sorted(set(payload) & ignored_legacy)), file=sys.stderr)
 
     def compose_literal(value: str) -> str:
         return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
 
-    content = "".join(f"{key}={compose_literal(payload[key])}\n" for key in sorted(payload))
+    content = "".join(f"{key}={compose_literal(payload[key])}\n" for key in sorted(set(payload) & allowed))
     target = Path(target_name)
     fd, temporary_name = tempfile.mkstemp(prefix=".runtime-secrets.", dir=target.parent)
     try:
@@ -144,13 +156,25 @@ PY
 chown root:root "$runtime_secrets_file"
 chmod 600 "$runtime_secrets_file"
 
+profile_enabled() {
+  local name="$1" line=""
+  line="$(grep -E "^${name}=" "$runtime_secrets_file" | tail -n 1 || true)"
+  if [[ -z "$line" ]]; then
+    line="$(grep -E "^${name}=" "$env_file" | tail -n 1 || true)"
+  fi
+  case "${line#*=}" in
+    true|1|\'true\'|\'1\'|\"true\"|\"1\") return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 profiles=()
 artifacts_enabled=false
-if grep -Eq '^FAROAI_ARTIFACT_ENABLED=(true|1)$' "$env_file"; then
+if profile_enabled FAROAI_ARTIFACT_ENABLED; then
   profiles+=(--profile artifacts)
   artifacts_enabled=true
 fi
-if grep -Eq '^FAROAI_DOCUMENT_IMPORT_ENABLED=(true|1)$' "$env_file"; then
+if profile_enabled FAROAI_DOCUMENT_IMPORT_ENABLED; then
   profiles+=(--profile document-import)
 fi
 

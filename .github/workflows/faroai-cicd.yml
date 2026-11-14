@@ -164,7 +164,18 @@ jobs:
                                 'MODEL_API_KEY', 'BACKOFFICE_OIDC_CLIENT_SECRET',
                                 'BACKOFFICE_LOCAL_ADMIN_PASSWORD_HASH_B64', 'FAROAI_CONFIG_ENCRYPTION_KEY',
                                 'FAROAI_GIS_API_KEY', 'FAROAI_ARTIFACT_DATABASE_URL',
-                                'FAROAI_DOCUMENT_IMPORT_DATABASE_URL', 'FAROAI_DOCUMENT_IMPORT_ENCRYPTION_KEY'}
+                                'FAROAI_DOCUMENT_IMPORT_DATABASE_URL', 'FAROAI_DOCUMENT_IMPORT_ENCRYPTION_KEY',
+                                'BACKOFFICE_COOKIE_SECURE', 'BACKOFFICE_ENABLED', 'BACKOFFICE_LOCAL_ADMIN_EMAIL',
+                                'BACKOFFICE_LOCAL_AUTH_ENABLED', 'BACKOFFICE_OIDC_ENABLED', 'BACKOFFICE_URL',
+                                'EMBEDDING_DIMENSION', 'EMBEDDING_MODEL', 'FAROAI_ALLOWED_LOCAL_MODEL_HOSTS',
+                                'FAROAI_ALLOW_EXTERNAL_PROVIDERS', 'FAROAI_ARTIFACT_ENABLED',
+                                'FAROAI_DEPLOYMENT_MODE', 'FAROAI_DOCUMENT_IMPORT_ENABLED',
+                                'FAROAI_LOCAL_LLM_ENABLED', 'FAROAI_TENANT_MODE', 'MCP_ALLOWED_HOSTS',
+                                'MCP_ALLOW_DOCKER_HOST_HTTP', 'MCP_CONNECTIONS_JSON', 'MODEL_BASE_URL',
+                                'MODEL_NAME', 'MODEL_PROVIDER', 'OPENROUTER_DATA_COLLECTION',
+                                'PRODUCT_BASE_URL', 'QDRANT_COLLECTION'}
+          ignored_legacy = {'DECISION_API_KEY', 'DECISION_BASE_URL', 'DECISION_MODEL',
+                            'FAROAI_DEMO_TENANT_ID'}
           try:
               result = subprocess.run(['aws', 'secretsmanager', 'get-secret-value',
                                        '--secret-id', sys.argv[1], '--region', sys.argv[2],
@@ -184,13 +195,15 @@ jobs:
                   raise ValueError('SECRET_INVALID_OBJECT')
               if any(not isinstance(k, str) or not isinstance(v, str) for k, v in payload.items()):
                   raise ValueError('SECRET_INVALID_TYPES')
-              unknown = sorted(set(payload) - allowed)
+              unknown = sorted(set(payload) - allowed - ignored_legacy)
               if unknown:
                   safe_names = [name if re.fullmatch(r'[A-Z][A-Z0-9_]{0,100}', name) else '<invalid-name>' for name in unknown]
                   print('Unsupported key names: ' + ', '.join(safe_names), file=sys.stderr)
                   raise ValueError('SECRET_UNSUPPORTED_KEYS')
               if any(not payload.get(k) for k in required):
                   raise ValueError('SECRET_MISSING_REQUIRED_KEYS')
+              if set(payload) & ignored_legacy:
+                  print('IGNORED_OBSOLETE_KEYS: ' + ', '.join(sorted(set(payload) & ignored_legacy)))
               if any(any(c in v for c in '\\x00\\r\\n') for v in payload.values()):
                   raise ValueError('SECRET_INVALID_LINE_BREAK')
               print('SECRET_SCHEMA_OK')
