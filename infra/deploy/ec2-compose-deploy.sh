@@ -77,22 +77,42 @@ allowed = {
     "FAROAI_DOCUMENT_IMPORT_ENCRYPTION_KEY",
 }
 
+def fail(code: str) -> None:
+    print(f"Staging secret preflight failed [{code}]; secret values were not logged", file=sys.stderr)
+    raise SystemExit(1)
+
 try:
     result = subprocess.run(
         ["aws", "secretsmanager", "get-secret-value", "--secret-id", secret_arn,
          "--region", region, "--query", "SecretString", "--output", "text"],
-        check=True, capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, timeout=30,
     )
+    if result.returncode != 0:
+        stderr = result.stderr
+        if "AccessDenied" in stderr:
+            fail("EC2_ROLE_SECRET_ACCESS_DENIED")
+        if "ResourceNotFound" in stderr:
+            fail("SECRET_NOT_FOUND_IN_REGION")
+        if "DecryptionFailure" in stderr:
+            fail("SECRET_DECRYPTION_FAILED")
+        fail("SECRET_FETCH_FAILED")
+    if result.stdout.strip() in ("", "None"):
+        fail("SECRET_STRING_MISSING")
     payload = json.loads(result.stdout)
     if not isinstance(payload, dict) or not payload:
-        raise ValueError("SecretString must be a non-empty JSON object")
+        fail("SECRET_NOT_NONEMPTY_JSON_OBJECT")
     unknown = set(payload) - allowed
     if unknown:
-        raise ValueError("Secret contains unsupported environment keys")
+        fail("UNSUPPORTED_SECRET_KEYS")
     if any(not isinstance(key, str) or not isinstance(value, str) for key, value in payload.items()):
-        raise ValueError("Secret keys and values must be strings")
+        fail("SECRET_VALUES_MUST_BE_STRINGS")
     if any(any(char in value for char in "\x00\r\n") for value in payload.values()):
-        raise ValueError("Secret values cannot contain control line breaks")
+        fail("SECRET_VALUE_HAS_LINE_BREAK")
+    required = {"POSTGRES_PASSWORD", "FAROAI_DB_PASSWORD", "FAROAI_INTERNAL_SECRET", "API_KEY_PEPPER", "QDRANT_API_KEY", "QDRANT_READ_ONLY_API_KEY"}
+    missing = sorted(key for key in required if not payload.get(key))
+    if missing:
+        print("Missing required secret key names: " + ", ".join(missing), file=sys.stderr)
+        fail("REQUIRED_SECRET_KEYS_MISSING")
 
     def compose_literal(value: str) -> str:
         return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
@@ -111,9 +131,12 @@ try:
     finally:
         if os.path.exists(temporary_name):
             os.unlink(temporary_name)
-except Exception:
-    print("Could not retrieve or validate the staging runtime secret; secret values were not logged", file=sys.stderr)
-    raise SystemExit(1)
+except subprocess.TimeoutExpired:
+    fail("SECRET_FETCH_TIMEOUT")
+except json.JSONDecodeError:
+    fail("SECRET_STRING_INVALID_JSON")
+except OSError:
+    fail("SECRET_FILE_OR_COMMAND_ERROR")
 PY
 chown root:root "$runtime_secrets_file"
 chmod 600 "$runtime_secrets_file"

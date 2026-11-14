@@ -41,6 +41,7 @@ jobs:
           -f docker-compose.yml -f docker-compose.hosted.yml config --quiet
 
       - name: Build all FaroAI images
+        if: github.event_name != 'workflow_dispatch'
         run: >-
           docker compose --env-file .env.example
           --profile artifacts --profile document-import
@@ -97,6 +98,102 @@ jobs:
           role-to-assume: ${{ env.AWS_GITHUB_ACTIONS_ROLE_ARN }}
           role-session-name: faroai-staging-${{ github.run_id }}
           allowed-account-ids: ${{ env.AWS_ACCOUNT_ID }}
+
+      - name: Preflight EC2 before publishing images
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import shlex
+          import textwrap
+          from pathlib import Path
+
+          region = os.environ['AWS_REGION']
+          arn = os.environ['STAGING_RUNTIME_SECRET_ARN']
+          validate = '''
+          import json, subprocess, sys
+          required = {'POSTGRES_PASSWORD', 'FAROAI_DB_PASSWORD', 'FAROAI_INTERNAL_SECRET',
+                      'API_KEY_PEPPER', 'QDRANT_API_KEY', 'QDRANT_READ_ONLY_API_KEY'}
+          allowed = required | {'DATABASE_URL', 'REDIS_URL', 'FAROAI_GIS_MCP_CONTEXT_SECRET',
+                                'MODEL_API_KEY', 'BACKOFFICE_OIDC_CLIENT_SECRET',
+                                'BACKOFFICE_LOCAL_ADMIN_PASSWORD_HASH_B64', 'FAROAI_CONFIG_ENCRYPTION_KEY',
+                                'FAROAI_GIS_API_KEY', 'FAROAI_ARTIFACT_DATABASE_URL',
+                                'FAROAI_DOCUMENT_IMPORT_DATABASE_URL', 'FAROAI_DOCUMENT_IMPORT_ENCRYPTION_KEY'}
+          try:
+              result = subprocess.run(['aws', 'secretsmanager', 'get-secret-value',
+                                       '--secret-id', sys.argv[1], '--region', sys.argv[2],
+                                       '--query', 'SecretString', '--output', 'text'],
+                                      capture_output=True, text=True, timeout=30)
+              if result.returncode:
+                  error = result.stderr
+                  code = ('SECRET_ACCESS_DENIED' if 'AccessDenied' in error else
+                          'SECRET_NOT_FOUND' if 'ResourceNotFound' in error else
+                          'SECRET_DECRYPTION_FAILED' if 'DecryptionFailure' in error else
+                          'SECRET_FETCH_FAILED')
+                  raise ValueError(code)
+              if result.stdout.strip() in ('', 'None'):
+                  raise ValueError('SECRET_STRING_MISSING')
+              payload = json.loads(result.stdout)
+              if not isinstance(payload, dict) or not payload:
+                  raise ValueError('SECRET_INVALID_OBJECT')
+              if any(not isinstance(k, str) or not isinstance(v, str) for k, v in payload.items()):
+                  raise ValueError('SECRET_INVALID_TYPES')
+              if set(payload) - allowed:
+                  raise ValueError('SECRET_UNSUPPORTED_KEYS')
+              if any(not payload.get(k) for k in required):
+                  raise ValueError('SECRET_MISSING_REQUIRED_KEYS')
+              if any(any(c in v for c in '\\x00\\r\\n') for v in payload.values()):
+                  raise ValueError('SECRET_INVALID_LINE_BREAK')
+              print('SECRET_SCHEMA_OK')
+          except (ValueError, json.JSONDecodeError) as exc:
+              print(str(exc) if isinstance(exc, ValueError) else 'SECRET_INVALID_JSON', file=sys.stderr)
+              sys.exit(1)
+          except subprocess.TimeoutExpired:
+              print('SECRET_FETCH_TIMEOUT', file=sys.stderr)
+              sys.exit(1)
+          '''
+          command = '\n'.join([
+              'set -eu',
+              'command -v aws >/dev/null || { echo AWS_CLI_MISSING; exit 1; }',
+              'command -v python3 >/dev/null || { echo PYTHON_MISSING; exit 1; }',
+              'command -v docker >/dev/null || { echo DOCKER_MISSING; exit 1; }',
+              'docker compose version >/dev/null || { echo DOCKER_COMPOSE_MISSING; exit 1; }',
+              'docker info >/dev/null 2>&1 || { echo DOCKER_DAEMON_UNAVAILABLE; exit 1; }',
+              f"aws ecr get-login-password --region {shlex.quote(region)} >/dev/null 2>/dev/null || {{ echo EC2_ECR_PULL_ACCESS_FAILED; exit 1; }}",
+              f"python3 -c {shlex.quote(textwrap.dedent(validate))} {shlex.quote(arn)} {shlex.quote(region)} || exit 1",
+              'echo EC2_PREFLIGHT_OK',
+          ])
+          Path(os.environ['RUNNER_TEMP'], 'ssm-preflight.json').write_text(
+              json.dumps({'commands': [command]}), encoding='utf-8'
+          )
+          PY
+          command_id="$(aws ssm send-command \
+            --instance-ids "$STAGING_SSM_INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --parameters "file://${RUNNER_TEMP}/ssm-preflight.json" \
+            --query 'Command.CommandId' --output text)"
+          for attempt in $(seq 1 30); do
+            status="$(aws ssm get-command-invocation \
+              --command-id "$command_id" --instance-id "$STAGING_SSM_INSTANCE_ID" \
+              --query Status --output text 2>/dev/null || true)"
+            case "$status" in
+              Success) echo 'EC2 prerequisites and secret access passed'; exit 0 ;;
+              Failed|Cancelled|TimedOut)
+                aws ssm get-command-invocation \
+                  --command-id "$command_id" --instance-id "$STAGING_SSM_INSTANCE_ID" \
+                  --query 'StandardOutputContent' --output text || true
+                aws ssm get-command-invocation \
+                  --command-id "$command_id" --instance-id "$STAGING_SSM_INSTANCE_ID" \
+                  --query 'StandardErrorContent' --output text || true
+                echo "EC2 preflight failed: $status" >&2
+                exit 1 ;;
+              *) sleep 5 ;;
+            esac
+          done
+          echo 'EC2 preflight timed out' >&2
+          exit 1
 
       - name: Set up Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.0.0
