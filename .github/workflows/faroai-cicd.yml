@@ -512,3 +512,54 @@ jobs:
               if re.fullmatch(r'faroai_deploy_failed_stage=[a-z_]+ exit=[0-9]+', line):
                   print('Stage marker:', line.upper())
           PY
+      - name: Inspect staging AI service health safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          script = '''python3 - <<'INNER'
+          import json, subprocess
+          def run(*args):
+              return subprocess.run(args, capture_output=True, text=True, timeout=20)
+          result = run('docker', 'inspect', 'faroai-ai-service-1')
+          if result.returncode:
+              print('AI_CONTAINER=NOT_FOUND')
+          else:
+              data = json.loads(result.stdout)[0]
+              state = data.get('State') or {}
+              health = state.get('Health') or {}
+              print('AI_STATE=' + str(state.get('Status', 'unknown')))
+              print('AI_OOM_KILLED=' + str(state.get('OOMKilled', False)))
+              print('AI_EXIT_CODE=' + str(state.get('ExitCode', 'unknown')))
+              print('AI_RESTART_COUNT=' + str(data.get('RestartCount', 'unknown')))
+              print('AI_HEALTH=' + str(health.get('Status', 'unknown')))
+              for entry in (health.get('Log') or [])[-3:]:
+                  output = entry.get('Output', '').lower()
+                  categories = [name for name, phrase in [('CONNECTION_REFUSED','connection refused'),('TIMEOUT','timed out'),('HTTP_503','http error 503'),('COMMAND_MISSING','not found')] if phrase in output]
+                  print('HEALTHCHECK=' + str(entry.get('ExitCode', 'unknown')) + ':' + ','.join(categories or ['OTHER']))
+          logs = run('docker', 'logs', '--tail', '120', 'faroai-ai-service-1')
+          combined = (logs.stdout + logs.stderr).lower()
+          patterns = [('MODULE_MISSING','modulenotfounderror'),('SETTINGS_INVALID','validationerror'),('DATABASE_ERROR','operationalerror'),('CONNECTION_REFUSED','connection refused'),('QDRANT_ERROR','qdrant'),('REDIS_ERROR','redis'),('MEMORY_ERROR','memoryerror'),('OOM','out of memory'),('PORT_BIND_ERROR','address already in use'),('STARTUP_COMPLETE','application startup complete'),('SERVER_RUNNING','uvicorn running')]
+          print('AI_LOG_CLASSES=' + ','.join(name for name, phrase in patterns if phrase in combined))
+          for command, label in [(('df','-P','/'),'HOST_DISK_KB'), (('free','-m'),'HOST_MEMORY_MB')]:
+              value = run(*command)
+              if value.returncode == 0:
+                  lines = value.stdout.splitlines()
+                  if label == 'HOST_DISK_KB' and len(lines) > 1:
+                      print(label + '=' + ','.join(lines[-1].split()[1:4]))
+                  elif label == 'HOST_MEMORY_MB':
+                      for line in lines:
+                          if line.startswith('Mem:'):
+                              print(label + '=' + ','.join(line.split()[1:4]))
+          INNER'''
+          with open('/tmp/faroai-health-diagnostic.json', 'w') as handle:
+              json.dump({'commands': [script]}, handle)
+          PY
+          command_id="$(aws ssm send-command --document-name AWS-RunShellScript --instance-ids "$STAGING_SSM_INSTANCE_ID" --parameters file:///tmp/faroai-health-diagnostic.json --query 'Command.CommandId' --output text)"
+          for attempt in {1..20}; do
+            status="$(aws ssm get-command-invocation --command-id "$command_id" --instance-id "$STAGING_SSM_INSTANCE_ID" --query Status --output text 2>/dev/null || true)"
+            if [[ "$status" == Success || "$status" == Failed || "$status" == TimedOut || "$status" == Cancelled ]]; then break; fi
+            sleep 3
+          done
+          aws ssm get-command-invocation --command-id "$command_id" --instance-id "$STAGING_SSM_INSTANCE_ID" --query StandardOutputContent --output text

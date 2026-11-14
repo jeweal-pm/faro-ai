@@ -22,3 +22,5 @@ The first diagnostic classified the existing failure as unknown. Expanded its sa
 The SSM output reached its 24 KB capture limit during verbose image pull progress, hiding the final error and stage marker. Compose pull and startup now use quiet progress options, and API readiness failure prints a safe stage marker explicitly.
 
 The next SSM run reached service startup and failed due to an unhealthy dependency. The diagnostic job now extracts only FaroAI container names and health states from that output so the failing service can be identified without raw logs.
+
+The quiet startup diagnosis identified `faroai-ai-service-1` as unhealthy. Added a diagnostic-only SSM health inspection that reports container state, healthcheck classification, startup log categories, and host capacity without exposing raw logs or environment variables.
