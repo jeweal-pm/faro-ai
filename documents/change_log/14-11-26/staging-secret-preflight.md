@@ -14,3 +14,5 @@ The next live preflight passed Docker and reached the secret schema check, which
 The live diagnosis showed the staging Secret contains application settings as well as credentials. Expanded the accepted key list to the known Compose settings, excluded obsolete `DECISION_*` and demo tenant keys from the generated runtime file, and made optional Compose profiles honor flags stored in the Secret. The Secret values remain confined to EC2 and are not logged.
 
 After the secret preflight passed, the deployment SSM command failed without a stage name. Added a safe deployment stage marker in the EC2 script and a GitHub Actions failure summary that prints only that marker and exit code, never raw SSM stderr.
+
+The marker was absent from the next SSM failure. Added a diagnostic-only workflow input that queries an existing SSM command and prints only its status, response code, allowlisted failure categories, and a validated stage marker. It skips Compose build and does not start a new deployment.

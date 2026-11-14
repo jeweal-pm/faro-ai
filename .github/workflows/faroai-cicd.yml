@@ -17,6 +17,11 @@ on:
         required: true
         type: boolean
         default: false
+      diagnose_ssm_command_id:
+        description: Inspect a failed staging SSM command without building or deploying
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -28,6 +33,7 @@ concurrency:
 jobs:
   validate-and-build:
     name: Compose validation and image build
+    if: inputs.diagnose_ssm_command_id == ''
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
@@ -58,6 +64,7 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' &&
       inputs.deploy_staging == true &&
+      inputs.diagnose_ssm_command_id == '' &&
       github.ref == 'refs/heads/dev'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -409,3 +416,69 @@ jobs:
           done
           echo "Timed out waiting for the SSM deployment result" >&2
           exit 1
+
+  diagnose-staging:
+    name: Diagnose a staging SSM command safely
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.diagnose_ssm_command_id != '' &&
+      github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: staging
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      AWS_GITHUB_ACTIONS_ROLE_ARN: ${{ vars.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+      STAGING_SSM_INSTANCE_ID: ${{ vars.STAGING_SSM_INSTANCE_ID }}
+      DIAGNOSE_SSM_COMMAND_ID: ${{ inputs.diagnose_ssm_command_id }}
+    steps:
+      - name: Validate command identifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$DIAGNOSE_SSM_COMMAND_ID" =~ ^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$ ]]
+          [[ "$STAGING_SSM_INSTANCE_ID" =~ ^i-[0-9a-f]{8,17}$ ]]
+      - name: Configure short-lived AWS credentials using GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          role-session-name: faroai-diagnose-${{ github.run_id }}
+          allowed-account-ids: ${{ env.AWS_ACCOUNT_ID }}
+      - name: Classify SSM failure without exposing raw output
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, re, subprocess
+          result = subprocess.run(
+              ['aws', 'ssm', 'get-command-invocation', '--command-id', os.environ['DIAGNOSE_SSM_COMMAND_ID'],
+               '--instance-id', os.environ['STAGING_SSM_INSTANCE_ID'], '--output', 'json'],
+              capture_output=True, text=True, check=True, timeout=30,
+          )
+          invocation = json.loads(result.stdout)
+          output = '\n'.join([invocation.get('StandardErrorContent', ''), invocation.get('StandardOutputContent', '')]).lower()
+          patterns = [
+              ('API_READINESS_FAILED', 'faroai api readiness check failed'),
+              ('COMPOSE_CONFIG_ERROR', 'error while interpolating'),
+              ('SERVICE_UNHEALTHY', 'unhealthy'),
+              ('DISK_FULL', 'no space left on device'),
+              ('IMAGE_MISSING', 'manifest unknown'),
+              ('DOCKER_PERMISSION_ERROR', 'permission denied while trying to connect to the docker'),
+              ('ARTIFACT_DATABASE_ROLE_INVALID', 'artifact worker database role is not the expected restricted login'),
+              ('HOST_ENV_INVALID', 'host environment file'),
+              ('RELEASE_FETCH_FORBIDDEN', '403 when calling the headobject operation'),
+          ]
+          matches = [code for code, phrase in patterns if phrase in output]
+          print('SSM status:', invocation.get('Status', 'unknown'))
+          print('SSM response code:', invocation.get('ResponseCode', 'unknown'))
+          print('Safe failure categories:', ', '.join(matches) if matches else 'UNKNOWN')
+          for line in output.splitlines():
+              if re.fullmatch(r'faroai_deploy_failed_stage=[a-z_]+ exit=[0-9]+', line):
+                  print('Stage marker:', line.upper())
+          PY
