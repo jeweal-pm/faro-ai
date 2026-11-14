@@ -542,8 +542,11 @@ jobs:
           combined = (logs.stdout + logs.stderr).lower()
           patterns = [('MODULE_MISSING','modulenotfounderror'),('SETTINGS_INVALID','validationerror'),('DATABASE_ERROR','operationalerror'),('CONNECTION_REFUSED','connection refused'),('QDRANT_ERROR','qdrant'),('REDIS_ERROR','redis'),('MEMORY_ERROR','memoryerror'),('OOM','out of memory'),('PORT_BIND_ERROR','address already in use'),('STARTUP_COMPLETE','application startup complete'),('SERVER_RUNNING','uvicorn running')]
           print('AI_LOG_CLASSES=' + ','.join(name for name, phrase in patterns if phrase in combined))
-          probe = """from contextlib import closing
+          probe = """import os
+          from urllib.parse import urlparse
           from faroai.app import connection, redis, qdrant
+          parsed = urlparse(os.environ.get('DATABASE_URL', ''))
+          print('DATABASE_TARGET=' + ('COMPOSE_POSTGRES' if parsed.hostname == 'postgres' and parsed.path == '/faroai' and parsed.username == 'faroai' else 'OTHER'))
           checks = {'POSTGRES': lambda: connection().close(), 'REDIS': lambda: redis.ping(), 'QDRANT': lambda: qdrant.get_collections()}
           for name, check in checks.items():
               try:
@@ -551,10 +554,14 @@ jobs:
                   print('DEPENDENCY_' + name + '=OK')
               except Exception as error:
                   print('DEPENDENCY_' + name + '=FAIL:' + type(error).__name__)
+                  if name == 'POSTGRES':
+                      message = str(error).lower()
+                      classes = [('AUTH_FAILED','password authentication failed'),('ROLE_MISSING','role'),('DATABASE_MISSING','does not exist'),('HOST_NOT_FOUND','name or service not known'),('CONNECTION_REFUSED','connection refused'),('TIMEOUT','timeout expired')]
+                      print('POSTGRES_FAILURE=' + ','.join(code for code, phrase in classes if phrase in message))
           """
           result = run('docker', 'exec', 'faroai-ai-service-1', 'python', '-c', probe)
           for line in result.stdout.splitlines():
-              if line.startswith('DEPENDENCY_'):
+              if line.startswith(('DEPENDENCY_', 'DATABASE_TARGET=', 'POSTGRES_FAILURE=')):
                   print(line)
           if result.returncode:
               print('DEPENDENCY_PROBE_EXIT=' + str(result.returncode))
