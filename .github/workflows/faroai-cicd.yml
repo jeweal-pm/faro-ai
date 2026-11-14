@@ -558,6 +558,10 @@ jobs:
               print('API_RESTART_COUNT=' + str(api.get('RestartCount', 'unknown')))
               print('API_HEALTH=' + str((api_state.get('Health') or {}).get('Status', 'unknown')))
               api_env = {part.split('=', 1)[0]: part.split('=', 1)[1] for part in (api.get('Config') or {}).get('Env', []) if '=' in part}
+              for name in ('FAROAI_TENANT_MODE', 'FAROAI_DEPLOYMENT_MODE', 'FAROAI_DOCUMENT_IMPORT_ENABLED'):
+                  value = api_env.get(name, '')
+                  if value in ('multi', 'single', 'hosted', 'self_hosted', 'true', 'false'):
+                      print('API_' + name + '=' + value)
               for name in ('FAROAI_INTERNAL_SECRET', 'API_KEY_PEPPER'):
                   print('API_' + name + '_MIN_LENGTH_OK=' + str(len(api_env.get(name, '')) >= 32))
                   print('API_' + name + '_PRESENT=' + str(bool(api_env.get(name))))
@@ -572,7 +576,7 @@ jobs:
                   print('API_HEALTHCHECK=' + str(entry.get('ExitCode', 'unknown')))
           api_logs = run('docker', 'logs', '--tail', '120', 'faroai-api-1')
           api_text = (api_logs.stdout + api_logs.stderr).lower()
-          api_patterns = [('DATABASE_AUTH_FAILED','password authentication failed'),('DATABASE_HOST_FAILED','name or service not known'),('DATABASE_CONNECTION_REFUSED','connection refused'),('REDIS_ERROR','redis'),('CONFIG_ERROR','zoderror'),('SERVER_RUNNING','listening'),('DATABASE_ERROR','database'),('NOT_READY','not_ready')]
+          api_patterns = [('DATABASE_AUTH_FAILED','password authentication failed'),('DATABASE_HOST_FAILED','name or service not known'),('DATABASE_CONNECTION_REFUSED','connection refused'),('REDIS_ERROR','redis'),('CONFIG_ERROR','zoderror'),('SERVER_RUNNING','listening'),('DATABASE_ERROR','database'),('NOT_READY','not_ready'),('SINGLE_TENANT_ACTIVE_MISMATCH','single-tenant mode requires exactly'),('SINGLE_TENANT_ID_INVALID','must be a valid uuid in single-tenant mode'),('FILE_PERMISSION_ERROR','eacces'),('MODULE_MISSING','module_not_found'),('UNHANDLED_EXCEPTION','uncaughtexception'),('ENCRYPTION_KEY_ERROR','encryption key')]
           print('API_LOG_CLASSES=' + ','.join(name for name, phrase in api_patterns if phrase in api_text))
           config_names = ('PORT','DATABASE_URL','REDIS_URL','PYTHON_SERVICE_URL','FAROAI_INTERNAL_SECRET','API_KEY_PEPPER','MAX_BODY_BYTES','FAROAI_ARTIFACT_ENABLED','FAROAI_DOCUMENT_IMPORT_ENABLED','FAROAI_DOCUMENT_IMPORT_ENCRYPTION_KEY','FAROAI_TENANT_MODE','FAROAI_SINGLE_TENANT_ID','FAROAI_DEPLOYMENT_MODE','FAROAI_LOCAL_LLM_ENABLED','FAROAI_SHARED_TRAINING_ENABLED')
           print('API_CONFIG_FIELDS_IN_ERRORS=' + ','.join(name for name in config_names if name.lower() in api_text))
