@@ -1,4 +1,44 @@
 services:
+  edge:
+    image: caddy:2.11.9-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - app
+      - caddy_egress
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    cpus: "0.20"
+    mem_limit: 192m
+    pids_limit: 64
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+  api:
+    environment:
+      BACKOFFICE_URL: https://faroai.gis247.net
+
+  backoffice:
+    environment:
+      BACKOFFICE_COOKIE_SECURE: "true"
+
   ai-service:
     networks:
       - app
@@ -8,3 +48,9 @@ services:
 networks:
   provider_egress:
     driver: bridge
+  caddy_egress:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:

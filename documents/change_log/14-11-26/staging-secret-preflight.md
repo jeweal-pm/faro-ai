@@ -40,3 +40,7 @@ The first classified provisioning run still failed, but GitHub Actions filtered 
 Safe diagnosis identified the actual EC2 failure: the release archive omitted `infra/deploy/provision-staging-worker-roles.py`, so Python could not open the script. Added the tracked provisioner to the explicit `git archive` path list and verified the path is present in an archive generated locally. No staging Secret changes are required for this failure.
 
 The provisioner now runs from the release bundle and succeeds on EC2. The artifact-role verification still exits nonzero. Added credential-safe verification codes for authentication, connection, or role membership/attribute mismatches so the next deployment exposes only the failing category.
+
+Created a detailed Thai HTML incident report covering the staging deployment failures, owner-side AWS Secret/config changes, FaroAI code/workflow fixes, diagnostic path, commits, and successful final run 43582716647.
+
+Added a hosted-only Caddy ingress for `faroai.gis247.net`: public TCP 80/443 and UDP 443, automatic HTTPS certificate management, reverse proxy to the internal Backoffice service, persistent certificate/config volumes, bounded resources, and reduced Linux capabilities. Hosted API now uses the HTTPS public origin and Backoffice secure cookies are enabled. The Caddyfile is included in the release archive. Local Compose files are unchanged; both hosted and local Compose configurations passed quiet config validation.

@@ -1,0 +1,4 @@
+faroai.gis247.net {
+	encode zstd gzip
+	reverse_proxy backoffice:3000
+}

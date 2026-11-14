@@ -377,7 +377,7 @@ jobs:
           set -euo pipefail
           archive="${RUNNER_TEMP}/faroai-${IMAGE_TAG}.tar.gz"
           git archive --format=tar.gz --output="$archive" "$IMAGE_TAG" \
-            docker-compose.yml docker-compose.hosted.yml \
+            docker-compose.yml docker-compose.hosted.yml infra/caddy/Caddyfile \
             infra/postgres/init infra/postgres/migrations \
             infra/postgres/run-migrations.sh \
             infra/deploy/ec2-compose-deploy.sh \
