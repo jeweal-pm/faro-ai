@@ -379,7 +379,9 @@ jobs:
           git archive --format=tar.gz --output="$archive" "$IMAGE_TAG" \
             docker-compose.yml docker-compose.hosted.yml \
             infra/postgres/init infra/postgres/migrations \
-            infra/postgres/run-migrations.sh infra/deploy/ec2-compose-deploy.sh
+            infra/postgres/run-migrations.sh \
+            infra/deploy/ec2-compose-deploy.sh \
+            infra/deploy/provision-staging-worker-roles.py
           archive_sha256="$(sha256sum "$archive" | cut -d ' ' -f 1)"
           aws s3 cp "$archive" \
             "s3://${RELEASE_BUCKET}/faroai/releases/${IMAGE_TAG}.tar.gz" \
