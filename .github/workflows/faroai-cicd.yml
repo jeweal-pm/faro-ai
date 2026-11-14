@@ -495,6 +495,8 @@ jobs:
               ('RELEASE_READY', 'faroai staging release is ready'),
           ]
           print('Safe deployment breadcrumbs:', ', '.join(code for code, phrase in breadcrumbs if phrase in output) or 'NONE')
+          for name, state in re.findall(r'container\s+(faroai-[a-z0-9_-]+)\s+(?:is\s+)?(unhealthy|exited|failed)', output):
+              print('Container health:', name, state)
           print('Captured SSM output lengths:', len(invocation.get('StandardErrorContent', '')),
                 len(invocation.get('StandardOutputContent', '')))
           safe_words = {'error', 'failed', 'invalid', 'permission', 'denied', 'missing', 'unavailable',

@@ -20,3 +20,5 @@ The marker was absent from the next SSM failure. Added a diagnostic-only workflo
 The first diagnostic classified the existing failure as unknown. Expanded its safe categories and added bounded, allowlisted stderr terms plus non-sensitive stage breadcrumbs; raw SSM output is still never printed.
 
 The SSM output reached its 24 KB capture limit during verbose image pull progress, hiding the final error and stage marker. Compose pull and startup now use quiet progress options, and API readiness failure prints a safe stage marker explicitly.
+
+The next SSM run reached service startup and failed due to an unhealthy dependency. The diagnostic job now extracts only FaroAI container names and health states from that output so the failing service can be identified without raw logs.
