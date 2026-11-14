@@ -553,9 +553,16 @@ jobs:
                   print('SERVICE_' + service + '=' + str(status.get('Status', 'unknown')) + ':' + str((status.get('Health') or {}).get('Status', 'unknown')) + ':NETWORKS_' + str(len(networks)))
           probe = """import os
           from urllib.parse import urlparse
+          from psycopg.conninfo import conninfo_to_dict
           from faroai.app import connection, redis, qdrant
           parsed = urlparse(os.environ.get('DATABASE_URL', ''))
           print('DATABASE_TARGET=' + ('COMPOSE_POSTGRES' if parsed.hostname == 'postgres' and parsed.path == '/faroai' and parsed.username == 'faroai' else 'OTHER'))
+          try:
+              conninfo = conninfo_to_dict(os.environ.get('DATABASE_URL', ''))
+              print('LIBPQ_HOST_IS_POSTGRES=' + str(conninfo.get('host') == 'postgres'))
+              print('LIBPQ_USER_IS_FAROAI=' + str(conninfo.get('user') == 'faroai'))
+          except Exception as error:
+              print('DATABASE_URL_PARSE=' + type(error).__name__)
           checks = {'POSTGRES': lambda: connection().close(), 'REDIS': lambda: redis.ping(), 'QDRANT': lambda: qdrant.get_collections()}
           for name, check in checks.items():
               try:
