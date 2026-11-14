@@ -215,12 +215,14 @@ profile_enabled() {
 
 profiles=()
 artifacts_enabled=false
+document_import_enabled=false
 if profile_enabled FAROAI_ARTIFACT_ENABLED; then
   profiles+=(--profile artifacts)
   artifacts_enabled=true
 fi
 if profile_enabled FAROAI_DOCUMENT_IMPORT_ENABLED; then
   profiles+=(--profile document-import)
+  document_import_enabled=true
 fi
 
 docker_config="$(mktemp -d "${TMPDIR:-/tmp}/faroai-docker-config.XXXXXX")"
@@ -246,6 +248,19 @@ deploy_stage=PULL_IMAGES
 compose pull --quiet
 deploy_stage=START_SERVICES
 compose up -d --no-build --quiet-pull --remove-orphans
+
+if [[ "$artifacts_enabled" == true || "$document_import_enabled" == true ]]; then
+  deploy_stage=PROVISION_WORKER_DATABASE_ROLES
+  if ! python3 "$release_dir/infra/deploy/provision-staging-worker-roles.py" \
+      "$runtime_secrets_file" "$artifacts_enabled" "$document_import_enabled" \
+      | compose exec -T postgres psql -q -v ON_ERROR_STOP=1 -U postgres -d faroai \
+        >/dev/null 2>&1; then
+    echo 'Restricted worker database role provisioning failed; credentials were not logged' >&2
+    echo 'FAROAI_DEPLOY_FAILED_STAGE=PROVISION_WORKER_DATABASE_ROLES EXIT=1' >&2
+    exit 1
+  fi
+  echo 'Restricted worker database roles provisioned from the staging runtime Secret'
+fi
 
 if [[ "$artifacts_enabled" == true ]]; then
   deploy_stage=VERIFY_ARTIFACT_DATABASE_ROLE

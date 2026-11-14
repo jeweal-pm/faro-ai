@@ -165,6 +165,7 @@ jobs:
           arn = os.environ['STAGING_RUNTIME_SECRET_ARN']
           validate = '''
           import base64, json, re, subprocess, sys
+          from urllib.parse import urlsplit
           required = {'POSTGRES_PASSWORD', 'FAROAI_DB_PASSWORD', 'FAROAI_INTERNAL_SECRET',
                       'API_KEY_PEPPER', 'QDRANT_API_KEY', 'QDRANT_READ_ONLY_API_KEY'}
           allowed = required | {'DATABASE_URL', 'REDIS_URL', 'FAROAI_GIS_MCP_CONTEXT_SECRET',
@@ -231,6 +232,20 @@ jobs:
                       raise ValueError('BACKOFFICE_LOGIN_INCOMPLETE')
                   if len(base64.b64decode(payload.get('FAROAI_CONFIG_ENCRYPTION_KEY', '') + '===', validate=False)) != 32:
                       raise ValueError('BACKOFFICE_ENCRYPTION_KEY_INVALID')
+              for flag, key, role in (
+                  ('FAROAI_ARTIFACT_ENABLED', 'FAROAI_ARTIFACT_DATABASE_URL', 'faroai_artifact_worker'),
+                  ('FAROAI_DOCUMENT_IMPORT_ENABLED', 'FAROAI_DOCUMENT_IMPORT_DATABASE_URL', 'faroai_document_import_worker'),
+              ):
+                  if payload.get(flag) == 'true':
+                      try:
+                          uri = urlsplit(payload.get(key, ''))
+                          valid = (uri.scheme in ('postgres', 'postgresql') and uri.hostname == 'postgres'
+                                   and uri.port == 5432 and uri.path == '/faroai' and uri.username == role
+                                   and bool(uri.password) and not uri.query and not uri.fragment)
+                      except ValueError:
+                          valid = False
+                      if not valid:
+                          raise ValueError(key + '_INVALID')
               if set(payload) & ignored_legacy:
                   print('IGNORED_OBSOLETE_KEYS: ' + ', '.join(sorted(set(payload) & ignored_legacy)))
               if any(any(c in v for c in '\\x00\\r\\n') for v in payload.values()):
