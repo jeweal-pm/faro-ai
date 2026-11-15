@@ -1,4 +1,12 @@
 faroai.gis247.net {
 	encode zstd gzip
-	reverse_proxy backoffice:3000
+
+	@faroai_api path /v1/* /admin/v1/* /tenant/v1/* /health/live /health/ready
+	handle @faroai_api {
+		reverse_proxy api:3000
+	}
+
+	handle {
+		reverse_proxy backoffice:3000
+	}
 }
